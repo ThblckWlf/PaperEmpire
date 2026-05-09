@@ -1,0 +1,33 @@
+[
+  {
+    "id": "infantry",
+    "name": "Infantry",
+    "cost": 50,
+    "combatPower": 10,
+    "foodUpkeep": 1,
+    "moveSpeed": 1.0,
+    "bonuses": {}
+  },
+  {
+    "id": "cavalry",
+    "name": "Cavalry",
+    "cost": 90,
+    "combatPower": 18,
+    "foodUpkeep": 2,
+    "moveSpeed": 1.35,
+    "bonuses": {
+      "flanking": 0.1
+    }
+  },
+  {
+    "id": "artillery",
+    "name": "Artillery",
+    "cost": 140,
+    "combatPower": 32,
+    "foodUpkeep": 3,
+    "moveSpeed": 0.75,
+    "bonuses": {
+      "fortificationDamage": 0.2
+    }
+  }
+]

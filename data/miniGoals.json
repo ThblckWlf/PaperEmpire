@@ -1,0 +1,57 @@
+[
+  {
+    "id": "conquerThreeCountries",
+    "name": "First Expansion",
+    "description": "Conquer 3 countries.",
+    "goalType": "conquerCountries",
+    "target": 3,
+    "rewardType": "gold",
+    "rewardValue": 150
+  },
+  {
+    "id": "reachGold",
+    "name": "Full Treasury",
+    "description": "Reach 500 gold.",
+    "goalType": "reachGold",
+    "target": 500,
+    "rewardType": "food",
+    "rewardValue": 100
+  },
+  {
+    "id": "fieldArmy",
+    "name": "Field Army",
+    "description": "Reach 150 total army power.",
+    "goalType": "reachArmyPower",
+    "target": 150,
+    "rewardType": "gold",
+    "rewardValue": 120
+  },
+  {
+    "id": "hardTarget",
+    "name": "Hard Target",
+    "description": "Defeat a country with higher defense than your army's base strength.",
+    "goalType": "defeatStrongerCountry",
+    "target": 1,
+    "rewardType": "upgradeRarityBoost",
+    "rewardValue": 1
+  },
+  {
+    "id": "holdBorder",
+    "name": "Hold The Border",
+    "description": "Hold a threatened country for 3 months.",
+    "goalType": "holdThreatenedCountryMonths",
+    "target": 3,
+    "rewardType": "food",
+    "rewardValue": 160
+  },
+  {
+    "id": "lowThreatWin",
+    "name": "Quiet Advance",
+    "description": "Conquer 2 countries while threat stays below 25.",
+    "goalType": "conquerWithThreatBelow",
+    "target": 2,
+    "limit": 25,
+    "rewardType": "gold",
+    "rewardValue": 180
+  }
+]

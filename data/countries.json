@@ -1,0 +1,122 @@
+[
+  {
+    "id": "paperland",
+    "name": "Paperland",
+    "ownerId": "player",
+    "goldPerMonth": 35,
+    "foodPerMonth": 24,
+    "defense": 12,
+    "center": { "x": 120.0, "y": 220.0 },
+    "neighbors": ["inkreich", "foldmark", "vellum"]
+  },
+  {
+    "id": "inkreich",
+    "name": "Inkreich",
+    "ownerId": "neutral",
+    "goldPerMonth": 28,
+    "foodPerMonth": 18,
+    "defense": 16,
+    "center": { "x": 190.0, "y": 210.0 },
+    "neighbors": ["paperland", "graphia", "foldmark"]
+  },
+  {
+    "id": "foldmark",
+    "name": "Foldmark",
+    "ownerId": "neutral",
+    "goldPerMonth": 22,
+    "foodPerMonth": 30,
+    "defense": 10,
+    "center": { "x": 150.0, "y": 285.0 },
+    "neighbors": ["paperland", "inkreich", "vellum", "marginia"]
+  },
+  {
+    "id": "vellum",
+    "name": "Vellum",
+    "ownerId": "neutral",
+    "goldPerMonth": 18,
+    "foodPerMonth": 34,
+    "defense": 9,
+    "center": { "x": 85.0, "y": 285.0 },
+    "neighbors": ["paperland", "foldmark", "marginia"]
+  },
+  {
+    "id": "graphia",
+    "name": "Graphia",
+    "ownerId": "neutral",
+    "goldPerMonth": 42,
+    "foodPerMonth": 16,
+    "defense": 20,
+    "center": { "x": 265.0, "y": 205.0 },
+    "neighbors": ["inkreich", "cartonia", "ledgeria"]
+  },
+  {
+    "id": "marginia",
+    "name": "Marginia",
+    "ownerId": "neutral",
+    "goldPerMonth": 24,
+    "foodPerMonth": 20,
+    "defense": 14,
+    "center": { "x": 115.0, "y": 355.0 },
+    "neighbors": ["vellum", "foldmark", "staplia"]
+  },
+  {
+    "id": "cartonia",
+    "name": "Cartonia",
+    "ownerId": "neutral",
+    "goldPerMonth": 32,
+    "foodPerMonth": 22,
+    "defense": 18,
+    "center": { "x": 335.0, "y": 215.0 },
+    "neighbors": ["graphia", "ledgeria", "sealands"]
+  },
+  {
+    "id": "ledgeria",
+    "name": "Ledgeria",
+    "ownerId": "neutral",
+    "goldPerMonth": 48,
+    "foodPerMonth": 12,
+    "defense": 24,
+    "center": { "x": 310.0, "y": 300.0 },
+    "neighbors": ["graphia", "cartonia", "staplia", "sealands"]
+  },
+  {
+    "id": "staplia",
+    "name": "Staplia",
+    "ownerId": "neutral",
+    "goldPerMonth": 20,
+    "foodPerMonth": 28,
+    "defense": 13,
+    "center": { "x": 210.0, "y": 380.0 },
+    "neighbors": ["marginia", "ledgeria", "sealands", "waxholm"]
+  },
+  {
+    "id": "sealands",
+    "name": "Sealands",
+    "ownerId": "neutral",
+    "goldPerMonth": 30,
+    "foodPerMonth": 26,
+    "defense": 17,
+    "center": { "x": 390.0, "y": 330.0 },
+    "neighbors": ["cartonia", "ledgeria", "staplia", "waxholm"]
+  },
+  {
+    "id": "waxholm",
+    "name": "Waxholm",
+    "ownerId": "neutral",
+    "goldPerMonth": 26,
+    "foodPerMonth": 18,
+    "defense": 21,
+    "center": { "x": 310.0, "y": 435.0 },
+    "neighbors": ["staplia", "sealands", "notoria"]
+  },
+  {
+    "id": "notoria",
+    "name": "Notoria",
+    "ownerId": "world",
+    "goldPerMonth": 55,
+    "foodPerMonth": 20,
+    "defense": 30,
+    "center": { "x": 420.0, "y": 455.0 },
+    "neighbors": ["waxholm"]
+  }
+]

@@ -5,6 +5,7 @@ class_name CountryDataValidator
 static func validate(countries: Array[CountryData], validOwnerIds: Array[StringName]) -> ValidationResult:
 	var result := ValidationResult.new()
 	var knownIds: Dictionary = {}
+	var countryById: Dictionary = {}
 
 	for country in countries:
 		if country.id == GameIds.EMPTY_ID:
@@ -15,6 +16,7 @@ static func validate(countries: Array[CountryData], validOwnerIds: Array[StringN
 			result.addError("Duplicate country id: %s." % country.id)
 		else:
 			knownIds[country.id] = true
+			countryById[country.id] = country
 
 		if country.name.is_empty():
 			result.addError("Country %s has empty name." % country.id)
@@ -40,5 +42,9 @@ static func validate(countries: Array[CountryData], validOwnerIds: Array[StringN
 				result.addError("Country %s lists itself as a neighbor." % country.id)
 			elif not knownIds.has(neighborId):
 				result.addError("Country %s has unknown neighbor: %s." % [country.id, neighborId])
+			else:
+				var neighbor := countryById[neighborId] as CountryData
+				if not neighbor.neighbors.has(country.id):
+					result.addError("Country %s neighbor %s is not bidirectional." % [country.id, neighborId])
 
 	return result

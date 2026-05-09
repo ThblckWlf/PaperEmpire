@@ -20,6 +20,10 @@ func runAll() -> void:
 	_runTest("UnitData invalid fixture fails", _testInvalidUnits)
 	_runTest("RunState valid fixture passes", _testValidRunState)
 	_runTest("RunState invalid fixture fails", _testInvalidRunState)
+	_runTest("Prototype units fixture loads and validates", _testPrototypeUnitsFixture)
+	_runTest("Prototype countries fixture loads and validates", _testPrototypeCountriesFixture)
+	_runTest("Prototype upgrades fixture loads and validates", _testPrototypeUpgradesFixture)
+	_runTest("Prototype mini goals fixture loads and validates", _testPrototypeMiniGoalsFixture)
 
 	if failedTests == 0:
 		print("[DebugTestRunner] PASS: %d/%d tests passed." % [totalTests, totalTests])
@@ -88,6 +92,22 @@ func _testInvalidRunState() -> ValidationResult:
 
 	var result := RunStateValidator.validate(runState)
 	return _expectFailure(result)
+
+
+func _testPrototypeUnitsFixture() -> ValidationResult:
+	return UnitDataValidator.validate(PrototypeContentLoader.loadUnits())
+
+
+func _testPrototypeCountriesFixture() -> ValidationResult:
+	return CountryDataValidator.validate(PrototypeContentLoader.loadCountries(), _validOwnerIds())
+
+
+func _testPrototypeUpgradesFixture() -> ValidationResult:
+	return UpgradeDataValidator.validate(PrototypeContentLoader.loadUpgrades())
+
+
+func _testPrototypeMiniGoalsFixture() -> ValidationResult:
+	return MiniGoalDataValidator.validate(PrototypeContentLoader.loadMiniGoals())
 
 
 func _expectFailure(result: ValidationResult) -> ValidationResult:

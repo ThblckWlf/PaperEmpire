@@ -1,0 +1,82 @@
+[
+  {
+    "id": "rapidRecruitment",
+    "name": "Rapid Recruitment",
+    "description": "Recruitment is faster for the rest of the run.",
+    "rarity": "common",
+    "effectType": "recruitmentSpeedMultiplier",
+    "value": 0.8
+  },
+  {
+    "id": "warChest",
+    "name": "War Chest",
+    "description": "Gain more gold after successful conquests.",
+    "rarity": "common",
+    "effectType": "conquestGoldMultiplier",
+    "value": 1.25
+  },
+  {
+    "id": "efficientSupply",
+    "name": "Efficient Supply",
+    "description": "Armies consume less food per month.",
+    "rarity": "common",
+    "effectType": "foodUpkeepMultiplier",
+    "value": 0.9
+  },
+  {
+    "id": "strongFronts",
+    "name": "Strong Fronts",
+    "description": "Defending armies gain combat strength.",
+    "rarity": "uncommon",
+    "effectType": "defenseCombatMultiplier",
+    "value": 1.15
+  },
+  {
+    "id": "quietWars",
+    "name": "Quiet Wars",
+    "description": "Active wars generate less threat.",
+    "rarity": "uncommon",
+    "effectType": "warThreatMultiplier",
+    "value": 0.85
+  },
+  {
+    "id": "fieldLogistics",
+    "name": "Field Logistics",
+    "description": "Moving armies travel faster.",
+    "rarity": "common",
+    "effectType": "moveSpeedMultiplier",
+    "value": 1.1
+  },
+  {
+    "id": "siegeCrews",
+    "name": "Siege Crews",
+    "description": "Artillery gains extra combat power.",
+    "rarity": "uncommon",
+    "effectType": "artilleryCombatMultiplier",
+    "value": 1.2
+  },
+  {
+    "id": "foragers",
+    "name": "Foragers",
+    "description": "Controlled countries produce more food.",
+    "rarity": "common",
+    "effectType": "foodIncomeMultiplier",
+    "value": 1.15
+  },
+  {
+    "id": "taxClerks",
+    "name": "Tax Clerks",
+    "description": "Controlled countries produce more gold.",
+    "rarity": "common",
+    "effectType": "goldIncomeMultiplier",
+    "value": 1.15
+  },
+  {
+    "id": "veteranOfficers",
+    "name": "Veteran Officers",
+    "description": "All armies gain a small combat bonus.",
+    "rarity": "rare",
+    "effectType": "armyCombatMultiplier",
+    "value": 1.1
+  }
+]

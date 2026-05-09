@@ -38,6 +38,7 @@ The runner currently checks:
 - `CountryData` valid and invalid fixtures.
 - MVP `UnitData` definitions.
 - `RunState` valid and invalid fixtures.
+- Prototype JSON fixtures under `res://data/`.
 
 ## Git Checks
 
