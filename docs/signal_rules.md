@@ -71,7 +71,14 @@ It also exposes two wrapper methods:
 - `raiseGameEvent(eventName: StringName, payload: Dictionary = {})`
 - `raiseEvent(gameEvent: GameEvent)`
 
-These wrappers only emit signals. Command dispatch is owned by `GameManager` in Phase 6. Simulation handling belongs to later steps.
+These wrappers only emit signals. Command dispatch is owned by `GameManager`; Phase 7 connects `commandRequested` to `GameManager.submitCommand()` so future UI can request speed changes without touching state directly.
+
+`SimulationManager` also exposes local signals for time consumers:
+
+- `gameSpeedChanged(speed: int)`
+- `monthTick(month: int, year: int, elapsedSeconds: float)`
+
+Simulation rules still belong in core systems, not UI scenes.
 
 ## Naming
 
@@ -83,5 +90,5 @@ These wrappers only emit signals. Command dispatch is owned by `GameManager` in 
 ## Current Limits
 
 - No CommandBus implementation yet.
-- No scene wiring yet.
+- Only core manager scene wiring exists.
 - No autoload configuration yet.

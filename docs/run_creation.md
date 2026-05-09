@@ -54,6 +54,8 @@ When an `EventBus` is assigned through `setEventBus()`, `GameManager` emits:
 
 `EventBus.logGameEvents` can be enabled to print events to the Output panel.
 
+Phase 7 connects `EventBus.commandRequested` to `GameManager.submitCommand()` and forwards valid speed changes to `SimulationManager` when one is assigned.
+
 ## Debug Checks
 
 `res://tests_debug/DebugTestRunner.tscn` validates:

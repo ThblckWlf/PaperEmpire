@@ -4,16 +4,27 @@ class_name GameManager
 
 var currentRunState: RunState
 var eventBus: EventBus
+var simulationManager: SimulationManager
 var selectedCountryId: StringName = GameIds.EMPTY_ID
 
 
 func setEventBus(newEventBus: EventBus) -> void:
+	_disconnectEventBusCommands()
 	eventBus = newEventBus
+	_connectEventBusCommands()
+	if simulationManager != null:
+		simulationManager.setEventBus(eventBus)
+
+
+func setSimulationManager(newSimulationManager: SimulationManager) -> void:
+	simulationManager = newSimulationManager
+	_configureSimulationManager()
 
 
 func startNewRun(startCountryId: String) -> void:
 	currentRunState = NewRunFactory.createNewRun(StringName(startCountryId))
 	selectedCountryId = StringName(startCountryId)
+	_configureSimulationManager()
 	_raiseEvent(EventType.RUN_STARTED, {
 		"startCountryId": selectedCountryId,
 	})
@@ -45,6 +56,7 @@ func resetRun(startCountryId: StringName = GameIds.EMPTY_ID) -> void:
 
 	currentRunState = NewRunFactory.createNewRun(nextStartCountryId)
 	selectedCountryId = nextStartCountryId
+	_configureSimulationManager()
 	_raiseEvent(EventType.RUN_RESET, {
 		"startCountryId": nextStartCountryId,
 	})
@@ -88,7 +100,12 @@ func _setGameSpeed(speed: int) -> void:
 		push_warning("Cannot set invalid game speed: %s" % speed)
 		return
 
-	currentRunState.speed = speed
+	if simulationManager != null:
+		if not simulationManager.setGameSpeed(speed):
+			return
+	else:
+		currentRunState.speed = speed
+
 	_raiseEvent(EventType.GAME_SPEED_CHANGED, {
 		"speed": speed,
 	})
@@ -105,3 +122,26 @@ func _raiseEvent(eventType: StringName, payload: Dictionary = {}) -> void:
 		gameEvent.occurredAtSeconds = float(currentRunState.time.get("elapsedSeconds", 0.0))
 
 	eventBus.raiseEvent(gameEvent)
+
+
+func _configureSimulationManager() -> void:
+	if simulationManager != null:
+		simulationManager.configure(currentRunState, eventBus)
+
+
+func _connectEventBusCommands() -> void:
+	if eventBus == null:
+		return
+
+	var commandCallable := Callable(self, "submitCommand")
+	if not eventBus.commandRequested.is_connected(commandCallable):
+		eventBus.commandRequested.connect(commandCallable)
+
+
+func _disconnectEventBusCommands() -> void:
+	if eventBus == null:
+		return
+
+	var commandCallable := Callable(self, "submitCommand")
+	if eventBus.commandRequested.is_connected(commandCallable):
+		eventBus.commandRequested.disconnect(commandCallable)

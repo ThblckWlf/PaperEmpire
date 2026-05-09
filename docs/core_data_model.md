@@ -7,6 +7,7 @@ Phase 3 defines the shared MVP data structures used by simulation and UI. These 
 - `GameIds` - shared `StringName` IDs for owner and MVP unit identifiers.
 - `OwnerType` - owner category enum.
 - `GameSpeed` - paused, 1x, 2x, and 4x speed enum values.
+- `GameTime` - deterministic calendar helper for weeks, months, and years.
 - `ArmyStatus` - stationed, moving, attacking, defending, defeated.
 - `BattleStatus` - pending, active, ended.
 - `EventType` - shared event identifiers for Phase 3 game events.
@@ -106,6 +107,7 @@ Phase 3 event types:
 - `runStarted`
 - `runReset`
 - `gameSpeedChanged`
+- `monthTick`
 
 Events are data only. Effects, audio, and UI may consume them later, but events do not trigger effects directly.
 
@@ -122,6 +124,7 @@ Current validation checks:
 - MVP units use known unit IDs.
 - Unit costs, combat power, upkeep, and movement speed are valid.
 - RunState resources are numeric and not NaN.
+- RunState time has valid elapsed seconds, week, month, and year values.
 - RunState speed is one of the supported speed values.
 - Army locations and targets reference known countries.
 

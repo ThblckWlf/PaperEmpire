@@ -11,6 +11,7 @@ const START_CAVALRY: int = 2
 
 static func createNewRun(startCountryId: StringName = DEFAULT_START_COUNTRY_ID) -> RunState:
 	var runState := RunState.new()
+	runState.time = GameTime.createInitialState()
 	var countries := PrototypeContentLoader.loadCountries()
 	var hasStartCountry := false
 

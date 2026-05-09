@@ -27,6 +27,8 @@ func runAll() -> void:
 	_runTest("Prototype mini goals fixture loads and validates", _testPrototypeMiniGoalsFixture)
 	_runTest("NewRunFactory creates valid prototype run", _testNewRunFactory)
 	_runTest("GameManager commands update state and emit events", _testGameManagerCommands)
+	_runTest("GameTime advances deterministically", _testGameTimeAdvances)
+	_runTest("SimulationManager applies speed and emits monthTick", _testSimulationManagerTicks)
 
 	if failedTests == 0:
 		print("[DebugTestRunner] PASS: %d/%d tests passed." % [totalTests, totalTests])
@@ -145,10 +147,12 @@ func _testNewRunFactory() -> ValidationResult:
 func _testGameManagerCommands() -> ValidationResult:
 	var result := ValidationResult.new()
 	var manager := GameManager.new()
+	var simulation := SimulationManager.new()
 	var bus := EventBus.new()
 	capturedEvents.clear()
 	bus.gameEventRaised.connect(_recordGameEvent)
 	manager.setEventBus(bus)
+	manager.setSimulationManager(simulation)
 
 	manager.startNewRun("paperland")
 	if not manager.hasActiveRun():
@@ -165,6 +169,8 @@ func _testGameManagerCommands() -> ValidationResult:
 	})
 	if manager.getCurrentRunState().speed != GameSpeed.Value.Fast:
 		result.addError("set_game_speed did not update speed.")
+	if simulation.getGameSpeed() != GameSpeed.Value.Fast:
+		result.addError("set_game_speed did not update SimulationManager speed.")
 
 	manager.submitCommand(CommandType.PAUSE_GAME)
 	if manager.getCurrentRunState().speed != GameSpeed.Value.Paused:
@@ -179,6 +185,8 @@ func _testGameManagerCommands() -> ValidationResult:
 	})
 	if manager.getSelectedCountryId() != &"foldmark":
 		result.addError("reset_run did not update selectedCountryId.")
+	if simulation.getRunState() != manager.getCurrentRunState():
+		result.addError("reset_run did not update SimulationManager run state.")
 
 	if not _capturedEvent(EventType.RUN_STARTED):
 		result.addError("GameManager did not emit runStarted.")
@@ -193,6 +201,79 @@ func _testGameManagerCommands() -> ValidationResult:
 		result.addError("GameManager did not emit runReset.")
 
 	manager.free()
+	simulation.free()
+	bus.free()
+	return result
+
+
+func _testGameTimeAdvances() -> ValidationResult:
+	var result := ValidationResult.new()
+	var time := GameTime.createInitialState()
+
+	var monthTicks := GameTime.advance(time, GameTime.SECONDS_PER_WEEK_AT_1X)
+	if monthTicks != 0:
+		result.addError("GameTime emitted month tick after one week.")
+	if int(time.get("week", 0)) != 2:
+		result.addError("GameTime did not advance to week 2.")
+	if int(time.get("month", 0)) != 1:
+		result.addError("GameTime changed month too early.")
+
+	monthTicks = GameTime.advance(time, GameTime.SECONDS_PER_WEEK_AT_1X * 3.0)
+	if monthTicks != 1:
+		result.addError("GameTime did not emit one month tick after four weeks.")
+	if int(time.get("week", 0)) != 1:
+		result.addError("GameTime did not wrap week after one month.")
+	if int(time.get("month", 0)) != 2:
+		result.addError("GameTime did not advance to month 2.")
+
+	monthTicks = GameTime.advance(time, GameTime.SECONDS_PER_WEEK_AT_1X * GameTime.WEEKS_PER_MONTH * 11.0)
+	if monthTicks != 11:
+		result.addError("GameTime did not emit remaining year month ticks.")
+	if int(time.get("month", 0)) != 1:
+		result.addError("GameTime did not wrap month after one year.")
+	if int(time.get("year", 0)) != 2:
+		result.addError("GameTime did not advance to year 2.")
+
+	return result
+
+
+func _testSimulationManagerTicks() -> ValidationResult:
+	var result := ValidationResult.new()
+	var runState := NewRunFactory.createNewRun(&"paperland")
+	var simulation := SimulationManager.new()
+	var bus := EventBus.new()
+	capturedEvents.clear()
+	bus.gameEventRaised.connect(_recordGameEvent)
+	simulation.configure(runState, bus)
+
+	simulation.setGameSpeed(GameSpeed.Value.Paused)
+	simulation.stepSimulation(60.0)
+	if GameTime.getElapsedSeconds(runState.time) != 0.0:
+		result.addError("Paused SimulationManager advanced time.")
+
+	simulation.setGameSpeed(GameSpeed.Value.Normal)
+	simulation.stepSimulation(GameTime.SECONDS_PER_WEEK_AT_1X)
+	if int(runState.time.get("week", 0)) != 2:
+		result.addError("SimulationManager did not advance one week at 1x.")
+
+	simulation.setGameSpeed(GameSpeed.Value.Fast)
+	simulation.stepSimulation(GameTime.SECONDS_PER_WEEK_AT_1X * 1.5)
+	if int(runState.time.get("month", 0)) != 2:
+		result.addError("SimulationManager did not apply 2x speed to reach month 2.")
+
+	simulation.setGameSpeed(GameSpeed.Value.VeryFast)
+	simulation.stepSimulation(GameTime.SECONDS_PER_WEEK_AT_1X)
+	if int(runState.time.get("month", 0)) != 3:
+		result.addError("SimulationManager did not apply 4x speed to reach month 3.")
+
+	if not _capturedEvent(EventType.MONTH_TICK):
+		result.addError("SimulationManager did not emit monthTick.")
+
+	var pendingEvents := simulation.collectPendingEvents()
+	if pendingEvents.is_empty():
+		result.addError("SimulationManager did not store pending events.")
+
+	simulation.free()
 	bus.free()
 	return result
 

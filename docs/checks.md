@@ -41,6 +41,8 @@ The runner currently checks:
 - Prototype JSON fixtures under `res://data/`.
 - `NewRunFactory` prototype run creation.
 - `GameManager` command skeleton and event emission.
+- `GameTime` deterministic calendar advancement.
+- `SimulationManager` speed handling and `monthTick` events.
 
 ## Git Checks
 
