@@ -32,6 +32,7 @@ Paper Empire is a desktop-first Steam strategy roguelike built with Godot 4 and 
 ## Checks
 After changes:
 - Open the project in Godot and check for parser errors.
+- For headless CLI checks, use `.\scripts\godot.ps1 --headless --path . --quit` instead of relying on `godot` being on PATH.
 - Run the main scene if it exists.
 - Check the Output panel for errors.
 - Keep Git changes reviewable.

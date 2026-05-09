@@ -11,19 +11,20 @@ Run these checks after each focused implementation step. The goal is to catch pa
 5. Check the Output panel for errors or warnings that block the current step.
 6. Review the changed files in Git.
 
-## Optional Headless Check
+## Headless Check
 
-If the Godot executable is available on PATH:
-
-```powershell
-godot --headless --path . --quit
-```
-
-If the executable is named differently on the machine, use that name instead:
+Use the repository wrapper so checks do not depend on the Windows `PATH`:
 
 ```powershell
-godot4 --headless --path . --quit
+.\scripts\godot.ps1 --headless --path . --quit
 ```
+
+The wrapper resolves Godot in this order:
+
+- `GODOT4` environment variable.
+- `GODOT` environment variable.
+- `godot4` or `godot` on `PATH`.
+- The local portable Godot 4.6.2 path currently found under `Downloads`.
 
 ## Debug Validation Runner
 
@@ -71,4 +72,4 @@ Do not move to the next phase if any of these are true:
 
 ## Current Environment Note
 
-During Phase 2 setup on this machine, `godot` and `godot4` were not available on PATH. Until that is fixed, the Godot editor check and Output panel review must be performed manually.
+On this machine, `godot` and `godot4` are not available on `PATH`. Use `.\scripts\godot.ps1` for CLI checks.
