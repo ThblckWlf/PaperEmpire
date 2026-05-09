@@ -25,10 +25,12 @@ func runAll() -> void:
 	_runTest("Prototype countries fixture loads and validates", _testPrototypeCountriesFixture)
 	_runTest("Prototype upgrades fixture loads and validates", _testPrototypeUpgradesFixture)
 	_runTest("Prototype mini goals fixture loads and validates", _testPrototypeMiniGoalsFixture)
+	_runTest("Prototype map shapes fixture loads and validates", _testPrototypeMapShapesFixture)
 	_runTest("NewRunFactory creates valid prototype run", _testNewRunFactory)
 	_runTest("GameManager commands update state and emit events", _testGameManagerCommands)
 	_runTest("GameTime advances deterministically", _testGameTimeAdvances)
 	_runTest("SimulationManager applies speed and emits monthTick", _testSimulationManagerTicks)
+	_runTest("WorldMap creates country nodes", _testWorldMapCreatesCountryNodes)
 
 	if failedTests == 0:
 		print("[DebugTestRunner] PASS: %d/%d tests passed." % [totalTests, totalTests])
@@ -113,6 +115,38 @@ func _testPrototypeUpgradesFixture() -> ValidationResult:
 
 func _testPrototypeMiniGoalsFixture() -> ValidationResult:
 	return MiniGoalDataValidator.validate(PrototypeContentLoader.loadMiniGoals())
+
+
+func _testPrototypeMapShapesFixture() -> ValidationResult:
+	var result := ValidationResult.new()
+	var countries := PrototypeContentLoader.loadCountries()
+	var shapes := PrototypeContentLoader.loadMapShapes()
+	var boundsByCountry := {}
+
+	for country in countries:
+		if not shapes.has(country.id):
+			result.addError("Map shape missing for country: %s." % country.id)
+			continue
+
+		var points: PackedVector2Array = shapes[country.id]
+		if points.size() < 3:
+			result.addError("Map shape has fewer than 3 points for country: %s." % country.id)
+			continue
+
+		boundsByCountry[country.id] = _countryShapeBounds(country.center, points)
+
+	var countryIds := boundsByCountry.keys()
+	countryIds.sort()
+	for leftIndex in range(countryIds.size()):
+		for rightIndex in range(leftIndex + 1, countryIds.size()):
+			var leftId: StringName = countryIds[leftIndex]
+			var rightId: StringName = countryIds[rightIndex]
+			var leftBounds: Rect2 = boundsByCountry[leftId]
+			var rightBounds: Rect2 = boundsByCountry[rightId]
+			if leftBounds.intersects(rightBounds):
+				result.addError("Map shapes overlap: %s and %s." % [leftId, rightId])
+
+	return result
 
 
 func _testNewRunFactory() -> ValidationResult:
@@ -278,6 +312,48 @@ func _testSimulationManagerTicks() -> ValidationResult:
 	return result
 
 
+func _testWorldMapCreatesCountryNodes() -> ValidationResult:
+	var result := ValidationResult.new()
+	var scene := load("res://scenes/world/WorldMap.tscn") as PackedScene
+	if scene == null:
+		result.addError("WorldMap.tscn could not be loaded.")
+		return result
+
+	var worldMap = scene.instantiate()
+	if worldMap == null:
+		result.addError("WorldMap.tscn could not be instantiated.")
+		return result
+
+	var manager := GameManager.new()
+	var simulation := SimulationManager.new()
+	var bus := EventBus.new()
+	add_child(worldMap)
+	manager.setEventBus(bus)
+	manager.setSimulationManager(simulation)
+	manager.startNewRun("paperland")
+	worldMap.configure(manager, bus)
+
+	var runState := manager.getCurrentRunState()
+	if worldMap.getCountryNodeCount() != runState.countries.size():
+		result.addError("WorldMap did not create a CountryNode for every country.")
+
+	bus.requestCommand(CommandType.SELECT_COUNTRY, {
+		"countryId": "inkreich",
+	})
+	var inkreichNode = worldMap.getCountryNode(&"inkreich")
+	if inkreichNode == null:
+		result.addError("WorldMap did not expose inkreich CountryNode.")
+	elif not bool(inkreichNode.get("isSelected")):
+		result.addError("WorldMap did not update CountryNode selection from command event.")
+
+	remove_child(worldMap)
+	worldMap.free()
+	manager.free()
+	simulation.free()
+	bus.free()
+	return result
+
+
 func _recordGameEvent(eventName: StringName, payload: Dictionary) -> void:
 	capturedEvents.append({
 		"eventName": eventName,
@@ -361,3 +437,10 @@ func _validOwnerIds() -> Array[StringName]:
 		GameIds.NEUTRAL_OWNER_ID,
 		GameIds.WORLD_OWNER_ID,
 	]
+
+
+func _countryShapeBounds(center: Vector2, points: PackedVector2Array) -> Rect2:
+	var bounds := Rect2(center + points[0], Vector2.ZERO)
+	for point in points:
+		bounds = bounds.expand(center + point)
+	return bounds

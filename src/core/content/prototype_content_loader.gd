@@ -6,6 +6,7 @@ const UNITS_PATH: String = "res://data/units.json"
 const COUNTRIES_PATH: String = "res://data/countries.json"
 const UPGRADES_PATH: String = "res://data/upgrades.json"
 const MINI_GOALS_PATH: String = "res://data/miniGoals.json"
+const MAP_SHAPES_PATH: String = "res://data/mapShapes.json"
 
 
 static func loadUnits() -> Array[UnitData]:
@@ -57,6 +58,22 @@ static func loadMiniGoals() -> Array[Dictionary]:
 	return _dictionaryRows(_loadJsonArray(MINI_GOALS_PATH))
 
 
+static func loadMapShapes() -> Dictionary:
+	var rows := _loadJsonArray(MAP_SHAPES_PATH)
+	var shapes := {}
+	for row in rows:
+		if not (row is Dictionary):
+			continue
+
+		var rowData := row as Dictionary
+		var countryId := StringName(str(rowData.get("countryId", "")))
+		if countryId == GameIds.EMPTY_ID:
+			continue
+
+		shapes[countryId] = _vector2Array(rowData.get("points", []))
+	return shapes
+
+
 static func _loadJsonArray(path: String) -> Array:
 	if not FileAccess.file_exists(path):
 		push_error("Prototype content file not found: %s" % path)
@@ -100,3 +117,14 @@ static func _stringNameArray(value: Variant) -> Array[StringName]:
 
 static func _vector2Value(value: Dictionary) -> Vector2:
 	return Vector2(float(value.get("x", 0.0)), float(value.get("y", 0.0)))
+
+
+static func _vector2Array(value: Variant) -> PackedVector2Array:
+	var result := PackedVector2Array()
+	if not (value is Array):
+		return result
+
+	for item in value:
+		if item is Dictionary:
+			result.append(_vector2Value(item as Dictionary))
+	return result

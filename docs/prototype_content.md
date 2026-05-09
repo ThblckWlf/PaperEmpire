@@ -8,6 +8,7 @@ Phase 5 adds small JSON fixtures for manual testing and future prototype scenes.
 - `res://data/countries.json` - 12 test countries with owners, income, defense, center points, and bidirectional neighbors.
 - `res://data/upgrades.json` - 10 passive run upgrades.
 - `res://data/miniGoals.json` - 6 simple mini-goals.
+- `res://data/mapShapes.json` - local polygon points for the Phase 8 prototype map.
 
 ## Loader
 
@@ -17,6 +18,7 @@ Phase 5 adds small JSON fixtures for manual testing and future prototype scenes.
 - `loadCountries() -> Array[CountryData]`
 - `loadUpgrades() -> Array[Dictionary]`
 - `loadMiniGoals() -> Array[Dictionary]`
+- `loadMapShapes() -> Dictionary`
 
 The loader is intentionally narrow and only supports the current prototype files.
 
@@ -28,12 +30,13 @@ The debug runner validates prototype content through:
 - `UnitDataValidator`
 - `UpgradeDataValidator`
 - `MiniGoalDataValidator`
+- Map-shape fixture checks in `DebugTestRunner`
 
 Run `res://tests_debug/DebugTestRunner.tscn` and check the Output panel for PASS/FAIL lines.
 
 ## Current Limits
 
-- No real world map import.
+- No real world map import; Phase 8 uses simple non-overlapping prototype polygons.
 - No pathfinding.
 - No gameplay simulation.
 - No upgrade rolling logic.

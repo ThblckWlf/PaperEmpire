@@ -1,0 +1,20 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/world/country_node.gd" id="1_country_node"]
+
+[node name="CountryNode" type="Node2D"]
+script = ExtResource("1_country_node")
+
+[node name="Polygon2D" type="Polygon2D" parent="."]
+color = Color(0.74, 0.69, 0.58, 1)
+polygon = PackedVector2Array(-24, -20, 24, -20, 28, 18, -22, 22)
+
+[node name="Outline" type="Line2D" parent="."]
+points = PackedVector2Array(-24, -20, 24, -20, 28, 18, -22, 22, -24, -20)
+width = 2.0
+default_color = Color(0.1, 0.12, 0.14, 1)
+
+[node name="Area2D" type="Area2D" parent="."]
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="Area2D"]
+polygon = PackedVector2Array(-24, -20, 24, -20, 28, 18, -22, 22)

@@ -40,10 +40,12 @@ The runner currently checks:
 - MVP `UnitData` definitions.
 - `RunState` valid and invalid fixtures.
 - Prototype JSON fixtures under `res://data/`.
+- Prototype map-shape fixtures.
 - `NewRunFactory` prototype run creation.
 - `GameManager` command skeleton and event emission.
 - `GameTime` deterministic calendar advancement.
 - `SimulationManager` speed handling and `monthTick` events.
+- `WorldMap` country-node creation and selection updates.
 
 ## Git Checks
 

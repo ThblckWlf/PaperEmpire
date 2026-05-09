@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scenes/main/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://src/core/event_bus.gd" id="2_event_bus"]
 [ext_resource type="Script" path="res://src/core/game_manager.gd" id="3_game_manager"]
 [ext_resource type="Script" path="res://src/core/simulation_manager.gd" id="4_simulation"]
+[ext_resource type="PackedScene" path="res://scenes/world/WorldMap.tscn" id="5_world_map"]
 
 [node name="Main" type="Node"]
 script = ExtResource("1_main")
@@ -22,5 +23,7 @@ script = ExtResource("3_game_manager")
 script = ExtResource("4_simulation")
 
 [node name="WorldRoot" type="Node2D" parent="GameRoot"]
+
+[node name="WorldMap" parent="GameRoot/WorldRoot" instance=ExtResource("5_world_map")]
 
 [node name="UIRoot" type="CanvasLayer" parent="GameRoot"]

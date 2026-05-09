@@ -1,0 +1,17 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/world/world_map.gd" id="1_world_map"]
+
+[node name="WorldMap" type="Node2D"]
+script = ExtResource("1_world_map")
+
+[node name="CountryLayer" type="Node2D" parent="."]
+
+[node name="ArmyLayer" type="Node2D" parent="."]
+
+[node name="EffectsLayer" type="Node2D" parent="."]
+
+[node name="MapCamera" type="Camera2D" parent="."]
+position = Vector2(260, 320)
+zoom = Vector2(1.2, 1.2)
+enabled = true
