@@ -46,6 +46,7 @@ The runner currently checks:
 - `GameTime` deterministic calendar advancement.
 - `SimulationManager` speed handling and `monthTick` events.
 - `WorldMap` country-node creation and selection updates.
+- `MapCamera` pan bounds and zoom clamps.
 
 ## Git Checks
 

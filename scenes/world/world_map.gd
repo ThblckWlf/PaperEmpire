@@ -8,6 +8,7 @@ signal countryHoverChanged(countryId: StringName, isHovered: bool)
 const COUNTRY_NODE_SCENE: PackedScene = preload("res://scenes/world/CountryNode.tscn")
 
 @onready var countryLayer: Node2D = $CountryLayer as Node2D
+@onready var mapCamera = $MapCamera
 
 var gameManager: GameManager
 var eventBus: EventBus
@@ -44,6 +45,8 @@ func refreshFromRunState() -> void:
 		node.countryPressed.connect(_onCountryPressed)
 		node.countryHoverChanged.connect(_onCountryHoverChanged)
 		countryNodes[country.id] = node
+
+	_configureMapCamera(runState, mapShapes)
 
 
 func getCountryNodeCount() -> int:
@@ -93,6 +96,40 @@ func _shapeForCountry(mapShapes: Dictionary, countryId: StringName) -> PackedVec
 
 	var points: PackedVector2Array = mapShapes[countryId]
 	return points
+
+
+func _configureMapCamera(runState: RunState, mapShapes: Dictionary) -> void:
+	if mapCamera == null or not mapCamera.has_method("setMapBounds"):
+		return
+
+	var bounds := _calculateMapBounds(runState, mapShapes)
+	mapCamera.setMapBounds(bounds)
+
+
+func _calculateMapBounds(runState: RunState, mapShapes: Dictionary) -> Rect2:
+	var hasBounds := false
+	var bounds := Rect2()
+	for countryId in runState.countries.keys():
+		var country := runState.countries[countryId] as CountryData
+		if country == null:
+			continue
+
+		var points := _shapeForCountry(mapShapes, country.id)
+		if points.is_empty():
+			continue
+
+		for point in points:
+			var worldPoint := country.center + point
+			if hasBounds:
+				bounds = bounds.expand(worldPoint)
+			else:
+				bounds = Rect2(worldPoint, Vector2.ZERO)
+				hasBounds = true
+
+	if not hasBounds:
+		return Rect2(Vector2(40.0, 170.0), Vector2(430.0, 330.0))
+
+	return bounds
 
 
 func _connectEventBus() -> void:

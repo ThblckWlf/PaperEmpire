@@ -31,6 +31,7 @@ func runAll() -> void:
 	_runTest("GameTime advances deterministically", _testGameTimeAdvances)
 	_runTest("SimulationManager applies speed and emits monthTick", _testSimulationManagerTicks)
 	_runTest("WorldMap creates country nodes", _testWorldMapCreatesCountryNodes)
+	_runTest("MapCamera clamps pan and zoom", _testMapCameraClampsPanAndZoom)
 
 	if failedTests == 0:
 		print("[DebugTestRunner] PASS: %d/%d tests passed." % [totalTests, totalTests])
@@ -351,6 +352,49 @@ func _testWorldMapCreatesCountryNodes() -> ValidationResult:
 	manager.free()
 	simulation.free()
 	bus.free()
+	return result
+
+
+func _testMapCameraClampsPanAndZoom() -> ValidationResult:
+	var result := ValidationResult.new()
+	var scene := load("res://scenes/world/WorldMap.tscn") as PackedScene
+	if scene == null:
+		result.addError("WorldMap.tscn could not be loaded for camera test.")
+		return result
+
+	var worldMap = scene.instantiate()
+	add_child(worldMap)
+	var camera = worldMap.get_node("MapCamera")
+	if camera == null:
+		result.addError("WorldMap has no MapCamera node.")
+		return result
+
+	if not camera.has_method("setZoomScalar") or not camera.has_method("panBy"):
+		result.addError("MapCamera does not expose expected camera control methods.")
+		return result
+
+	camera.setMapBounds(Rect2(Vector2(50.0, 180.0), Vector2(420.0, 320.0)))
+	camera.setZoomScalar(99.0)
+	if not is_equal_approx(float(camera.getZoomScalar()), float(camera.getMaxZoom())):
+		result.addError("MapCamera did not clamp max zoom.")
+
+	camera.setZoomScalar(0.1)
+	if not is_equal_approx(float(camera.getZoomScalar()), float(camera.getMinZoom())):
+		result.addError("MapCamera did not clamp min zoom.")
+
+	camera.panBy(Vector2(100000.0, -100000.0))
+	var movementBounds: Rect2 = camera.getMovementBounds()
+	var cameraPosition: Vector2 = camera.position
+	if (
+		cameraPosition.x < movementBounds.position.x
+		or cameraPosition.x > movementBounds.end.x
+		or cameraPosition.y < movementBounds.position.y
+		or cameraPosition.y > movementBounds.end.y
+	):
+		result.addError("MapCamera pan escaped movement bounds.")
+
+	remove_child(worldMap)
+	worldMap.free()
 	return result
 
 

@@ -63,12 +63,16 @@ func setOwner(newOwnerId: StringName) -> void:
 
 
 func _onAreaInputEvent(_viewport: Viewport, event: InputEvent, _shapeIdx: int) -> void:
+	if _isPointerOverUi():
+		return
+
 	var mouseButton := event as InputEventMouseButton
 	if mouseButton == null:
 		return
 
 	if mouseButton.button_index == MOUSE_BUTTON_LEFT and mouseButton.pressed:
 		countryPressed.emit(countryId)
+		get_viewport().set_input_as_handled()
 
 
 func _onMouseEntered() -> void:
@@ -128,3 +132,7 @@ func _defaultPoints() -> PackedVector2Array:
 		Vector2(28.0, 18.0),
 		Vector2(-22.0, 22.0),
 	])
+
+
+func _isPointerOverUi() -> bool:
+	return get_viewport().gui_get_hovered_control() != null

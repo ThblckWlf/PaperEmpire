@@ -1,6 +1,6 @@
 # Map Scene
 
-Phase 8 adds the first prototype map rendering path. It is intentionally limited to scene structure, input forwarding, and visual state.
+Phase 8 adds the first prototype map rendering path. Phase 9 adds camera controls. The map remains limited to scene structure, input forwarding, and visual state.
 
 ## WorldMap
 
@@ -14,6 +14,14 @@ Nodes:
 - `MapCamera`
 
 `WorldMap` receives `GameManager` and `EventBus` from `Main.tscn`, creates one `CountryNode` per `CountryData`, and listens for selection events. It does not own gameplay rules.
+
+`MapCamera` has a controller script for:
+
+- Start zoom.
+- Bounds based on prototype country shapes.
+- WASD/arrow pan.
+- Right- or middle-mouse drag pan.
+- Mouse-wheel zoom with min/max clamps.
 
 ## CountryNode
 
@@ -38,6 +46,8 @@ Country clicks follow the command boundary:
 4. `WorldMap` updates visual selection from the event.
 
 No combat, movement, economy, or ownership changes are triggered by map clicks in Phase 8.
+
+Camera input uses `_unhandled_input()` so UI controls can consume pointer events first. `CountryNode` also checks `Viewport.gui_get_hovered_control()` before emitting country commands.
 
 ## Prototype Shapes
 
