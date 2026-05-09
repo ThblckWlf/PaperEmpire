@@ -1,0 +1,11 @@
+[gd_scene format=3]
+
+[node name="Main" type="Node"]
+
+[node name="GameRoot" type="Node" parent="."]
+
+[node name="Managers" type="Node" parent="GameRoot"]
+
+[node name="WorldRoot" type="Node2D" parent="GameRoot"]
+
+[node name="UIRoot" type="CanvasLayer" parent="GameRoot"]

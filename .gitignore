@@ -1,3 +1,14 @@
 # Godot 4+ specific ignores
 .godot/
+.import/
 /android/
+
+# Local exports and generated scratch files
+/export/
+/exports/
+export_presets.cfg
+*.tmp
+*.translation
+
+# Keep the project GDScript-only unless explicitly requested.
+.mono/
