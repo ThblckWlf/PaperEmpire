@@ -69,8 +69,9 @@ It also exposes two wrapper methods:
 
 - `requestCommand(commandName: StringName, payload: Dictionary = {})`
 - `raiseGameEvent(eventName: StringName, payload: Dictionary = {})`
+- `raiseEvent(gameEvent: GameEvent)`
 
-These wrappers only emit signals. Command dispatch, typed event models, and simulation handling belong to later steps.
+These wrappers only emit signals. Command dispatch is owned by `GameManager` in Phase 6. Simulation handling belongs to later steps.
 
 ## Naming
 
@@ -82,6 +83,5 @@ These wrappers only emit signals. Command dispatch, typed event models, and simu
 ## Current Limits
 
 - No CommandBus implementation yet.
-- No typed GameEvent resource or enum yet.
 - No scene wiring yet.
 - No autoload configuration yet.

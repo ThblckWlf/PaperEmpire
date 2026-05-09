@@ -103,6 +103,9 @@ Phase 3 event types:
 - `countryConquered`
 - `upgradeChoiceOpened`
 - `missileLaunched`
+- `runStarted`
+- `runReset`
+- `gameSpeedChanged`
 
 Events are data only. Effects, audio, and UI may consume them later, but events do not trigger effects directly.
 
