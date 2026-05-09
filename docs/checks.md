@@ -25,6 +25,20 @@ If the executable is named differently on the machine, use that name instead:
 godot4 --headless --path . --quit
 ```
 
+## Debug Validation Runner
+
+Phase 4 adds a manual debug scene for core data validation:
+
+1. Open `res://tests_debug/DebugTestRunner.tscn`.
+2. Run the current scene with F6.
+3. Check the Output panel for `[DebugTestRunner] PASS` or `[DebugTestRunner] FAIL` lines.
+
+The runner currently checks:
+
+- `CountryData` valid and invalid fixtures.
+- MVP `UnitData` definitions.
+- `RunState` valid and invalid fixtures.
+
 ## Git Checks
 
 ```powershell
@@ -44,6 +58,7 @@ git diff --cached --stat
 Do not move to the next phase if any of these are true:
 
 - `Main.tscn` does not start.
+- `DebugTestRunner.tscn` reports failures.
 - Godot reports parser errors.
 - A changed scene has a missing script or invalid node reference.
 - A step has half-wired signals or TODO-only scene references that are expected to work immediately.

@@ -106,12 +106,20 @@ Phase 3 event types:
 
 Events are data only. Effects, audio, and UI may consume them later, but events do not trigger effects directly.
 
-## Validation Status
+## Validation
 
-Debug validation is intentionally deferred. Later validation should check:
+Phase 4 adds validation scripts under `res://src/core/validation/` and a manual runner at `res://tests_debug/DebugTestRunner.tscn`.
+
+Current validation checks:
 
 - IDs are non-empty and unique.
 - Country neighbors point to known countries.
-- Unit amounts are non-negative integers.
-- RunState dictionaries contain the expected data classes.
-- Event types come from `EventType`.
+- Country owners are in the provided owner list.
+- Country centers are set to a non-zero finite coordinate.
+- MVP units use known unit IDs.
+- Unit costs, combat power, upkeep, and movement speed are valid.
+- RunState resources are numeric and not NaN.
+- RunState speed is one of the supported speed values.
+- Army locations and targets reference known countries.
+
+Later validation can add stricter event type checks and fixture-file loading once static data files exist.
