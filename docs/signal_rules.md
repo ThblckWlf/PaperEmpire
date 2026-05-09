@@ -80,6 +80,8 @@ These wrappers only emit signals. Command dispatch is owned by `GameManager`; Ph
 
 Simulation rules still belong in core systems, not UI scenes.
 
+Phase 10 UI controls use the same command boundary. `TimeControls` sends speed commands through `EventBus.requestCommand()`, and the ESC menu pauses/resumes through commands instead of mutating `RunState`.
+
 ## Naming
 
 - Signal names use `lowerCamelCase`.

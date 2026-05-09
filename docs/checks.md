@@ -47,6 +47,8 @@ The runner currently checks:
 - `SimulationManager` speed handling and `monthTick` events.
 - `WorldMap` country-node creation and selection updates.
 - `MapCamera` pan bounds and zoom clamps.
+- `RunStateView` UI summary data.
+- Main UI layout, CountryPanel selection binding, TimeControls commands, and ESC menu behavior.
 
 ## Git Checks
 

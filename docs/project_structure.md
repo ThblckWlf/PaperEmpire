@@ -7,12 +7,13 @@ This document records the Phase 1 folder layout. It is intentionally light: the 
 - `res://scenes/main/` - Main entry scenes. `Main.tscn` is the configured run scene.
 - `res://scenes/managers/` - Future manager scenes, if a step explicitly adds them.
 - `res://scenes/world/` - Map, country, army-layer, and world visual scenes.
-- `res://scenes/ui/` - Future Godot Control-based UI scenes.
+- `res://scenes/ui/` - Godot Control-based UI scripts for HUD panels and menu stubs.
 - `res://scenes/effects/` - Future visual effect scenes that react to events but do not own rules.
 
 ## Source And Data
 
 - `res://src/core/` - Canonical home for game simulation and domain logic.
+- `res://src/core/view/` - Core-side display data builders used by UI scenes.
 - `res://src/save/` - Save/load implementation. Runtime saves should use `user://`.
 - `res://src/platform/` - Desktop/Steam abstraction layer. No GodotSteam dependency in Phase 1.
 - `res://scripts/` - Reserved for small Godot/editor helper scripts if needed later. Gameplay rules belong in `src/core`.

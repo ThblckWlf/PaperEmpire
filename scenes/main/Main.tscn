@@ -1,10 +1,15 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scenes/main/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://src/core/event_bus.gd" id="2_event_bus"]
 [ext_resource type="Script" path="res://src/core/game_manager.gd" id="3_game_manager"]
 [ext_resource type="Script" path="res://src/core/simulation_manager.gd" id="4_simulation"]
 [ext_resource type="PackedScene" path="res://scenes/world/WorldMap.tscn" id="5_world_map"]
+[ext_resource type="Script" path="res://scenes/ui/ui_root.gd" id="6_ui_root"]
+[ext_resource type="Script" path="res://scenes/ui/top_bar.gd" id="7_top_bar"]
+[ext_resource type="Script" path="res://scenes/ui/country_panel.gd" id="8_country_panel"]
+[ext_resource type="Script" path="res://scenes/ui/time_controls.gd" id="9_time_controls"]
+[ext_resource type="Script" path="res://scenes/ui/esc_menu.gd" id="10_esc_menu"]
 
 [node name="Main" type="Node"]
 script = ExtResource("1_main")
@@ -27,3 +32,191 @@ script = ExtResource("4_simulation")
 [node name="WorldMap" parent="GameRoot/WorldRoot" instance=ExtResource("5_world_map")]
 
 [node name="UIRoot" type="CanvasLayer" parent="GameRoot"]
+script = ExtResource("6_ui_root")
+
+[node name="Root" type="Control" parent="GameRoot/UIRoot"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TopBar" type="PanelContainer" parent="GameRoot/UIRoot/Root"]
+layout_mode = 1
+script = ExtResource("7_top_bar")
+
+[node name="MarginContainer" type="MarginContainer" parent="GameRoot/UIRoot/Root/TopBar"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 10
+
+[node name="HBoxContainer" type="HBoxContainer" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 28
+
+[node name="GoldLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer"]
+layout_mode = 2
+text = "Gold: 0"
+
+[node name="FoodLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer"]
+layout_mode = 2
+text = "Food: 0"
+
+[node name="ArmyLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer"]
+layout_mode = 2
+text = "Army: 0"
+
+[node name="ThreatLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer"]
+layout_mode = 2
+text = "Threat: 0"
+
+[node name="Spacer" type="Control" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="DateLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer"]
+layout_mode = 2
+text = "Y1 M1 W1"
+
+[node name="LeftPanel" type="PanelContainer" parent="GameRoot/UIRoot/Root"]
+layout_mode = 1
+
+[node name="MarginContainer" type="MarginContainer" parent="GameRoot/UIRoot/Root/LeftPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 14
+
+[node name="VBoxContainer" type="VBoxContainer" parent="GameRoot/UIRoot/Root/LeftPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TitleLabel" type="Label" parent="GameRoot/UIRoot/Root/LeftPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Paper Empire"
+
+[node name="RunLabel" type="Label" parent="GameRoot/UIRoot/Root/LeftPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Run"
+
+[node name="RightPanel" type="PanelContainer" parent="GameRoot/UIRoot/Root"]
+layout_mode = 1
+script = ExtResource("8_country_panel")
+
+[node name="MarginContainer" type="MarginContainer" parent="GameRoot/UIRoot/Root/RightPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 14
+
+[node name="VBoxContainer" type="VBoxContainer" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TitleLabel" type="Label" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "No country selected"
+
+[node name="OwnerLabel" type="Label" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Owner: -"
+
+[node name="GoldLabel" type="Label" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Gold/month: -"
+
+[node name="FoodLabel" type="Label" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Food/month: -"
+
+[node name="DefenseLabel" type="Label" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Defense: -"
+
+[node name="ArmiesLabel" type="Label" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Armies: -"
+
+[node name="BottomBar" type="PanelContainer" parent="GameRoot/UIRoot/Root"]
+layout_mode = 1
+script = ExtResource("9_time_controls")
+
+[node name="MarginContainer" type="MarginContainer" parent="GameRoot/UIRoot/Root/BottomBar"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
+
+[node name="HBoxContainer" type="HBoxContainer" parent="GameRoot/UIRoot/Root/BottomBar/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="PauseButton" type="Button" parent="GameRoot/UIRoot/Root/BottomBar/MarginContainer/HBoxContainer"]
+layout_mode = 2
+toggle_mode = true
+text = "Pause"
+
+[node name="NormalButton" type="Button" parent="GameRoot/UIRoot/Root/BottomBar/MarginContainer/HBoxContainer"]
+layout_mode = 2
+toggle_mode = true
+text = "1x"
+
+[node name="FastButton" type="Button" parent="GameRoot/UIRoot/Root/BottomBar/MarginContainer/HBoxContainer"]
+layout_mode = 2
+toggle_mode = true
+text = "2x"
+
+[node name="VeryFastButton" type="Button" parent="GameRoot/UIRoot/Root/BottomBar/MarginContainer/HBoxContainer"]
+layout_mode = 2
+toggle_mode = true
+text = "4x"
+
+[node name="ModalLayer" type="Control" parent="GameRoot/UIRoot/Root"]
+visible = false
+layout_mode = 1
+mouse_filter = 0
+
+[node name="Dim" type="ColorRect" parent="GameRoot/UIRoot/Root/ModalLayer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.35)
+
+[node name="EscMenu" type="PanelContainer" parent="GameRoot/UIRoot/Root/ModalLayer"]
+layout_mode = 1
+script = ExtResource("10_esc_menu")
+
+[node name="MarginContainer" type="MarginContainer" parent="GameRoot/UIRoot/Root/ModalLayer/EscMenu"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 18
+
+[node name="VBoxContainer" type="VBoxContainer" parent="GameRoot/UIRoot/Root/ModalLayer/EscMenu/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="TitleLabel" type="Label" parent="GameRoot/UIRoot/Root/ModalLayer/EscMenu/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Pause"
+horizontal_alignment = 1
+
+[node name="ResumeButton" type="Button" parent="GameRoot/UIRoot/Root/ModalLayer/EscMenu/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Resume"
+
+[node name="QuitButton" type="Button" parent="GameRoot/UIRoot/Root/ModalLayer/EscMenu/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Quit to Menu"

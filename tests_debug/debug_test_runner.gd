@@ -5,6 +5,7 @@ class_name DebugTestRunner
 var totalTests: int = 0
 var failedTests: int = 0
 var capturedEvents: Array[Dictionary] = []
+const RUN_STATE_VIEW := preload("res://src/core/view/run_state_view.gd")
 
 
 func _ready() -> void:
@@ -32,6 +33,8 @@ func runAll() -> void:
 	_runTest("SimulationManager applies speed and emits monthTick", _testSimulationManagerTicks)
 	_runTest("WorldMap creates country nodes", _testWorldMapCreatesCountryNodes)
 	_runTest("MapCamera clamps pan and zoom", _testMapCameraClampsPanAndZoom)
+	_runTest("RunStateView creates UI summaries", _testRunStateViewCreatesSummaries)
+	_runTest("Main UI layout binds state and commands", _testMainUiLayoutBindsStateAndCommands)
 
 	if failedTests == 0:
 		print("[DebugTestRunner] PASS: %d/%d tests passed." % [totalTests, totalTests])
@@ -398,6 +401,78 @@ func _testMapCameraClampsPanAndZoom() -> ValidationResult:
 	return result
 
 
+func _testRunStateViewCreatesSummaries() -> ValidationResult:
+	var result := ValidationResult.new()
+	var runState := NewRunFactory.createNewRun(&"paperland")
+	var topBarData: Dictionary = RUN_STATE_VIEW.createTopBarData(runState)
+	if int(topBarData.get("gold", 0)) != NewRunFactory.START_GOLD:
+		result.addError("RunStateView top bar gold is wrong.")
+	if int(topBarData.get("food", 0)) != NewRunFactory.START_FOOD:
+		result.addError("RunStateView top bar food is wrong.")
+	if int(topBarData.get("armyStrength", 0)) != NewRunFactory.START_INFANTRY + NewRunFactory.START_CAVALRY:
+		result.addError("RunStateView army strength summary is wrong.")
+	if str(topBarData.get("dateText", "")) != "Y1 M1 W1":
+		result.addError("RunStateView date text is wrong.")
+
+	var countryData: Dictionary = RUN_STATE_VIEW.createCountryPanelData(runState, &"paperland")
+	if str(countryData.get("name", "")) != "Paperland":
+		result.addError("RunStateView country panel name is wrong.")
+	if int(countryData.get("stationedArmyCount", 0)) != 1:
+		result.addError("RunStateView stationed army count is wrong.")
+	return result
+
+
+func _testMainUiLayoutBindsStateAndCommands() -> ValidationResult:
+	var result := ValidationResult.new()
+	var scene := load("res://scenes/main/Main.tscn") as PackedScene
+	if scene == null:
+		result.addError("Main.tscn could not be loaded for UI test.")
+		return result
+
+	var main = scene.instantiate()
+	add_child(main)
+	var gameManager := main.get_node("GameRoot/Managers/GameManager") as GameManager
+	var eventBus := main.get_node("GameRoot/Managers/EventBus") as EventBus
+	var uiRoot = main.get_node("GameRoot/UIRoot")
+	var topBar = main.get_node("GameRoot/UIRoot/Root/TopBar")
+	var rightPanel = main.get_node("GameRoot/UIRoot/Root/RightPanel")
+	var bottomBar = main.get_node("GameRoot/UIRoot/Root/BottomBar")
+	var modalLayer = main.get_node("GameRoot/UIRoot/Root/ModalLayer")
+	if uiRoot == null or topBar == null or rightPanel == null or bottomBar == null or modalLayer == null:
+		result.addError("Main UI layout is missing required nodes.")
+		_cleanupMainForTest(main)
+		return result
+
+	var goldLabel := main.get_node("GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer/GoldLabel") as Label
+	if goldLabel.text != "Gold: %d" % NewRunFactory.START_GOLD:
+		result.addError("TopBar did not bind starting gold.")
+
+	eventBus.requestCommand(CommandType.SELECT_COUNTRY, {
+		"countryId": "inkreich",
+	})
+	var countryTitle := main.get_node("GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer/TitleLabel") as Label
+	if countryTitle.text != "Inkreich":
+		result.addError("CountryPanel did not update from country selection.")
+
+	var pauseButton := main.get_node("GameRoot/UIRoot/Root/BottomBar/MarginContainer/HBoxContainer/PauseButton") as Button
+	pauseButton.emit_signal("pressed")
+	if gameManager.getCurrentRunState().speed != GameSpeed.Value.Paused:
+		result.addError("TimeControls pause button did not request pause.")
+
+	uiRoot.call("_openEscMenu")
+	if not bool(uiRoot.call("isEscMenuOpen")):
+		result.addError("ESC menu did not open.")
+
+	uiRoot.call("_resumeFromEscMenu")
+	if bool(uiRoot.call("isEscMenuOpen")):
+		result.addError("ESC menu did not close on resume.")
+	if gameManager.getCurrentRunState().speed == GameSpeed.Value.Paused:
+		result.addError("ESC menu resume did not restore speed.")
+
+	_cleanupMainForTest(main)
+	return result
+
+
 func _recordGameEvent(eventName: StringName, payload: Dictionary) -> void:
 	capturedEvents.append({
 		"eventName": eventName,
@@ -488,3 +563,9 @@ func _countryShapeBounds(center: Vector2, points: PackedVector2Array) -> Rect2:
 	for point in points:
 		bounds = bounds.expand(center + point)
 	return bounds
+
+
+func _cleanupMainForTest(main: Node) -> void:
+	if main.get_parent() == self:
+		remove_child(main)
+	main.free()
