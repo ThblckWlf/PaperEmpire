@@ -6,6 +6,7 @@ static func validate(runState: RunState) -> ValidationResult:
 	var result := ValidationResult.new()
 	_validateTime(runState.time, result)
 	_validateResources(runState.resources, result)
+	_validateEconomy(runState.economy, result)
 	_validateSpeed(runState.speed, result)
 	_validateArmyLocations(runState, result)
 	return result
@@ -47,6 +48,26 @@ static func _validateResources(resources: Dictionary, result: ValidationResult) 
 
 		if valueType == TYPE_FLOAT and is_nan(float(value)):
 			result.addError("RunState resource %s is NaN." % key)
+
+
+static func _validateEconomy(economy: Dictionary, result: ValidationResult) -> void:
+	for key in ["isFoodShortage", "recruitmentBlocked", "healingBlocked"]:
+		if not economy.has(key):
+			result.addError("RunState economy missing key: %s." % key)
+		elif typeof(economy[key]) != TYPE_BOOL:
+			result.addError("RunState economy %s is not bool." % key)
+
+	var shortageMonths = economy.get("foodShortageMonths", 0)
+	if not _isNumeric(shortageMonths):
+		result.addError("RunState economy foodShortageMonths is not numeric.")
+	elif int(shortageMonths) < 0:
+		result.addError("RunState economy foodShortageMonths is negative.")
+
+	var combatPowerMultiplier = economy.get("combatPowerMultiplier", 1.0)
+	if not _isNumeric(combatPowerMultiplier):
+		result.addError("RunState economy combatPowerMultiplier is not numeric.")
+	elif float(combatPowerMultiplier) <= 0.0:
+		result.addError("RunState economy combatPowerMultiplier is not positive.")
 
 
 static func _validateSpeed(speed: int, result: ValidationResult) -> void:

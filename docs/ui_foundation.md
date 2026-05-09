@@ -28,6 +28,8 @@ Displays prepared values from `RunStateView`:
 
 The TopBar does not compute these values.
 
+It refreshes on `monthTick`, so Phase 11 economy changes appear through normal state/event flow.
+
 ## CountryPanel
 
 File: `res://scenes/ui/country_panel.gd`

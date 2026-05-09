@@ -13,6 +13,8 @@ static func createTopBarData(runState: RunState) -> Dictionary:
 		"armyStrength": _totalArmyUnits(runState),
 		"dateText": _dateText(runState.time),
 		"speed": int(runState.speed),
+		"isFoodShortage": bool(runState.economy.get("isFoodShortage", false)),
+		"combatPowerMultiplier": float(runState.economy.get("combatPowerMultiplier", 1.0)),
 	}
 
 

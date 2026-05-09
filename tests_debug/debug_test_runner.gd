@@ -6,6 +6,7 @@ var totalTests: int = 0
 var failedTests: int = 0
 var capturedEvents: Array[Dictionary] = []
 const RUN_STATE_VIEW := preload("res://src/core/view/run_state_view.gd")
+const ECONOMY_SIMULATION := preload("res://src/core/simulation/economy_simulation.gd")
 
 
 func _ready() -> void:
@@ -31,6 +32,8 @@ func runAll() -> void:
 	_runTest("GameManager commands update state and emit events", _testGameManagerCommands)
 	_runTest("GameTime advances deterministically", _testGameTimeAdvances)
 	_runTest("SimulationManager applies speed and emits monthTick", _testSimulationManagerTicks)
+	_runTest("EconomySimulation calculates income and upkeep", _testEconomyCalculatesIncomeAndUpkeep)
+	_runTest("EconomySimulation applies month tick and shortage", _testEconomyAppliesMonthTickAndShortage)
 	_runTest("WorldMap creates country nodes", _testWorldMapCreatesCountryNodes)
 	_runTest("MapCamera clamps pan and zoom", _testMapCameraClampsPanAndZoom)
 	_runTest("RunStateView creates UI summaries", _testRunStateViewCreatesSummaries)
@@ -316,6 +319,47 @@ func _testSimulationManagerTicks() -> ValidationResult:
 	return result
 
 
+func _testEconomyCalculatesIncomeAndUpkeep() -> ValidationResult:
+	var result := ValidationResult.new()
+	var runState := NewRunFactory.createNewRun(&"paperland")
+	var income: Dictionary = ECONOMY_SIMULATION.calculateMonthlyIncome(runState)
+	var upkeep: int = ECONOMY_SIMULATION.calculateArmyFoodUpkeep(runState, PrototypeContentLoader.loadUnits())
+	if int(income.get("gold", 0)) != 35:
+		result.addError("EconomySimulation calculated wrong gold income.")
+	if int(income.get("food", 0)) != 24:
+		result.addError("EconomySimulation calculated wrong food income.")
+	if upkeep != 14:
+		result.addError("EconomySimulation calculated wrong army food upkeep.")
+	return result
+
+
+func _testEconomyAppliesMonthTickAndShortage() -> ValidationResult:
+	var result := ValidationResult.new()
+	var runState := NewRunFactory.createNewRun(&"paperland")
+	var monthResult: Dictionary = ECONOMY_SIMULATION.applyMonthTick(runState, PrototypeContentLoader.loadUnits())
+	if int(runState.resources.get("gold", 0)) != NewRunFactory.START_GOLD + 35:
+		result.addError("EconomySimulation did not apply monthly gold income.")
+	if int(runState.resources.get("food", 0)) != NewRunFactory.START_FOOD + 24 - 14:
+		result.addError("EconomySimulation did not apply food income and upkeep.")
+	if int(monthResult.get("foodUpkeep", 0)) != 14:
+		result.addError("EconomySimulation month result missing upkeep.")
+
+	runState.resources["food"] = 0
+	var army := runState.armies[&"army_start"] as ArmyData
+	army.units[GameIds.INFANTRY_UNIT_ID] = 1000
+	ECONOMY_SIMULATION.applyMonthTick(runState, PrototypeContentLoader.loadUnits())
+	ECONOMY_SIMULATION.applyMonthTick(runState, PrototypeContentLoader.loadUnits())
+	if not bool(runState.economy.get("isFoodShortage", false)):
+		result.addError("EconomySimulation did not set food shortage flag.")
+	if not bool(runState.economy.get("recruitmentBlocked", false)):
+		result.addError("EconomySimulation did not set recruitment block flag.")
+	if not bool(runState.economy.get("healingBlocked", false)):
+		result.addError("EconomySimulation did not set healing block flag.")
+	if not is_equal_approx(float(runState.economy.get("combatPowerMultiplier", 1.0)), ECONOMY_SIMULATION.FOOD_SHORTAGE_COMBAT_MULTIPLIER):
+		result.addError("EconomySimulation did not apply food shortage combat malus.")
+	return result
+
+
 func _testWorldMapCreatesCountryNodes() -> ValidationResult:
 	var result := ValidationResult.new()
 	var scene := load("res://scenes/world/WorldMap.tscn") as PackedScene
@@ -433,6 +477,7 @@ func _testMainUiLayoutBindsStateAndCommands() -> ValidationResult:
 	add_child(main)
 	var gameManager := main.get_node("GameRoot/Managers/GameManager") as GameManager
 	var eventBus := main.get_node("GameRoot/Managers/EventBus") as EventBus
+	var simulationManager := main.get_node("GameRoot/Managers/SimulationManager") as SimulationManager
 	var uiRoot = main.get_node("GameRoot/UIRoot")
 	var topBar = main.get_node("GameRoot/UIRoot/Root/TopBar")
 	var rightPanel = main.get_node("GameRoot/UIRoot/Root/RightPanel")
@@ -446,6 +491,13 @@ func _testMainUiLayoutBindsStateAndCommands() -> ValidationResult:
 	var goldLabel := main.get_node("GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer/GoldLabel") as Label
 	if goldLabel.text != "Gold: %d" % NewRunFactory.START_GOLD:
 		result.addError("TopBar did not bind starting gold.")
+
+	eventBus.requestCommand(CommandType.SET_GAME_SPEED, {
+		"speed": GameSpeed.Value.Normal,
+	})
+	simulationManager.stepSimulation(GameTime.SECONDS_PER_WEEK_AT_1X * GameTime.WEEKS_PER_MONTH)
+	if goldLabel.text != "Gold: %d" % (NewRunFactory.START_GOLD + 35):
+		result.addError("TopBar did not update after month tick economy apply.")
 
 	eventBus.requestCommand(CommandType.SELECT_COUNTRY, {
 		"countryId": "inkreich",

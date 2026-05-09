@@ -45,6 +45,7 @@ The runner currently checks:
 - `GameManager` command skeleton and event emission.
 - `GameTime` deterministic calendar advancement.
 - `SimulationManager` speed handling and `monthTick` events.
+- `EconomySimulation` income, upkeep, month tick application, and food-shortage flags.
 - `WorldMap` country-node creation and selection updates.
 - `MapCamera` pan bounds and zoom clamps.
 - `RunStateView` UI summary data.

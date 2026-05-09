@@ -6,6 +6,7 @@ signal gameSpeedChanged(speed: int)
 signal monthTick(month: int, year: int, elapsedSeconds: float)
 
 const DEFAULT_FIXED_STEP_SECONDS: float = 0.1
+const ECONOMY_SIMULATION := preload("res://src/core/simulation/economy_simulation.gd")
 
 var fixedStepSeconds: float = DEFAULT_FIXED_STEP_SECONDS
 var accumulatedSeconds: float = 0.0
@@ -99,11 +100,13 @@ func _advanceFixedStep(deltaSeconds: float) -> void:
 
 
 func _raiseMonthTick() -> void:
+	var economyResult: Dictionary = ECONOMY_SIMULATION.applyMonthTick(runState, PrototypeContentLoader.loadUnits())
 	var payload := {
 		"week": int(runState.time.get("week", 1)),
 		"month": int(runState.time.get("month", 1)),
 		"year": int(runState.time.get("year", 1)),
 		"elapsedSeconds": GameTime.getElapsedSeconds(runState.time),
+		"economy": economyResult,
 	}
 	monthTick.emit(int(payload["month"]), int(payload["year"]), float(payload["elapsedSeconds"]))
 	_raiseEvent(EventType.MONTH_TICK, payload)

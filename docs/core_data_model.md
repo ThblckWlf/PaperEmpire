@@ -76,6 +76,7 @@ Fields:
 - `time: Dictionary`
 - `speed: int`
 - `resources: Dictionary`
+- `economy: Dictionary`
 - `countries: Dictionary`
 - `armies: Dictionary`
 - `battles: Dictionary`
@@ -84,6 +85,15 @@ Fields:
 - `runStatus: StringName`
 
 `RunState` is a runtime state container. Save serialization and migration are not part of Phase 3.
+
+Phase 11 adds `economy` flags for monthly economy results and food shortage:
+
+- `isFoodShortage`
+- `foodShortageMonths`
+- `recruitmentBlocked`
+- `healingBlocked`
+- `combatPowerMultiplier`
+- `lastMonthResult`
 
 ## GameEvent
 
@@ -125,6 +135,7 @@ Current validation checks:
 - Unit costs, combat power, upkeep, and movement speed are valid.
 - RunState resources are numeric and not NaN.
 - RunState time has valid elapsed seconds, week, month, and year values.
+- RunState economy flags have valid types and positive combat multiplier.
 - RunState speed is one of the supported speed values.
 - Army locations and targets reference known countries.
 

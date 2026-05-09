@@ -19,6 +19,14 @@ var resources: Dictionary = {
 	"food": 0,
 	"threat": 0,
 }
+var economy: Dictionary = {
+	"isFoodShortage": false,
+	"foodShortageMonths": 0,
+	"recruitmentBlocked": false,
+	"healingBlocked": false,
+	"combatPowerMultiplier": 1.0,
+	"lastMonthResult": {},
+}
 var countries: Dictionary = {}
 var armies: Dictionary = {}
 var battles: Dictionary = {}
