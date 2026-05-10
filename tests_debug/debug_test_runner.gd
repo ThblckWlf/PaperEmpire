@@ -67,6 +67,7 @@ func runAll() -> void:
 	_runTest("SaveFormat defines versioned save schema", _testSaveFormatDefinesVersionedSchema)
 	_runTest("RunStateSerializer writes pure data", _testRunStateSerializerWritesPureData)
 	_runTest("SaveManager writes and loads user saves", _testSaveManagerWritesAndLoadsUserSaves)
+	_runTest("Manual save load UI restores run state", _testManualSaveLoadUiRestoresRunState)
 
 	if failedTests == 0:
 		print("[DebugTestRunner] PASS: %d/%d tests passed." % [totalTests, totalTests])
@@ -1371,6 +1372,43 @@ func _testSaveManagerWritesAndLoadsUserSaves() -> ValidationResult:
 	manager.deleteSave(slotId)
 	remove_child(manager)
 	manager.free()
+	return result
+
+
+func _testManualSaveLoadUiRestoresRunState() -> ValidationResult:
+	var result := ValidationResult.new()
+	var scene := load("res://scenes/main/Main.tscn") as PackedScene
+	if scene == null:
+		result.addError("Main.tscn could not be loaded for save/load UI test.")
+		return result
+
+	var main = scene.instantiate()
+	add_child(main)
+	var gameManager := main.get_node("GameRoot/Managers/GameManager") as GameManager
+	var saveManager := main.get_node("GameRoot/Managers/SaveManager") as SaveManager
+	var uiRoot = main.get_node("GameRoot/UIRoot")
+	var saveButton := main.get_node("GameRoot/UIRoot/Root/ModalLayer/EscMenu/MarginContainer/VBoxContainer/SaveButton") as Button
+	var loadButton := main.get_node("GameRoot/UIRoot/Root/ModalLayer/EscMenu/MarginContainer/VBoxContainer/LoadButton") as Button
+	if saveManager == null or saveButton == null or loadButton == null:
+		result.addError("Manual save/load UI is missing required nodes.")
+		_cleanupMainForTest(main)
+		return result
+
+	saveManager.deleteSave("manual_1")
+	var runState := gameManager.getCurrentRunState()
+	runState.resources["gold"] = 321
+	uiRoot.call("_openEscMenu")
+	saveButton.emit_signal("pressed")
+	if not saveManager.hasSave("manual_1"):
+		result.addError("Manual save button did not create a save file.")
+
+	runState.resources["gold"] = 999
+	loadButton.emit_signal("pressed")
+	if int(gameManager.getCurrentRunState().resources.get("gold", 0)) != 321:
+		result.addError("Manual load button did not restore saved run gold.")
+
+	saveManager.deleteSave("manual_1")
+	_cleanupMainForTest(main)
 	return result
 
 

@@ -21,6 +21,8 @@ var speedBeforePause: int = GameSpeed.Value.Normal
 func _ready() -> void:
 	_applyLayout()
 	escMenu.resumeRequested.connect(_resumeFromEscMenu)
+	escMenu.saveRequested.connect(_saveFromEscMenu)
+	escMenu.loadRequested.connect(_loadFromEscMenu)
 	escMenu.quitToMenuRequested.connect(_handleQuitToMenuStub)
 	upgradeModal.visible = false
 	modalLayer.visible = false
@@ -106,6 +108,24 @@ func _resumeFromEscMenu() -> void:
 		eventBus.requestCommand(CommandType.SET_GAME_SPEED, {
 			"speed": speedBeforePause,
 		})
+	_refreshAll()
+
+
+func _saveFromEscMenu() -> void:
+	if eventBus != null:
+		eventBus.requestCommand(CommandType.SAVE_GAME, {
+			"slotId": "manual_1",
+		})
+	_refreshAll()
+
+
+func _loadFromEscMenu() -> void:
+	if eventBus != null:
+		eventBus.requestCommand(CommandType.LOAD_GAME, {
+			"slotId": "manual_1",
+		})
+	escMenu.visible = false
+	modalLayer.visible = false
 	_refreshAll()
 
 

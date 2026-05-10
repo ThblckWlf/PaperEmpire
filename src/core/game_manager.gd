@@ -8,10 +8,13 @@ const COMBAT_SIMULATION := preload("res://src/core/simulation/combat_simulation.
 const UPGRADE_SIMULATION := preload("res://src/core/simulation/upgrade_simulation.gd")
 const THREAT_SIMULATION := preload("res://src/core/simulation/threat_simulation.gd")
 const MINI_GOAL_SIMULATION := preload("res://src/core/simulation/mini_goal_simulation.gd")
+const SAVE_FORMAT := preload("res://src/save/save_format.gd")
+const RUN_STATE_SERIALIZER := preload("res://src/save/run_state_serializer.gd")
 
 var currentRunState: RunState
 var eventBus: EventBus
 var simulationManager: SimulationManager
+var saveManager: SaveManager
 var selectedCountryId: StringName = GameIds.EMPTY_ID
 var selectedArmyId: StringName = GameIds.EMPTY_ID
 
@@ -27,6 +30,10 @@ func setEventBus(newEventBus: EventBus) -> void:
 func setSimulationManager(newSimulationManager: SimulationManager) -> void:
 	simulationManager = newSimulationManager
 	_configureSimulationManager()
+
+
+func setSaveManager(newSaveManager: SaveManager) -> void:
+	saveManager = newSaveManager
 
 
 func startNewRun(startCountryId: String) -> void:
@@ -68,6 +75,10 @@ func submitCommand(commandName: StringName, payload: Dictionary = {}) -> void:
 			_chooseUpgrade(StringName(str(payload.get("upgradeId", ""))))
 		CommandType.CLAIM_MINI_GOAL_REWARD:
 			_claimMiniGoalReward(StringName(str(payload.get("goalId", ""))))
+		CommandType.SAVE_GAME:
+			_saveGame(str(payload.get("slotId", "manual_1")))
+		CommandType.LOAD_GAME:
+			_loadGame(str(payload.get("slotId", "manual_1")))
 		CommandType.SET_GAME_SPEED:
 			_setGameSpeed(int(payload.get("speed", GameSpeed.Value.Normal)))
 		CommandType.PAUSE_GAME:
@@ -195,6 +206,46 @@ func _claimMiniGoalReward(goalId: StringName) -> void:
 	_raiseEvent(EventType.MINI_GOAL_REWARD_CLAIMED, rewardResult)
 
 
+func _saveGame(slotId: String) -> void:
+	if saveManager == null or currentRunState == null:
+		push_warning("Cannot save without SaveManager and active run.")
+		return
+
+	var runData: Dictionary = RUN_STATE_SERIALIZER.serializeRunState(currentRunState)
+	var root: Dictionary = SAVE_FORMAT.createRunSaveRoot(runData)
+	if not saveManager.saveGame(slotId, root):
+		push_warning("Save command failed for slot: %s" % slotId)
+
+
+func _loadGame(slotId: String) -> void:
+	if saveManager == null:
+		push_warning("Cannot load without SaveManager.")
+		return
+
+	var root: Dictionary = saveManager.loadGame(slotId)
+	if root.is_empty():
+		push_warning("Load command found no valid save for slot: %s" % slotId)
+		return
+
+	var runData: Dictionary = root.get(SAVE_FORMAT.RUN_STATE_KEY, {})
+	var loadedRunState: RunState = RUN_STATE_SERIALIZER.deserializeRunState(runData)
+	var validation := RunStateValidator.validate(loadedRunState)
+	if not validation.isValid():
+		for error in validation.errors:
+			push_warning("Loaded save is invalid: %s" % error)
+		return
+
+	currentRunState = loadedRunState
+	selectedCountryId = _firstPlayerCountryId()
+	selectedArmyId = _firstArmyId()
+	_configureSimulationManager()
+	_raiseEvent(EventType.RUN_RESET, {
+		"startCountryId": selectedCountryId,
+		"selectedArmyId": selectedArmyId,
+		"source": "load",
+	})
+
+
 func _recruitUnits(countryId: StringName, unitId: StringName, amount: int) -> void:
 	var recruitResult: Dictionary = RECRUITMENT_SIMULATION.applyRecruitment(
 		currentRunState,
@@ -290,6 +341,19 @@ func _firstArmyId() -> StringName:
 	var armyIds := currentRunState.armies.keys()
 	armyIds.sort()
 	return StringName(str(armyIds[0]))
+
+
+func _firstPlayerCountryId() -> StringName:
+	if currentRunState == null:
+		return GameIds.EMPTY_ID
+
+	var countryIds := currentRunState.countries.keys()
+	countryIds.sort()
+	for countryId in countryIds:
+		var country := currentRunState.countries[countryId] as CountryData
+		if country != null and country.ownerId == GameIds.PLAYER_OWNER_ID:
+			return country.id
+	return GameIds.EMPTY_ID
 
 
 func _connectEventBusCommands() -> void:

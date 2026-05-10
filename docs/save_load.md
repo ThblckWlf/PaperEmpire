@@ -39,3 +39,9 @@ It does not write files, read files, migrate old saves, or restore a `RunState`.
 Phase 19.3 adds `SaveManager` file IO under `user://paper_empire/`.
 
 `SaveManager.saveGame(slotId, root)` writes only validated save roots. `loadGame(slotId)` returns a validated dictionary or `{}`. Slot IDs are sanitized into JSON filenames, and no project-folder save files or Steam Cloud calls are used.
+
+## Manual Save/Load
+
+Phase 19.4 adds `save_game` and `load_game` commands plus Save/Load buttons in the ESC menu. The MVP manual slot is `manual_1`.
+
+Loading reconstructs a `RunState` from serialized data, validates it, reconnects the `SimulationManager`, and refreshes map/UI through the existing `runReset` event. The UI only sends commands; save file logic remains in `res://src/save/`.
