@@ -21,3 +21,15 @@ Every save root contains:
 - `countryUpgrades`
 
 No Steam Cloud, binary saves, shop logic, or file persistence is part of this step.
+
+## Run Serialization
+
+Phase 19.2 adds `RunStateSerializer.serializeRunState()`. It converts the current run into JSON-compatible dictionaries, arrays, strings, bools, ints, and floats.
+
+The serializer explicitly converts:
+
+- `StringName` IDs to strings
+- `Vector2` country centers to `{ "x": ..., "y": ... }`
+- `CountryData`, `ArmyData`, and battle objects to plain dictionaries
+
+It does not write files, read files, migrate old saves, or restore a `RunState`.

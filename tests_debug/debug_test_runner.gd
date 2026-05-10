@@ -15,6 +15,7 @@ const THREAT_SIMULATION := preload("res://src/core/simulation/threat_simulation.
 const MINI_GOAL_SIMULATION := preload("res://src/core/simulation/mini_goal_simulation.gd")
 const SAVE_FORMAT := preload("res://src/save/save_format.gd")
 const META_PROGRESS := preload("res://src/save/meta_progress.gd")
+const RUN_STATE_SERIALIZER := preload("res://src/save/run_state_serializer.gd")
 
 
 func _ready() -> void:
@@ -64,6 +65,7 @@ func runAll() -> void:
 	_runTest("EffectsLayer reacts to event feedback", _testEffectsLayerReactsToEventFeedback)
 	_runTest("AudioManager creates buses and sound stubs", _testAudioManagerCreatesBusesAndSoundStubs)
 	_runTest("SaveFormat defines versioned save schema", _testSaveFormatDefinesVersionedSchema)
+	_runTest("RunStateSerializer writes pure data", _testRunStateSerializerWritesPureData)
 
 	if failedTests == 0:
 		print("[DebugTestRunner] PASS: %d/%d tests passed." % [totalTests, totalTests])
@@ -1291,6 +1293,51 @@ func _testSaveFormatDefinesVersionedSchema() -> ValidationResult:
 	invalidRoot["schemaVersion"] = 0
 	if SAVE_FORMAT.isValidSaveRoot(invalidRoot):
 		result.addError("Save root accepted invalid schemaVersion.")
+	return result
+
+
+func _testRunStateSerializerWritesPureData() -> ValidationResult:
+	var result := ValidationResult.new()
+	var runState := NewRunFactory.createNewRun(&"paperland")
+	runState.upgrades.append(&"rapidRecruitment")
+	var battle := BattleData.new()
+	battle.id = &"battle_save"
+	battle.attackerArmyId = &"army_start"
+	battle.sourceCountryId = &"paperland"
+	battle.targetCountryId = &"inkreich"
+	battle.status = BattleStatus.Value.Active
+	battle.elapsedSeconds = 1.5
+	battle.durationSeconds = 6.0
+	battle.casualties = {
+		GameIds.INFANTRY_UNIT_ID: 2,
+	}
+	runState.battles[battle.id] = battle
+
+	var serialized: Dictionary = RUN_STATE_SERIALIZER.serializeRunState(runState)
+	if int(serialized.get("schemaVersion", 0)) != SAVE_FORMAT.SCHEMA_VERSION:
+		result.addError("Serialized RunState schemaVersion is missing.")
+	if not RUN_STATE_SERIALIZER.containsOnlyJsonValues(serialized):
+		result.addError("Serialized RunState contains non-JSON values.")
+
+	var countries: Dictionary = serialized.get("countries", {})
+	var paperland: Dictionary = countries.get("paperland", {})
+	var center: Dictionary = paperland.get("center", {})
+	if float(center.get("x", -1.0)) <= 0.0 or float(center.get("y", -1.0)) <= 0.0:
+		result.addError("Serialized country center is missing.")
+
+	var armies: Dictionary = serialized.get("armies", {})
+	var army: Dictionary = armies.get("army_start", {})
+	if str(army.get("locationCountryId", "")) != "paperland":
+		result.addError("Serialized army location is wrong.")
+
+	var battles: Dictionary = serialized.get("battles", {})
+	var serializedBattle: Dictionary = battles.get("battle_save", {})
+	if str(serializedBattle.get("targetCountryId", "")) != "inkreich":
+		result.addError("Serialized battle target is wrong.")
+
+	var root: Dictionary = SAVE_FORMAT.createRunSaveRoot(serialized)
+	if not SAVE_FORMAT.isValidSaveRoot(root):
+		result.addError("Serialized RunState could not be placed in a valid save root.")
 	return result
 
 

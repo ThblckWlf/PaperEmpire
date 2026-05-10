@@ -29,6 +29,12 @@ static func createEmptyRunStateData() -> Dictionary:
 	}
 
 
+static func createRunSaveRoot(runStateData: Dictionary, metaProgressData: Dictionary = {}) -> Dictionary:
+	var root := createSaveRoot(runStateData, metaProgressData)
+	root[RUN_STATE_KEY] = runStateData.duplicate(true)
+	return root
+
+
 static func isValidSaveRoot(data: Dictionary) -> bool:
 	if int(data.get("schemaVersion", 0)) != SCHEMA_VERSION:
 		return false
