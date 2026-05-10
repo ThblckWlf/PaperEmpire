@@ -63,6 +63,10 @@ func setMasterVolume(linearVolume: float) -> void:
 	setBusVolume(BUS_MASTER, linearVolume)
 
 
+func setMusicVolume(linearVolume: float) -> void:
+	setBusVolume(BUS_MUSIC, linearVolume)
+
+
 func setSfxVolume(linearVolume: float) -> void:
 	setBusVolume(BUS_SFX, linearVolume)
 

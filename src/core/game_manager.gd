@@ -97,7 +97,7 @@ func submitCommand(commandName: StringName, payload: Dictionary = {}) -> void:
 		CommandType.RESET_RUN:
 			resetRun(StringName(str(payload.get("startCountryId", selectedCountryId))))
 		_:
-			push_warning("Unknown command: %s" % commandName)
+			_reportWarning("Unknown command: %s" % commandName)
 
 
 func resetRun(startCountryId: StringName = GameIds.EMPTY_ID) -> void:
@@ -144,7 +144,7 @@ func getShopPanelData() -> Dictionary:
 
 func _selectCountry(countryId: StringName) -> void:
 	if currentRunState == null or not currentRunState.countries.has(countryId):
-		push_warning("Cannot select unknown country: %s" % countryId)
+		_reportWarning("Cannot select unknown country: %s" % countryId)
 		return
 
 	selectedCountryId = countryId
@@ -155,7 +155,7 @@ func _selectCountry(countryId: StringName) -> void:
 
 func _selectArmy(armyId: StringName) -> void:
 	if currentRunState == null or not currentRunState.armies.has(armyId):
-		push_warning("Cannot select unknown army: %s" % armyId)
+		_reportWarning("Cannot select unknown army: %s" % armyId)
 		return
 
 	selectedArmyId = armyId
@@ -167,7 +167,7 @@ func _selectArmy(armyId: StringName) -> void:
 func _moveArmy(armyId: StringName, targetCountryId: StringName) -> void:
 	var moveResult: Dictionary = ARMY_MOVEMENT_SIMULATION.requestMove(currentRunState, armyId, targetCountryId)
 	if not bool(moveResult.get("accepted", false)):
-		push_warning("Cannot move army: %s" % str(moveResult.get("reason", "unknown_reason")))
+		_reportWarning("Cannot move army: %s" % str(moveResult.get("reason", "unknown_reason")))
 		return
 
 	selectedArmyId = armyId
@@ -185,7 +185,7 @@ func _startAttack(armyId: StringName, targetCountryId: StringName) -> void:
 		PrototypeContentLoader.loadUnits()
 	)
 	if not bool(attackResult.get("accepted", false)):
-		push_warning("Cannot start attack: %s" % str(attackResult.get("reason", "unknown_reason")))
+		_reportWarning("Cannot start attack: %s" % str(attackResult.get("reason", "unknown_reason")))
 		return
 
 	selectedArmyId = armyId
@@ -207,7 +207,7 @@ func _startAttack(armyId: StringName, targetCountryId: StringName) -> void:
 func _chooseUpgrade(upgradeId: StringName) -> void:
 	var chooseResult: Dictionary = UPGRADE_SIMULATION.applyUpgradeChoice(currentRunState, upgradeId)
 	if not bool(chooseResult.get("accepted", false)):
-		push_warning("Cannot choose upgrade: %s" % str(chooseResult.get("reason", "unknown_reason")))
+		_reportWarning("Cannot choose upgrade: %s" % str(chooseResult.get("reason", "unknown_reason")))
 		return
 
 	_raiseEvent(EventType.UPGRADE_CHOSEN, chooseResult)
@@ -217,7 +217,7 @@ func _chooseUpgrade(upgradeId: StringName) -> void:
 func _claimMiniGoalReward(goalId: StringName) -> void:
 	var rewardResult: Dictionary = MINI_GOAL_SIMULATION.claimReward(currentRunState, goalId)
 	if not bool(rewardResult.get("accepted", false)):
-		push_warning("Cannot claim mini goal reward: %s" % str(rewardResult.get("reason", "unknown_reason")))
+		_reportWarning("Cannot claim mini goal reward: %s" % str(rewardResult.get("reason", "unknown_reason")))
 		return
 
 	_raiseEvent(EventType.MINI_GOAL_REWARD_CLAIMED, rewardResult)
@@ -225,23 +225,23 @@ func _claimMiniGoalReward(goalId: StringName) -> void:
 
 func _saveGame(slotId: String) -> void:
 	if saveManager == null or currentRunState == null:
-		push_warning("Cannot save without SaveManager and active run.")
+		_reportWarning("Cannot save without SaveManager and active run.")
 		return
 
 	var runData: Dictionary = RUN_STATE_SERIALIZER.serializeRunState(currentRunState)
 	var root: Dictionary = SAVE_FORMAT.createRunSaveRoot(runData, metaProgressData)
 	if not saveManager.saveGame(slotId, root):
-		push_warning("Save command failed for slot: %s" % slotId)
+		_reportWarning("Save command failed for slot: %s" % slotId)
 
 
 func _loadGame(slotId: String) -> void:
 	if saveManager == null:
-		push_warning("Cannot load without SaveManager.")
+		_reportWarning("Cannot load without SaveManager.")
 		return
 
 	var root: Dictionary = saveManager.loadGame(slotId)
 	if root.is_empty():
-		push_warning("Load command found no valid save for slot: %s" % slotId)
+		_reportWarning("Load command found no valid save for slot: %s" % slotId)
 		return
 
 	var runData: Dictionary = root.get(SAVE_FORMAT.RUN_STATE_KEY, {})
@@ -252,7 +252,7 @@ func _loadGame(slotId: String) -> void:
 	var validation := RunStateValidator.validate(loadedRunState)
 	if not validation.isValid():
 		for error in validation.errors:
-			push_warning("Loaded save is invalid: %s" % error)
+			_reportWarning("Loaded save is invalid: %s" % error)
 		return
 
 	currentRunState = loadedRunState
@@ -273,7 +273,7 @@ func _purchaseMetaUpgrade(upgradeId: StringName) -> void:
 		PrototypeContentLoader.loadMetaUpgrades()
 	)
 	if not bool(purchaseResult.get("accepted", false)):
-		push_warning("Cannot purchase meta upgrade: %s" % str(purchaseResult.get("reason", "unknown_reason")))
+		_reportWarning("Cannot purchase meta upgrade: %s" % str(purchaseResult.get("reason", "unknown_reason")))
 		return
 
 	metaProgressData = (purchaseResult.get("metaProgress", {}) as Dictionary).duplicate(true)
@@ -291,7 +291,7 @@ func _awardRunEndCrowns() -> void:
 		PrototypeContentLoader.loadMetaUpgrades()
 	)
 	if not bool(rewardResult.get("accepted", false)):
-		push_warning("Cannot award crowns: %s" % str(rewardResult.get("reason", "unknown_reason")))
+		_reportWarning("Cannot award crowns: %s" % str(rewardResult.get("reason", "unknown_reason")))
 		return
 
 	metaProgressData = (rewardResult.get("metaProgress", {}) as Dictionary).duplicate(true)
@@ -312,7 +312,7 @@ func _recruitUnits(countryId: StringName, unitId: StringName, amount: int) -> vo
 		selectedArmyId
 	)
 	if not bool(recruitResult.get("accepted", false)):
-		push_warning("Cannot recruit units: %s" % str(recruitResult.get("reason", "unknown_reason")))
+		_reportWarning("Cannot recruit units: %s" % str(recruitResult.get("reason", "unknown_reason")))
 		return
 
 	selectedCountryId = countryId
@@ -326,7 +326,7 @@ func _recruitUnits(countryId: StringName, unitId: StringName, amount: int) -> vo
 func _createArmy(countryId: StringName) -> void:
 	var createResult: Dictionary = RECRUITMENT_SIMULATION.createArmy(currentRunState, countryId)
 	if not bool(createResult.get("accepted", false)):
-		push_warning("Cannot create army: %s" % str(createResult.get("reason", "unknown_reason")))
+		_reportWarning("Cannot create army: %s" % str(createResult.get("reason", "unknown_reason")))
 		return
 
 	selectedCountryId = countryId
@@ -339,7 +339,7 @@ func _createArmy(countryId: StringName) -> void:
 
 func _setGameSpeed(speed: int) -> void:
 	if currentRunState == null:
-		push_warning("Cannot set speed without an active run.")
+		_reportWarning("Cannot set speed without an active run.")
 		return
 
 	var validSpeeds := [
@@ -349,7 +349,7 @@ func _setGameSpeed(speed: int) -> void:
 		GameSpeed.Value.VeryFast,
 	]
 	if not validSpeeds.has(speed):
-		push_warning("Cannot set invalid game speed: %s" % speed)
+		_reportWarning("Cannot set invalid game speed: %s" % speed)
 		return
 
 	if simulationManager != null:
@@ -377,6 +377,12 @@ func _raiseEvent(eventType: StringName, payload: Dictionary = {}) -> void:
 		gameEvent.occurredAtSeconds = float(currentRunState.time.get("elapsedSeconds", 0.0))
 
 	eventBus.raiseEvent(gameEvent)
+
+
+func _reportWarning(message: String) -> void:
+	push_warning(message)
+	if eventBus != null:
+		eventBus.reportDebugError(message)
 
 
 func _raiseWorldReactionIfChanged(threatResult: Dictionary) -> void:
@@ -408,7 +414,7 @@ func _saveMetaProgress() -> void:
 		return
 
 	if not saveManager.saveMetaProgress(metaProgressData):
-		push_warning("Meta progress save failed.")
+		_reportWarning("Meta progress save failed.")
 
 
 func _firstArmyId() -> StringName:

@@ -3,6 +3,9 @@ extends CanvasLayer
 
 const RUN_STATE_VIEW := preload("res://src/core/view/run_state_view.gd")
 const SHOP_PANEL_SCRIPT := preload("res://scenes/ui/shop_panel.gd")
+const SETTINGS_PANEL_SCRIPT := preload("res://scenes/ui/settings_panel.gd")
+const DEBUG_ERROR_OVERLAY_SCRIPT := preload("res://scenes/ui/debug_error_overlay.gd")
+const INPUT_ACTIONS := preload("res://src/core/input/input_actions.gd")
 
 @onready var rootControl: Control = $Root as Control
 @onready var topBar = $Root/TopBar
@@ -16,8 +19,11 @@ const SHOP_PANEL_SCRIPT := preload("res://scenes/ui/shop_panel.gd")
 
 var gameManager: GameManager
 var eventBus: EventBus
+var settingsManager
 var speedBeforePause: int = GameSpeed.Value.Normal
 var shopPanel: PanelContainer
+var settingsPanel: PanelContainer
+var debugErrorOverlay: PanelContainer
 
 
 func _ready() -> void:
@@ -26,10 +32,14 @@ func _ready() -> void:
 	escMenu.saveRequested.connect(_saveFromEscMenu)
 	escMenu.loadRequested.connect(_loadFromEscMenu)
 	escMenu.shopRequested.connect(_openShopPanel)
+	escMenu.settingsRequested.connect(_openSettingsPanel)
 	escMenu.quitToMenuRequested.connect(_handleQuitToMenuStub)
 	_ensureShopPanel()
+	_ensureSettingsPanel()
+	_ensureDebugErrorOverlay()
 	upgradeModal.visible = false
 	shopPanel.visible = false
+	settingsPanel.visible = false
 	modalLayer.visible = false
 
 
@@ -38,27 +48,35 @@ func _unhandled_input(event: InputEvent) -> void:
 	if keyEvent == null or not keyEvent.pressed or keyEvent.echo:
 		return
 
-	if keyEvent.keycode == KEY_ESCAPE:
+	if event.is_action_pressed(INPUT_ACTIONS.ACTION_OPEN_MENU):
 		if upgradeModal.visible:
 			pass
 		elif shopPanel != null and shopPanel.visible:
 			_closeShopPanel()
+		elif settingsPanel != null and settingsPanel.visible:
+			_closeSettingsPanel()
 		elif modalLayer.visible:
 			_resumeFromEscMenu()
 		else:
 			_openEscMenu()
 		get_viewport().set_input_as_handled()
+	elif not modalLayer.visible:
+		_handleSpeedHotkey(event)
 
 
-func configure(newGameManager: GameManager, newEventBus: EventBus) -> void:
+func configure(newGameManager: GameManager, newEventBus: EventBus, newSettingsManager = null) -> void:
 	_disconnectEventBus()
+	_disconnectSettingsManager()
 	gameManager = newGameManager
 	eventBus = newEventBus
+	settingsManager = newSettingsManager
 	bottomBar.configure(eventBus)
 	rightPanel.configure(eventBus)
 	miniGoalPanel.configure(eventBus)
 	upgradeModal.configure(eventBus)
 	_connectEventBus()
+	_connectSettingsManager()
+	_refreshSettingsPanel()
 	_refreshAll()
 
 
@@ -81,6 +99,7 @@ func _refreshAll() -> void:
 	bottomBar.setCurrentSpeed(int(runState.speed))
 	if shopPanel != null and shopPanel.visible:
 		shopPanel.call("setData", gameManager.getShopPanelData())
+	_refreshSettingsPanel()
 
 
 func _onGameEventRaised(eventName: StringName, payload: Dictionary) -> void:
@@ -114,6 +133,8 @@ func _resumeFromEscMenu() -> void:
 	escMenu.visible = false
 	if shopPanel != null:
 		shopPanel.visible = false
+	if settingsPanel != null:
+		settingsPanel.visible = false
 	modalLayer.visible = false
 	if eventBus != null:
 		eventBus.requestCommand(CommandType.SET_GAME_SPEED, {
@@ -144,9 +165,19 @@ func _handleQuitToMenuStub() -> void:
 	push_warning("Quit to menu is not implemented yet.")
 
 
+func setUiScale(uiScale: float) -> void:
+	if rootControl == null:
+		return
+
+	var clampedScale := clampf(uiScale, 0.8, 1.4)
+	rootControl.scale = Vector2(clampedScale, clampedScale)
+
+
 func _openShopPanel() -> void:
 	_ensureShopPanel()
 	escMenu.visible = false
+	if settingsPanel != null:
+		settingsPanel.visible = false
 	shopPanel.visible = true
 	modalLayer.visible = true
 	if gameManager != null:
@@ -158,7 +189,7 @@ func _closeShopPanel() -> void:
 		return
 
 	shopPanel.visible = false
-	if not escMenu.visible and not upgradeModal.visible:
+	if not escMenu.visible and not upgradeModal.visible and (settingsPanel == null or not settingsPanel.visible):
 		modalLayer.visible = false
 
 
@@ -171,10 +202,39 @@ func _purchaseMetaUpgrade(upgradeId: StringName) -> void:
 		shopPanel.call("setData", gameManager.getShopPanelData())
 
 
+func _openSettingsPanel() -> void:
+	_ensureSettingsPanel()
+	escMenu.visible = false
+	if shopPanel != null:
+		shopPanel.visible = false
+	settingsPanel.visible = true
+	modalLayer.visible = true
+	_refreshSettingsPanel()
+
+
+func _closeSettingsPanel() -> void:
+	if settingsPanel == null:
+		return
+
+	settingsPanel.visible = false
+	if not escMenu.visible and not upgradeModal.visible and (shopPanel == null or not shopPanel.visible):
+		modalLayer.visible = false
+
+
+func _changeSetting(settingKey: StringName, value: Variant) -> void:
+	if settingsManager == null:
+		return
+
+	settingsManager.updateSetting(settingKey, value)
+	_refreshSettingsPanel()
+
+
 func _openUpgradeModal(data: Dictionary) -> void:
 	escMenu.visible = false
 	if shopPanel != null:
 		shopPanel.visible = false
+	if settingsPanel != null:
+		settingsPanel.visible = false
 	upgradeModal.visible = true
 	upgradeModal.setData(data)
 	modalLayer.visible = true
@@ -183,7 +243,7 @@ func _openUpgradeModal(data: Dictionary) -> void:
 
 func _closeUpgradeModal() -> void:
 	upgradeModal.visible = false
-	if not escMenu.visible and (shopPanel == null or not shopPanel.visible):
+	if not escMenu.visible and (shopPanel == null or not shopPanel.visible) and (settingsPanel == null or not settingsPanel.visible):
 		modalLayer.visible = false
 
 
@@ -211,6 +271,89 @@ func _positionShopPanel() -> void:
 	shopPanel.offset_bottom = 230.0
 
 
+func _ensureSettingsPanel() -> void:
+	if settingsPanel != null:
+		return
+
+	settingsPanel = SETTINGS_PANEL_SCRIPT.new() as PanelContainer
+	settingsPanel.name = "SettingsPanel"
+	settingsPanel.visible = false
+	modalLayer.add_child(settingsPanel)
+	_positionSettingsPanel()
+	settingsPanel.connect("settingChanged", Callable(self, "_changeSetting"))
+	settingsPanel.connect("closeRequested", Callable(self, "_closeSettingsPanel"))
+
+
+func _positionSettingsPanel() -> void:
+	if settingsPanel == null:
+		return
+
+	settingsPanel.set_anchors_preset(Control.PRESET_CENTER)
+	settingsPanel.offset_left = -210.0
+	settingsPanel.offset_top = -150.0
+	settingsPanel.offset_right = 210.0
+	settingsPanel.offset_bottom = 150.0
+
+
+func _ensureDebugErrorOverlay() -> void:
+	if debugErrorOverlay != null:
+		return
+
+	debugErrorOverlay = DEBUG_ERROR_OVERLAY_SCRIPT.new() as PanelContainer
+	debugErrorOverlay.name = "DebugErrorOverlay"
+	rootControl.add_child(debugErrorOverlay)
+	_positionDebugErrorOverlay()
+
+
+func _positionDebugErrorOverlay() -> void:
+	if debugErrorOverlay == null:
+		return
+
+	debugErrorOverlay.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	debugErrorOverlay.offset_left = 16.0
+	debugErrorOverlay.offset_top = -64.0
+	debugErrorOverlay.offset_right = 420.0
+	debugErrorOverlay.offset_bottom = -16.0
+
+
+func _refreshSettingsPanel() -> void:
+	if settingsManager == null or settingsPanel == null or not settingsPanel.visible:
+		return
+
+	settingsPanel.call("setData", settingsManager.getSettingsData())
+
+
+func _handleSpeedHotkey(event: InputEvent) -> void:
+	if eventBus == null:
+		return
+
+	if event.is_action_pressed(INPUT_ACTIONS.ACTION_PAUSE):
+		eventBus.requestCommand(CommandType.PAUSE_GAME)
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed(INPUT_ACTIONS.ACTION_SPEED_NORMAL):
+		eventBus.requestCommand(CommandType.SET_GAME_SPEED, {
+			"speed": GameSpeed.Value.Normal,
+		})
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed(INPUT_ACTIONS.ACTION_SPEED_FAST):
+		eventBus.requestCommand(CommandType.SET_GAME_SPEED, {
+			"speed": GameSpeed.Value.Fast,
+		})
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed(INPUT_ACTIONS.ACTION_SPEED_VERY_FAST):
+		eventBus.requestCommand(CommandType.SET_GAME_SPEED, {
+			"speed": GameSpeed.Value.VeryFast,
+		})
+		get_viewport().set_input_as_handled()
+
+
+func _showDebugError(message: String) -> void:
+	if debugErrorOverlay == null:
+		return
+
+	debugErrorOverlay.call("showDebugError", message)
+
+
 func _connectEventBus() -> void:
 	if eventBus == null:
 		return
@@ -218,6 +361,10 @@ func _connectEventBus() -> void:
 	var eventCallable := Callable(self, "_onGameEventRaised")
 	if not eventBus.gameEventRaised.is_connected(eventCallable):
 		eventBus.gameEventRaised.connect(eventCallable)
+
+	var debugCallable := Callable(self, "_showDebugError")
+	if not eventBus.debugErrorReported.is_connected(debugCallable):
+		eventBus.debugErrorReported.connect(debugCallable)
 
 
 func _disconnectEventBus() -> void:
@@ -227,6 +374,36 @@ func _disconnectEventBus() -> void:
 	var eventCallable := Callable(self, "_onGameEventRaised")
 	if eventBus.gameEventRaised.is_connected(eventCallable):
 		eventBus.gameEventRaised.disconnect(eventCallable)
+
+	var debugCallable := Callable(self, "_showDebugError")
+	if eventBus.debugErrorReported.is_connected(debugCallable):
+		eventBus.debugErrorReported.disconnect(debugCallable)
+
+
+func _connectSettingsManager() -> void:
+	if settingsManager == null:
+		return
+	if not settingsManager.has_signal("settingsChanged"):
+		return
+
+	var changedCallable := Callable(self, "_onSettingsChanged")
+	if not settingsManager.settingsChanged.is_connected(changedCallable):
+		settingsManager.settingsChanged.connect(changedCallable)
+
+
+func _disconnectSettingsManager() -> void:
+	if settingsManager == null:
+		return
+	if not settingsManager.has_signal("settingsChanged"):
+		return
+
+	var changedCallable := Callable(self, "_onSettingsChanged")
+	if settingsManager.settingsChanged.is_connected(changedCallable):
+		settingsManager.settingsChanged.disconnect(changedCallable)
+
+
+func _onSettingsChanged(_settingsData: Dictionary) -> void:
+	_refreshSettingsPanel()
 
 
 func _applyLayout() -> void:
@@ -276,9 +453,9 @@ func _applyLayout() -> void:
 
 	escMenu.set_anchors_preset(Control.PRESET_CENTER)
 	escMenu.offset_left = -140.0
-	escMenu.offset_top = -90.0
+	escMenu.offset_top = -130.0
 	escMenu.offset_right = 140.0
-	escMenu.offset_bottom = 90.0
+	escMenu.offset_bottom = 130.0
 
 	upgradeModal.set_anchors_preset(Control.PRESET_CENTER)
 	upgradeModal.offset_left = -260.0

@@ -16,12 +16,18 @@ const MINI_GOAL_SIMULATION := preload("res://src/core/simulation/mini_goal_simul
 const META_PROGRESS_SIMULATION := preload("res://src/core/simulation/meta_progress_simulation.gd")
 const SHOP_STATE_VIEW := preload("res://src/core/view/shop_state_view.gd")
 const SHOP_PANEL_SCRIPT := preload("res://scenes/ui/shop_panel.gd")
+const SETTINGS_MANAGER_SCRIPT := preload("res://src/save/settings_manager.gd")
+const SETTINGS_PANEL_SCRIPT := preload("res://scenes/ui/settings_panel.gd")
+const USER_SETTINGS := preload("res://src/save/user_settings.gd")
+const INPUT_ACTIONS := preload("res://src/core/input/input_actions.gd")
 const META_UPGRADE_DATA_VALIDATOR := preload("res://src/core/validation/meta_upgrade_data_validator.gd")
 const SAVE_FORMAT := preload("res://src/save/save_format.gd")
 const META_PROGRESS := preload("res://src/save/meta_progress.gd")
 const RUN_STATE_SERIALIZER := preload("res://src/save/run_state_serializer.gd")
 
 var lastShopUpgradeId: StringName = GameIds.EMPTY_ID
+var lastSettingKey: StringName = GameIds.EMPTY_ID
+var lastSettingValue: Variant = null
 
 
 func _ready() -> void:
@@ -67,6 +73,7 @@ func runAll() -> void:
 	_runTest("MiniGoal panel claims completed reward", _testMiniGoalPanelClaimsReward)
 	_runTest("WorldMap creates country and army nodes", _testWorldMapCreatesCountryAndArmyNodes)
 	_runTest("MapCamera clamps pan and zoom", _testMapCameraClampsPanAndZoom)
+	_runTest("Input actions register desktop controls", _testInputActionsRegisterDesktopControls)
 	_runTest("RunStateView creates UI summaries", _testRunStateViewCreatesSummaries)
 	_runTest("Main UI layout binds state and commands", _testMainUiLayoutBindsStateAndCommands)
 	_runTest("EffectsLayer reacts to event feedback", _testEffectsLayerReactsToEventFeedback)
@@ -78,6 +85,8 @@ func runAll() -> void:
 	_runTest("MetaProgress stores upgrade state", _testMetaProgressStoresUpgradeState)
 	_runTest("MetaProgress awards crowns and applies purchases", _testMetaProgressAwardsCrownsAndAppliesPurchases)
 	_runTest("Shop panel sends purchase commands", _testShopPanelSendsPurchaseCommands)
+	_runTest("Settings manager saves and applies settings", _testSettingsManagerSavesAndAppliesSettings)
+	_runTest("Settings panel sends setting changes", _testSettingsPanelSendsSettingChanges)
 
 	if failedTests == 0:
 		print("[DebugTestRunner] PASS: %d/%d tests passed." % [totalTests, totalTests])
@@ -1068,6 +1077,30 @@ func _testMapCameraClampsPanAndZoom() -> ValidationResult:
 	return result
 
 
+func _testInputActionsRegisterDesktopControls() -> ValidationResult:
+	var result := ValidationResult.new()
+	INPUT_ACTIONS.ensureDefaultActions()
+	var actions := [
+		INPUT_ACTIONS.ACTION_OPEN_MENU,
+		INPUT_ACTIONS.ACTION_PAUSE,
+		INPUT_ACTIONS.ACTION_PAN_LEFT,
+		INPUT_ACTIONS.ACTION_PAN_RIGHT,
+		INPUT_ACTIONS.ACTION_PAN_UP,
+		INPUT_ACTIONS.ACTION_PAN_DOWN,
+		INPUT_ACTIONS.ACTION_ZOOM_IN,
+		INPUT_ACTIONS.ACTION_ZOOM_OUT,
+		INPUT_ACTIONS.ACTION_SPEED_NORMAL,
+		INPUT_ACTIONS.ACTION_SPEED_FAST,
+		INPUT_ACTIONS.ACTION_SPEED_VERY_FAST,
+	]
+	for actionName in actions:
+		if not InputMap.has_action(actionName):
+			result.addError("InputMap missing action: %s." % str(actionName))
+		elif InputMap.action_get_events(actionName).is_empty():
+			result.addError("InputMap action has no events: %s." % str(actionName))
+	return result
+
+
 func _testRunStateViewCreatesSummaries() -> ValidationResult:
 	var result := ValidationResult.new()
 	var runState := NewRunFactory.createNewRun(&"paperland")
@@ -1162,9 +1195,16 @@ func _testMainUiLayoutBindsStateAndCommands() -> ValidationResult:
 		result.addError("TimeControls pause button did not request pause.")
 
 	var shopButton := main.get_node("GameRoot/UIRoot/Root/ModalLayer/EscMenu/MarginContainer/VBoxContainer/ShopButton") as Button
+	var settingsButton := main.get_node("GameRoot/UIRoot/Root/ModalLayer/EscMenu/MarginContainer/VBoxContainer/SettingsButton") as Button
 	var shopPanel = main.get_node("GameRoot/UIRoot/Root/ModalLayer/ShopPanel")
-	if shopButton == null or shopPanel == null:
-		result.addError("Shop UI is missing required nodes.")
+	var settingsPanel = main.get_node("GameRoot/UIRoot/Root/ModalLayer/SettingsPanel")
+	var debugOverlay = main.get_node("GameRoot/UIRoot/Root/DebugErrorOverlay")
+	var settingsManager = main.get_node("GameRoot/Managers/SettingsManager")
+	if settingsManager != null:
+		settingsManager.call("setSettingsPathForDebug", "user://paper_empire/debug_main_settings_test.json")
+		settingsManager.call("deleteSettings")
+	if shopButton == null or shopPanel == null or settingsButton == null or settingsPanel == null or debugOverlay == null:
+		result.addError("Menu extension UI is missing required nodes.")
 
 	uiRoot.call("_openEscMenu")
 	if not bool(uiRoot.call("isEscMenuOpen")):
@@ -1177,12 +1217,25 @@ func _testMainUiLayoutBindsStateAndCommands() -> ValidationResult:
 		uiRoot.call("_closeShopPanel")
 
 	uiRoot.call("_openEscMenu")
+	if settingsButton != null:
+		settingsButton.emit_signal("pressed")
+		if not bool(settingsPanel.get("visible")):
+			result.addError("Settings button did not open settings panel.")
+		uiRoot.call("_closeSettingsPanel")
+
+	eventBus.reportDebugError("Cannot select unknown country: missing_country")
+	if not str(debugOverlay.call("getLastMessage")).contains("unknown country"):
+		result.addError("Debug error overlay did not show command warning.")
+
+	uiRoot.call("_openEscMenu")
 	uiRoot.call("_resumeFromEscMenu")
 	if bool(uiRoot.call("isEscMenuOpen")):
 		result.addError("ESC menu did not close on resume.")
 	if gameManager.getCurrentRunState().speed == GameSpeed.Value.Paused:
 		result.addError("ESC menu resume did not restore speed.")
 
+	if settingsManager != null:
+		settingsManager.call("deleteSettings")
 	_cleanupMainForTest(main)
 	return result
 
@@ -1596,6 +1649,77 @@ func _testShopPanelSendsPurchaseCommands() -> ValidationResult:
 	return result
 
 
+func _testSettingsManagerSavesAndAppliesSettings() -> ValidationResult:
+	var result := ValidationResult.new()
+	var settingsPath := "user://paper_empire/debug_settings_test.json"
+	var audio := AudioManager.new()
+	var manager = SETTINGS_MANAGER_SCRIPT.new()
+	add_child(audio)
+	add_child(manager)
+	audio.ensureAudioBuses()
+	manager.call("setSettingsPathForDebug", settingsPath)
+	manager.call("deleteSettings")
+	var defaults := manager.call("loadSettings") as Dictionary
+	if not USER_SETTINGS.isValidDictionary(defaults):
+		result.addError("SettingsManager did not load valid default settings.")
+
+	manager.call("configure", audio, null)
+	manager.call("updateSetting", &"sfxVolume", 0.4)
+	var sfxBusIndex := AudioServer.get_bus_index(AudioManager.BUS_SFX)
+	if sfxBusIndex < 0:
+		result.addError("SettingsManager test could not find SFX bus.")
+	elif not is_equal_approx(AudioServer.get_bus_volume_db(sfxBusIndex), linear_to_db(0.4)):
+		result.addError("SettingsManager did not apply SFX volume immediately.")
+
+	var loadedManager = SETTINGS_MANAGER_SCRIPT.new()
+	add_child(loadedManager)
+	loadedManager.call("setSettingsPathForDebug", settingsPath)
+	var loaded := loadedManager.call("loadSettings") as Dictionary
+	if not is_equal_approx(float(loaded.get("sfxVolume", 0.0)), 0.4):
+		result.addError("SettingsManager did not persist changed settings.")
+
+	manager.call("deleteSettings")
+	if sfxBusIndex >= 0:
+		AudioServer.set_bus_volume_db(sfxBusIndex, linear_to_db(1.0))
+	remove_child(loadedManager)
+	remove_child(manager)
+	remove_child(audio)
+	loadedManager.free()
+	manager.free()
+	audio.free()
+	return result
+
+
+func _testSettingsPanelSendsSettingChanges() -> ValidationResult:
+	var result := ValidationResult.new()
+	var panel = SETTINGS_PANEL_SCRIPT.new()
+	add_child(panel)
+	lastSettingKey = GameIds.EMPTY_ID
+	lastSettingValue = null
+	panel.connect("settingChanged", Callable(self, "_recordSettingChange"))
+	panel.call("setData", USER_SETTINGS.createDefaultData())
+
+	var sfxSlider := panel.get("sfxSlider") as HSlider
+	if sfxSlider == null:
+		result.addError("SettingsPanel did not create SFX slider.")
+	else:
+		sfxSlider.emit_signal("value_changed", 0.35)
+		if lastSettingKey != &"sfxVolume" or not is_equal_approx(float(lastSettingValue), 0.35):
+			result.addError("SettingsPanel did not emit SFX volume change.")
+
+	var fullscreenCheck := panel.get("fullscreenCheck") as CheckBox
+	if fullscreenCheck == null:
+		result.addError("SettingsPanel did not create fullscreen checkbox.")
+	else:
+		fullscreenCheck.emit_signal("toggled", true)
+		if lastSettingKey != &"windowMode" or str(lastSettingValue) != "fullscreen":
+			result.addError("SettingsPanel did not emit fullscreen mode change.")
+
+	remove_child(panel)
+	panel.free()
+	return result
+
+
 func _recordGameEvent(eventName: StringName, payload: Dictionary) -> void:
 	capturedEvents.append({
 		"eventName": eventName,
@@ -1605,6 +1729,11 @@ func _recordGameEvent(eventName: StringName, payload: Dictionary) -> void:
 
 func _recordShopPurchase(upgradeId: StringName) -> void:
 	lastShopUpgradeId = upgradeId
+
+
+func _recordSettingChange(settingKey: StringName, value: Variant) -> void:
+	lastSettingKey = settingKey
+	lastSettingValue = value
 
 
 func _capturedEvent(eventName: StringName) -> bool:

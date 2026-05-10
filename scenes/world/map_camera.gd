@@ -9,6 +9,7 @@ const ZOOM_STEP: float = 0.15
 const KEYBOARD_PAN_SPEED: float = 520.0
 const BOUNDS_PADDING: float = 260.0
 const FALLBACK_BOUNDS := Rect2(Vector2(40.0, 170.0), Vector2(430.0, 330.0))
+const INPUT_ACTIONS := preload("res://src/core/input/input_actions.gd")
 
 var mapBounds: Rect2 = FALLBACK_BOUNDS
 var isDragging: bool = false
@@ -17,6 +18,7 @@ var hasCenteredOnBounds: bool = false
 
 
 func _ready() -> void:
+	INPUT_ACTIONS.ensureDefaultActions()
 	enabled = true
 	setZoomScalar(START_ZOOM)
 	centerOnMap()
@@ -40,6 +42,14 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	var mouseButton := event as InputEventMouseButton
 	if mouseButton != null:
+		if event.is_action_pressed(INPUT_ACTIONS.ACTION_ZOOM_IN):
+			zoomAtCursor(ZOOM_STEP)
+			get_viewport().set_input_as_handled()
+			return
+		if event.is_action_pressed(INPUT_ACTIONS.ACTION_ZOOM_OUT):
+			zoomAtCursor(-ZOOM_STEP)
+			get_viewport().set_input_as_handled()
+			return
 		_handleMouseButton(mouseButton)
 		return
 
@@ -120,13 +130,13 @@ func zoomAtCursor(deltaZoom: float) -> void:
 
 func _keyboardPanDirection() -> Vector2:
 	var direction := Vector2.ZERO
-	if Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT):
+	if Input.is_action_pressed(INPUT_ACTIONS.ACTION_PAN_LEFT):
 		direction.x -= 1.0
-	if Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT):
+	if Input.is_action_pressed(INPUT_ACTIONS.ACTION_PAN_RIGHT):
 		direction.x += 1.0
-	if Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP):
+	if Input.is_action_pressed(INPUT_ACTIONS.ACTION_PAN_UP):
 		direction.y -= 1.0
-	if Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN):
+	if Input.is_action_pressed(INPUT_ACTIONS.ACTION_PAN_DOWN):
 		direction.y += 1.0
 	return direction
 

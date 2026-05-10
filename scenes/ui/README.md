@@ -11,5 +11,7 @@ Phase 10 UI scripts display prepared state and emit commands through `EventBus`.
 - `esc_menu.gd` exposes Resume, Save, Load, Shop, and a Quit-to-Menu stub.
 - `upgrade_modal.gd` displays three upgrade choices and sends `choose_upgrade`.
 - `shop_panel.gd` displays prepared meta-upgrade shop rows and sends `purchase_meta_upgrade`.
+- `settings_panel.gd` displays desktop settings and emits setting change requests.
+- `debug_error_overlay.gd` displays debug messages reported through `EventBus`.
 
 UI scripts must not calculate combat, economy, movement, ownership changes, or save/load behavior.

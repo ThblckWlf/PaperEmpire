@@ -19,9 +19,9 @@ Nodes:
 
 - Start zoom.
 - Bounds based on prototype country shapes.
-- WASD/arrow pan.
+- WASD/arrow pan through registered InputMap actions.
 - Right- or middle-mouse drag pan.
-- Mouse-wheel zoom with min/max clamps.
+- Mouse-wheel zoom through registered InputMap actions with min/max clamps.
 
 ## CountryNode
 
