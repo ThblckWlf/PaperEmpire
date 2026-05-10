@@ -2,10 +2,13 @@ extends Node
 class_name GameManager
 
 
+const ARMY_MOVEMENT_SIMULATION := preload("res://src/core/simulation/army_movement_simulation.gd")
+
 var currentRunState: RunState
 var eventBus: EventBus
 var simulationManager: SimulationManager
 var selectedCountryId: StringName = GameIds.EMPTY_ID
+var selectedArmyId: StringName = GameIds.EMPTY_ID
 
 
 func setEventBus(newEventBus: EventBus) -> void:
@@ -24,9 +27,11 @@ func setSimulationManager(newSimulationManager: SimulationManager) -> void:
 func startNewRun(startCountryId: String) -> void:
 	currentRunState = NewRunFactory.createNewRun(StringName(startCountryId))
 	selectedCountryId = StringName(startCountryId)
+	selectedArmyId = _firstArmyId()
 	_configureSimulationManager()
 	_raiseEvent(EventType.RUN_STARTED, {
 		"startCountryId": selectedCountryId,
+		"selectedArmyId": selectedArmyId,
 	})
 
 
@@ -34,6 +39,13 @@ func submitCommand(commandName: StringName, payload: Dictionary = {}) -> void:
 	match commandName:
 		CommandType.SELECT_COUNTRY:
 			_selectCountry(StringName(str(payload.get("countryId", ""))))
+		CommandType.SELECT_ARMY:
+			_selectArmy(StringName(str(payload.get("armyId", ""))))
+		CommandType.MOVE_ARMY:
+			_moveArmy(
+				StringName(str(payload.get("armyId", selectedArmyId))),
+				StringName(str(payload.get("targetCountryId", "")))
+			)
 		CommandType.SET_GAME_SPEED:
 			_setGameSpeed(int(payload.get("speed", GameSpeed.Value.Normal)))
 		CommandType.PAUSE_GAME:
@@ -56,9 +68,11 @@ func resetRun(startCountryId: StringName = GameIds.EMPTY_ID) -> void:
 
 	currentRunState = NewRunFactory.createNewRun(nextStartCountryId)
 	selectedCountryId = nextStartCountryId
+	selectedArmyId = _firstArmyId()
 	_configureSimulationManager()
 	_raiseEvent(EventType.RUN_RESET, {
 		"startCountryId": nextStartCountryId,
+		"selectedArmyId": selectedArmyId,
 	})
 
 
@@ -74,6 +88,10 @@ func getSelectedCountryId() -> StringName:
 	return selectedCountryId
 
 
+func getSelectedArmyId() -> StringName:
+	return selectedArmyId
+
+
 func _selectCountry(countryId: StringName) -> void:
 	if currentRunState == null or not currentRunState.countries.has(countryId):
 		push_warning("Cannot select unknown country: %s" % countryId)
@@ -83,6 +101,30 @@ func _selectCountry(countryId: StringName) -> void:
 	_raiseEvent(EventType.COUNTRY_SELECTED, {
 		"countryId": countryId,
 	})
+
+
+func _selectArmy(armyId: StringName) -> void:
+	if currentRunState == null or not currentRunState.armies.has(armyId):
+		push_warning("Cannot select unknown army: %s" % armyId)
+		return
+
+	selectedArmyId = armyId
+	_raiseEvent(EventType.ARMY_SELECTED, {
+		"armyId": armyId,
+	})
+
+
+func _moveArmy(armyId: StringName, targetCountryId: StringName) -> void:
+	var moveResult: Dictionary = ARMY_MOVEMENT_SIMULATION.requestMove(currentRunState, armyId, targetCountryId)
+	if not bool(moveResult.get("accepted", false)):
+		push_warning("Cannot move army: %s" % str(moveResult.get("reason", "unknown_reason")))
+		return
+
+	selectedArmyId = armyId
+	_raiseEvent(EventType.ARMY_SELECTED, {
+		"armyId": armyId,
+	})
+	_raiseEvent(EventType.ARMY_MOVE_STARTED, moveResult)
 
 
 func _setGameSpeed(speed: int) -> void:
@@ -127,6 +169,15 @@ func _raiseEvent(eventType: StringName, payload: Dictionary = {}) -> void:
 func _configureSimulationManager() -> void:
 	if simulationManager != null:
 		simulationManager.configure(currentRunState, eventBus)
+
+
+func _firstArmyId() -> StringName:
+	if currentRunState == null or currentRunState.armies.is_empty():
+		return GameIds.EMPTY_ID
+
+	var armyIds := currentRunState.armies.keys()
+	armyIds.sort()
+	return StringName(str(armyIds[0]))
 
 
 func _connectEventBusCommands() -> void:

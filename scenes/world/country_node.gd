@@ -3,6 +3,7 @@ class_name CountryNode
 
 
 signal countryPressed(countryId: StringName)
+signal countryMoveTargetPressed(countryId: StringName)
 signal countryHoverChanged(countryId: StringName, isHovered: bool)
 
 const PLAYER_COLOR: Color = Color(0.25, 0.56, 0.84, 1.0)
@@ -72,6 +73,9 @@ func _onAreaInputEvent(_viewport: Viewport, event: InputEvent, _shapeIdx: int) -
 
 	if mouseButton.button_index == MOUSE_BUTTON_LEFT and mouseButton.pressed:
 		countryPressed.emit(countryId)
+		get_viewport().set_input_as_handled()
+	elif mouseButton.button_index == MOUSE_BUTTON_RIGHT and mouseButton.pressed:
+		countryMoveTargetPressed.emit(countryId)
 		get_viewport().set_input_as_handled()
 
 

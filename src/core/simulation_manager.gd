@@ -7,6 +7,7 @@ signal monthTick(month: int, year: int, elapsedSeconds: float)
 
 const DEFAULT_FIXED_STEP_SECONDS: float = 0.1
 const ECONOMY_SIMULATION := preload("res://src/core/simulation/economy_simulation.gd")
+const ARMY_MOVEMENT_SIMULATION := preload("res://src/core/simulation/army_movement_simulation.gd")
 
 var fixedStepSeconds: float = DEFAULT_FIXED_STEP_SECONDS
 var accumulatedSeconds: float = 0.0
@@ -94,6 +95,10 @@ func collectPendingEvents() -> Array[GameEvent]:
 
 
 func _advanceFixedStep(deltaSeconds: float) -> void:
+	var completedMoves: Array[Dictionary] = ARMY_MOVEMENT_SIMULATION.advanceMovement(runState, deltaSeconds)
+	for movePayload in completedMoves:
+		_raiseEvent(EventType.ARMY_MOVED, movePayload)
+
 	var monthTickCount := GameTime.advance(runState.time, deltaSeconds)
 	for _index in range(monthTickCount):
 		_raiseMonthTick()

@@ -7,6 +7,7 @@ var failedTests: int = 0
 var capturedEvents: Array[Dictionary] = []
 const RUN_STATE_VIEW := preload("res://src/core/view/run_state_view.gd")
 const ECONOMY_SIMULATION := preload("res://src/core/simulation/economy_simulation.gd")
+const ARMY_MOVEMENT_SIMULATION := preload("res://src/core/simulation/army_movement_simulation.gd")
 
 
 func _ready() -> void:
@@ -34,7 +35,9 @@ func runAll() -> void:
 	_runTest("SimulationManager applies speed and emits monthTick", _testSimulationManagerTicks)
 	_runTest("EconomySimulation calculates income and upkeep", _testEconomyCalculatesIncomeAndUpkeep)
 	_runTest("EconomySimulation applies month tick and shortage", _testEconomyAppliesMonthTickAndShortage)
-	_runTest("WorldMap creates country nodes", _testWorldMapCreatesCountryNodes)
+	_runTest("ArmyMovementSimulation validates and advances movement", _testArmyMovementValidatesAndAdvances)
+	_runTest("GameManager move army command emits events", _testGameManagerMoveArmyCommand)
+	_runTest("WorldMap creates country and army nodes", _testWorldMapCreatesCountryAndArmyNodes)
 	_runTest("MapCamera clamps pan and zoom", _testMapCameraClampsPanAndZoom)
 	_runTest("RunStateView creates UI summaries", _testRunStateViewCreatesSummaries)
 	_runTest("Main UI layout binds state and commands", _testMainUiLayoutBindsStateAndCommands)
@@ -172,6 +175,10 @@ func _testNewRunFactory() -> ValidationResult:
 
 	if not runState.armies.has(&"army_start"):
 		result.addError("New run does not contain starting army.")
+	else:
+		var army := runState.armies[&"army_start"] as ArmyData
+		if int(army.units.get(GameIds.ARTILLERY_UNIT_ID, 0)) != NewRunFactory.START_ARTILLERY:
+			result.addError("Starting army does not contain artillery.")
 
 	if int(runState.resources.get("gold", 0)) != NewRunFactory.START_GOLD:
 		result.addError("New run has wrong starting gold.")
@@ -328,7 +335,7 @@ func _testEconomyCalculatesIncomeAndUpkeep() -> ValidationResult:
 		result.addError("EconomySimulation calculated wrong gold income.")
 	if int(income.get("food", 0)) != 24:
 		result.addError("EconomySimulation calculated wrong food income.")
-	if upkeep != 14:
+	if upkeep != 17:
 		result.addError("EconomySimulation calculated wrong army food upkeep.")
 	return result
 
@@ -339,9 +346,9 @@ func _testEconomyAppliesMonthTickAndShortage() -> ValidationResult:
 	var monthResult: Dictionary = ECONOMY_SIMULATION.applyMonthTick(runState, PrototypeContentLoader.loadUnits())
 	if int(runState.resources.get("gold", 0)) != NewRunFactory.START_GOLD + 35:
 		result.addError("EconomySimulation did not apply monthly gold income.")
-	if int(runState.resources.get("food", 0)) != NewRunFactory.START_FOOD + 24 - 14:
+	if int(runState.resources.get("food", 0)) != NewRunFactory.START_FOOD + 24 - 17:
 		result.addError("EconomySimulation did not apply food income and upkeep.")
-	if int(monthResult.get("foodUpkeep", 0)) != 14:
+	if int(monthResult.get("foodUpkeep", 0)) != 17:
 		result.addError("EconomySimulation month result missing upkeep.")
 
 	runState.resources["food"] = 0
@@ -360,7 +367,75 @@ func _testEconomyAppliesMonthTickAndShortage() -> ValidationResult:
 	return result
 
 
-func _testWorldMapCreatesCountryNodes() -> ValidationResult:
+func _testArmyMovementValidatesAndAdvances() -> ValidationResult:
+	var result := ValidationResult.new()
+	var runState := NewRunFactory.createNewRun(&"paperland")
+	var invalidMove: Dictionary = ARMY_MOVEMENT_SIMULATION.requestMove(runState, &"army_start", &"graphia")
+	if bool(invalidMove.get("accepted", false)):
+		result.addError("ArmyMovementSimulation accepted a non-neighbor move.")
+
+	var move: Dictionary = ARMY_MOVEMENT_SIMULATION.requestMove(runState, &"army_start", &"inkreich")
+	if not bool(move.get("accepted", false)):
+		result.addError("ArmyMovementSimulation rejected a neighbor move.")
+
+	var army := runState.armies[&"army_start"] as ArmyData
+	if army.status != ArmyStatus.Value.Moving:
+		result.addError("ArmyMovementSimulation did not set moving status.")
+	if army.targetCountryId != &"inkreich":
+		result.addError("ArmyMovementSimulation did not set target country.")
+
+	var completedEarly: Array[Dictionary] = ARMY_MOVEMENT_SIMULATION.advanceMovement(runState, ARMY_MOVEMENT_SIMULATION.MOVEMENT_SECONDS_PER_EDGE * 0.5)
+	if not completedEarly.is_empty():
+		result.addError("ArmyMovementSimulation completed movement too early.")
+	if not is_equal_approx(army.movementProgress, 0.5):
+		result.addError("ArmyMovementSimulation did not advance progress deterministically.")
+
+	var completed: Array[Dictionary] = ARMY_MOVEMENT_SIMULATION.advanceMovement(runState, ARMY_MOVEMENT_SIMULATION.MOVEMENT_SECONDS_PER_EDGE * 0.5)
+	if completed.size() != 1:
+		result.addError("ArmyMovementSimulation did not report completed move.")
+	if army.locationCountryId != &"inkreich":
+		result.addError("ArmyMovementSimulation did not update location.")
+	if army.status != ArmyStatus.Value.Stationed:
+		result.addError("ArmyMovementSimulation did not restore stationed status.")
+	return result
+
+
+func _testGameManagerMoveArmyCommand() -> ValidationResult:
+	var result := ValidationResult.new()
+	var manager := GameManager.new()
+	var simulation := SimulationManager.new()
+	var bus := EventBus.new()
+	capturedEvents.clear()
+	bus.gameEventRaised.connect(_recordGameEvent)
+	manager.setEventBus(bus)
+	manager.setSimulationManager(simulation)
+	manager.startNewRun("paperland")
+
+	bus.requestCommand(CommandType.MOVE_ARMY, {
+		"armyId": "army_start",
+		"targetCountryId": "inkreich",
+	})
+	var army := manager.getCurrentRunState().armies[&"army_start"] as ArmyData
+	if army.status != ArmyStatus.Value.Moving:
+		result.addError("move_army command did not start army movement.")
+	if manager.getSelectedArmyId() != &"army_start":
+		result.addError("move_army command did not preserve selected army.")
+	if not _capturedEvent(EventType.ARMY_MOVE_STARTED):
+		result.addError("move_army command did not emit armyMoveStarted.")
+
+	simulation.stepSimulation(ARMY_MOVEMENT_SIMULATION.MOVEMENT_SECONDS_PER_EDGE)
+	if army.locationCountryId != &"inkreich":
+		result.addError("SimulationManager did not complete army movement.")
+	if not _capturedEvent(EventType.ARMY_MOVED):
+		result.addError("SimulationManager did not emit armyMoved.")
+
+	manager.free()
+	simulation.free()
+	bus.free()
+	return result
+
+
+func _testWorldMapCreatesCountryAndArmyNodes() -> ValidationResult:
 	var result := ValidationResult.new()
 	var scene := load("res://scenes/world/WorldMap.tscn") as PackedScene
 	if scene == null:
@@ -384,6 +459,10 @@ func _testWorldMapCreatesCountryNodes() -> ValidationResult:
 	var runState := manager.getCurrentRunState()
 	if worldMap.getCountryNodeCount() != runState.countries.size():
 		result.addError("WorldMap did not create a CountryNode for every country.")
+	if worldMap.getArmyNodeCount() != runState.armies.size():
+		result.addError("WorldMap did not create an ArmyNode for every army.")
+	if worldMap.getArmyNode(&"army_start") == null:
+		result.addError("WorldMap did not expose the starting ArmyNode.")
 
 	bus.requestCommand(CommandType.SELECT_COUNTRY, {
 		"countryId": "inkreich",
@@ -453,7 +532,7 @@ func _testRunStateViewCreatesSummaries() -> ValidationResult:
 		result.addError("RunStateView top bar gold is wrong.")
 	if int(topBarData.get("food", 0)) != NewRunFactory.START_FOOD:
 		result.addError("RunStateView top bar food is wrong.")
-	if int(topBarData.get("armyStrength", 0)) != NewRunFactory.START_INFANTRY + NewRunFactory.START_CAVALRY:
+	if int(topBarData.get("armyStrength", 0)) != NewRunFactory.START_INFANTRY + NewRunFactory.START_CAVALRY + NewRunFactory.START_ARTILLERY:
 		result.addError("RunStateView army strength summary is wrong.")
 	if str(topBarData.get("dateText", "")) != "Y1 M1 W1":
 		result.addError("RunStateView date text is wrong.")
@@ -463,6 +542,12 @@ func _testRunStateViewCreatesSummaries() -> ValidationResult:
 		result.addError("RunStateView country panel name is wrong.")
 	if int(countryData.get("stationedArmyCount", 0)) != 1:
 		result.addError("RunStateView stationed army count is wrong.")
+
+	var armyData: Dictionary = RUN_STATE_VIEW.createArmyPanelData(runState, &"army_start")
+	if str(armyData.get("status", "")) != "Stationed":
+		result.addError("RunStateView army panel status is wrong.")
+	if str(armyData.get("location", "")) != "Paperland":
+		result.addError("RunStateView army panel location is wrong.")
 	return result
 
 
@@ -480,10 +565,11 @@ func _testMainUiLayoutBindsStateAndCommands() -> ValidationResult:
 	var simulationManager := main.get_node("GameRoot/Managers/SimulationManager") as SimulationManager
 	var uiRoot = main.get_node("GameRoot/UIRoot")
 	var topBar = main.get_node("GameRoot/UIRoot/Root/TopBar")
+	var leftPanel = main.get_node("GameRoot/UIRoot/Root/LeftPanel")
 	var rightPanel = main.get_node("GameRoot/UIRoot/Root/RightPanel")
 	var bottomBar = main.get_node("GameRoot/UIRoot/Root/BottomBar")
 	var modalLayer = main.get_node("GameRoot/UIRoot/Root/ModalLayer")
-	if uiRoot == null or topBar == null or rightPanel == null or bottomBar == null or modalLayer == null:
+	if uiRoot == null or topBar == null or leftPanel == null or rightPanel == null or bottomBar == null or modalLayer == null:
 		result.addError("Main UI layout is missing required nodes.")
 		_cleanupMainForTest(main)
 		return result
@@ -491,6 +577,10 @@ func _testMainUiLayoutBindsStateAndCommands() -> ValidationResult:
 	var goldLabel := main.get_node("GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer/GoldLabel") as Label
 	if goldLabel.text != "Gold: %d" % NewRunFactory.START_GOLD:
 		result.addError("TopBar did not bind starting gold.")
+
+	var armyTitle := main.get_node("GameRoot/UIRoot/Root/LeftPanel/MarginContainer/VBoxContainer/TitleLabel") as Label
+	if armyTitle.text != "army_start":
+		result.addError("ArmyPanel did not bind selected army.")
 
 	eventBus.requestCommand(CommandType.SET_GAME_SPEED, {
 		"speed": GameSpeed.Value.Normal,

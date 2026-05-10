@@ -45,6 +45,19 @@ File: `res://scenes/ui/country_panel.gd`
 
 It refreshes when `countrySelected`, `runStarted`, or `runReset` events are raised.
 
+## ArmyPanel
+
+File: `res://scenes/ui/army_panel.gd`
+
+`LeftPanel` displays the selected army:
+
+- Status
+- Location
+- Target
+- Unit counts
+
+It refreshes on run, army selection, movement start, movement completion, month tick, and speed events. Movement rules stay in core simulation code.
+
 ## TimeControls
 
 File: `res://scenes/ui/time_controls.gd`
@@ -65,3 +78,5 @@ ESC opens `ModalLayer`, pauses the run, and shows Resume plus a Quit-to-Menu stu
 File: `res://src/core/view/run_state_view.gd`
 
 `RunStateView` creates display dictionaries for UI scripts. This keeps TopBar and CountryPanel simple and prevents UI scripts from owning gameplay rules.
+
+Phase 12 adds selected army panel data to the same view layer.

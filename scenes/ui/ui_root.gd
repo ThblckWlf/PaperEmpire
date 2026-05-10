@@ -5,7 +5,7 @@ const RUN_STATE_VIEW := preload("res://src/core/view/run_state_view.gd")
 
 @onready var rootControl: Control = $Root as Control
 @onready var topBar = $Root/TopBar
-@onready var leftPanel: PanelContainer = $Root/LeftPanel as PanelContainer
+@onready var leftPanel = $Root/LeftPanel
 @onready var rightPanel = $Root/RightPanel
 @onready var bottomBar = $Root/BottomBar
 @onready var modalLayer: Control = $Root/ModalLayer as Control
@@ -58,13 +58,14 @@ func _refreshAll() -> void:
 		return
 
 	topBar.setData(RUN_STATE_VIEW.createTopBarData(runState))
+	leftPanel.setData(RUN_STATE_VIEW.createArmyPanelData(runState, gameManager.getSelectedArmyId()))
 	rightPanel.setData(RUN_STATE_VIEW.createCountryPanelData(runState, gameManager.getSelectedCountryId()))
 	bottomBar.setCurrentSpeed(int(runState.speed))
 
 
 func _onGameEventRaised(eventName: StringName, _payload: Dictionary) -> void:
 	match eventName:
-		EventType.RUN_STARTED, EventType.RUN_RESET, EventType.COUNTRY_SELECTED, EventType.GAME_SPEED_CHANGED, EventType.MONTH_TICK:
+		EventType.RUN_STARTED, EventType.RUN_RESET, EventType.COUNTRY_SELECTED, EventType.ARMY_SELECTED, EventType.ARMY_MOVE_STARTED, EventType.ARMY_MOVED, EventType.GAME_SPEED_CHANGED, EventType.MONTH_TICK:
 			_refreshAll()
 
 

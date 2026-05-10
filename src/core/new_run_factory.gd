@@ -7,6 +7,7 @@ const START_GOLD: int = 150
 const START_FOOD: int = 100
 const START_INFANTRY: int = 10
 const START_CAVALRY: int = 2
+const START_ARTILLERY: int = 1
 
 
 static func createNewRun(startCountryId: StringName = DEFAULT_START_COUNTRY_ID) -> RunState:
@@ -67,6 +68,7 @@ static func _createStartingArmy(startCountryId: StringName) -> ArmyData:
 	army.units = {
 		GameIds.INFANTRY_UNIT_ID: START_INFANTRY,
 		GameIds.CAVALRY_UNIT_ID: START_CAVALRY,
+		GameIds.ARTILLERY_UNIT_ID: START_ARTILLERY,
 	}
 	army.status = ArmyStatus.Value.Stationed
 	army.movementProgress = 0.0

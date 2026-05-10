@@ -36,6 +36,14 @@ Nodes:
 
 `CountryNode` displays a simplified polygon, updates hover/selection visuals, and emits click/hover signals.
 
+## ArmyNode
+
+File: `res://scenes/world/ArmyNode.tscn`
+
+`ArmyNode` displays a compact marker at the army's current map position. For moving armies it interpolates between source and target country centers from `ArmyData.movementProgress`.
+
+It emits selection input only. Movement rules stay in `ArmyMovementSimulation`.
+
 ## Input Flow
 
 Country clicks follow the command boundary:
@@ -48,6 +56,13 @@ Country clicks follow the command boundary:
 No combat, movement, economy, or ownership changes are triggered by map clicks in Phase 8.
 
 Camera input uses `_unhandled_input()` so UI controls can consume pointer events first. `CountryNode` also checks `Viewport.gui_get_hovered_control()` before emitting country commands.
+
+Phase 12 adds army movement input:
+
+1. Left-click an `ArmyNode` to request `select_army`.
+2. Right-click a country to request `move_army` for the selected army.
+3. `GameManager` validates through core movement rules and emits movement events.
+4. `WorldMap` updates army positions from `RunState`.
 
 ## Prototype Shapes
 

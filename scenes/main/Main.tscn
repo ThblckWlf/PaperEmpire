@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://scenes/main/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://src/core/event_bus.gd" id="2_event_bus"]
@@ -10,6 +10,7 @@
 [ext_resource type="Script" path="res://scenes/ui/country_panel.gd" id="8_country_panel"]
 [ext_resource type="Script" path="res://scenes/ui/time_controls.gd" id="9_time_controls"]
 [ext_resource type="Script" path="res://scenes/ui/esc_menu.gd" id="10_esc_menu"]
+[ext_resource type="Script" path="res://scenes/ui/army_panel.gd" id="11_army_panel"]
 
 [node name="Main" type="Node"]
 script = ExtResource("1_main")
@@ -87,6 +88,7 @@ text = "Y1 M1 W1"
 
 [node name="LeftPanel" type="PanelContainer" parent="GameRoot/UIRoot/Root"]
 layout_mode = 1
+script = ExtResource("11_army_panel")
 
 [node name="MarginContainer" type="MarginContainer" parent="GameRoot/UIRoot/Root/LeftPanel"]
 layout_mode = 2
@@ -105,7 +107,19 @@ text = "Paper Empire"
 
 [node name="RunLabel" type="Label" parent="GameRoot/UIRoot/Root/LeftPanel/MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "Run"
+text = "Status: -"
+
+[node name="LocationLabel" type="Label" parent="GameRoot/UIRoot/Root/LeftPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Location: -"
+
+[node name="TargetLabel" type="Label" parent="GameRoot/UIRoot/Root/LeftPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Target: -"
+
+[node name="UnitsLabel" type="Label" parent="GameRoot/UIRoot/Root/LeftPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Units: -"
 
 [node name="RightPanel" type="PanelContainer" parent="GameRoot/UIRoot/Root"]
 layout_mode = 1

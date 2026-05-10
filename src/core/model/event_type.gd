@@ -3,6 +3,8 @@ class_name EventType
 
 
 const COUNTRY_SELECTED: StringName = &"countrySelected"
+const ARMY_SELECTED: StringName = &"armySelected"
+const ARMY_MOVE_STARTED: StringName = &"armyMoveStarted"
 const ARMY_MOVED: StringName = &"armyMoved"
 const BATTLE_STARTED: StringName = &"battleStarted"
 const BATTLE_ENDED: StringName = &"battleEnded"

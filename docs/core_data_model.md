@@ -108,6 +108,8 @@ Fields:
 Phase 3 event types:
 
 - `countrySelected`
+- `armySelected`
+- `armyMoveStarted`
 - `armyMoved`
 - `battleStarted`
 - `battleEnded`
@@ -140,3 +142,17 @@ Current validation checks:
 - Army locations and targets reference known countries.
 
 Later validation can add stricter event type checks and fixture-file loading once static data files exist.
+
+## Commands
+
+`CommandType` currently defines command identifiers for the manager boundary:
+
+- `select_country`
+- `select_army`
+- `move_army`
+- `set_game_speed`
+- `pause_game`
+- `resume_game`
+- `reset_run`
+
+Phase 12 keeps army movement behind `move_army`; UI scenes request the command and core simulation validates the move.

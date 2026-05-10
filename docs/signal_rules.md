@@ -32,6 +32,7 @@ Simulation modules should own rule outcomes. When a meaningful outcome happens, 
 Examples:
 
 - `countryConquered`
+- `armyMoveStarted`
 - `armyMoved`
 - `battleStarted`
 - `battleResolved`
@@ -81,6 +82,13 @@ These wrappers only emit signals. Command dispatch is owned by `GameManager`; Ph
 Simulation rules still belong in core systems, not UI scenes.
 
 Phase 10 UI controls use the same command boundary. `TimeControls` sends speed commands through `EventBus.requestCommand()`, and the ESC menu pauses/resumes through commands instead of mutating `RunState`.
+
+Phase 12 army movement uses the same boundary:
+
+- `ArmyNode` selection requests `select_army`.
+- Right-click country target requests `move_army`.
+- `GameManager` delegates move validation to `ArmyMovementSimulation`.
+- `SimulationManager` emits `armyMoved` when movement completes.
 
 ## Naming
 

@@ -6,7 +6,7 @@ This document records the Phase 1 folder layout. It is intentionally light: the 
 
 - `res://scenes/main/` - Main entry scenes. `Main.tscn` is the configured run scene.
 - `res://scenes/managers/` - Future manager scenes, if a step explicitly adds them.
-- `res://scenes/world/` - Map, country, army-layer, and world visual scenes.
+- `res://scenes/world/` - Map, country, army-node, army-layer, and world visual scenes.
 - `res://scenes/ui/` - Godot Control-based UI scripts for HUD panels and menu stubs.
 - `res://scenes/effects/` - Future visual effect scenes that react to events but do not own rules.
 

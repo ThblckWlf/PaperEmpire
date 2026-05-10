@@ -55,6 +55,37 @@ static func createCountryPanelData(runState: RunState, countryId: StringName) ->
 	}
 
 
+static func createArmyPanelData(runState: RunState, armyId: StringName) -> Dictionary:
+	if runState == null or not runState.armies.has(armyId):
+		return {
+			"hasArmy": false,
+			"name": "No army selected",
+		}
+
+	var army := runState.armies[armyId] as ArmyData
+	if army == null:
+		return {
+			"hasArmy": false,
+			"name": "No army selected",
+		}
+
+	var locationName := _countryName(runState, army.locationCountryId)
+	var targetName := "-"
+	if army.targetCountryId != GameIds.EMPTY_ID:
+		targetName = _countryName(runState, army.targetCountryId)
+
+	return {
+		"hasArmy": true,
+		"id": army.id,
+		"name": str(army.id),
+		"status": _statusText(army.status),
+		"location": locationName,
+		"target": targetName,
+		"movementProgress": army.movementProgress,
+		"unitRows": _unitRows(army.units),
+	}
+
+
 static func _dateText(time: Dictionary) -> String:
 	return "Y%d M%d W%d" % [
 		int(time.get("year", 1)),
@@ -77,3 +108,38 @@ static func _unitCount(units: Dictionary) -> int:
 	for unitId in units.keys():
 		total += int(units[unitId])
 	return total
+
+
+static func _countryName(runState: RunState, countryId: StringName) -> String:
+	if not runState.countries.has(countryId):
+		return "-"
+
+	var country := runState.countries[countryId] as CountryData
+	if country == null:
+		return "-"
+	return country.name
+
+
+static func _statusText(status: int) -> String:
+	match status:
+		ArmyStatus.Value.Stationed:
+			return "Stationed"
+		ArmyStatus.Value.Moving:
+			return "Moving"
+		ArmyStatus.Value.Attacking:
+			return "Attacking"
+		ArmyStatus.Value.Defending:
+			return "Defending"
+		ArmyStatus.Value.Defeated:
+			return "Defeated"
+		_:
+			return "Unknown"
+
+
+static func _unitRows(units: Dictionary) -> Array[String]:
+	var rows: Array[String] = []
+	var unitIds := units.keys()
+	unitIds.sort()
+	for unitId in unitIds:
+		rows.append("%s: %d" % [str(unitId).capitalize(), int(units[unitId])])
+	return rows
