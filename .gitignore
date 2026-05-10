@@ -6,7 +6,6 @@
 # Local exports and generated scratch files
 /export/
 /exports/
-export_presets.cfg
 *.tmp
 *.translation
 
