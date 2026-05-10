@@ -20,6 +20,9 @@ const SETTINGS_MANAGER_SCRIPT := preload("res://src/save/settings_manager.gd")
 const SETTINGS_PANEL_SCRIPT := preload("res://scenes/ui/settings_panel.gd")
 const USER_SETTINGS := preload("res://src/save/user_settings.gd")
 const INPUT_ACTIONS := preload("res://src/core/input/input_actions.gd")
+const MOCK_PLATFORM_SERVICE_SCRIPT := preload("res://src/platform/mock_platform_service.gd")
+const PLATFORM_EVENT_BRIDGE_SCRIPT := preload("res://src/platform/platform_event_bridge.gd")
+const ACHIEVEMENT_EVENT_MAP := preload("res://src/platform/achievement_event_map.gd")
 const META_UPGRADE_DATA_VALIDATOR := preload("res://src/core/validation/meta_upgrade_data_validator.gd")
 const SAVE_FORMAT := preload("res://src/save/save_format.gd")
 const META_PROGRESS := preload("res://src/save/meta_progress.gd")
@@ -87,6 +90,8 @@ func runAll() -> void:
 	_runTest("Shop panel sends purchase commands", _testShopPanelSendsPurchaseCommands)
 	_runTest("Settings manager saves and applies settings", _testSettingsManagerSavesAndAppliesSettings)
 	_runTest("Settings panel sends setting changes", _testSettingsPanelSendsSettingChanges)
+	_runTest("Platform service mock records achievements", _testPlatformServiceMockRecordsAchievements)
+	_runTest("Platform event bridge unlocks mapped achievements", _testPlatformEventBridgeUnlocksMappedAchievements)
 
 	if failedTests == 0:
 		print("[DebugTestRunner] PASS: %d/%d tests passed." % [totalTests, totalTests])
@@ -1717,6 +1722,72 @@ func _testSettingsPanelSendsSettingChanges() -> ValidationResult:
 
 	remove_child(panel)
 	panel.free()
+	return result
+
+
+func _testPlatformServiceMockRecordsAchievements() -> ValidationResult:
+	var result := ValidationResult.new()
+	var service = MOCK_PLATFORM_SERVICE_SCRIPT.new()
+	add_child(service)
+	if not bool(service.call("initialize")):
+		result.addError("MockPlatformService did not initialize.")
+	if not bool(service.call("isAvailable")):
+		result.addError("MockPlatformService did not report availability after initialize.")
+	if not bool(service.call("unlockAchievement", ACHIEVEMENT_EVENT_MAP.ACHIEVEMENT_FIRST_CONQUEST)):
+		result.addError("MockPlatformService rejected achievement unlock.")
+	if not bool(service.call("hasUnlockedAchievement", ACHIEVEMENT_EVENT_MAP.ACHIEVEMENT_FIRST_CONQUEST)):
+		result.addError("MockPlatformService did not record unlocked achievement.")
+	if not bool(service.call("setStat", &"runs_finished", 3)):
+		result.addError("MockPlatformService rejected stat write.")
+	if int(service.call("getStat", &"runs_finished")) != 3:
+		result.addError("MockPlatformService did not store stat value.")
+
+	remove_child(service)
+	service.free()
+	return result
+
+
+func _testPlatformEventBridgeUnlocksMappedAchievements() -> ValidationResult:
+	var result := ValidationResult.new()
+	var bus := EventBus.new()
+	var service = MOCK_PLATFORM_SERVICE_SCRIPT.new()
+	var bridge = PLATFORM_EVENT_BRIDGE_SCRIPT.new()
+	add_child(bus)
+	add_child(service)
+	add_child(bridge)
+	service.call("initialize")
+	bridge.call("configure", bus, service)
+
+	bus.raiseGameEvent(EventType.COUNTRY_CONQUERED, {
+		"countryId": "inkreich",
+	})
+	if not bool(service.call("hasUnlockedAchievement", ACHIEVEMENT_EVENT_MAP.ACHIEVEMENT_FIRST_CONQUEST)):
+		result.addError("PlatformEventBridge did not unlock conquest achievement.")
+
+	bus.raiseGameEvent(EventType.CROWNS_REWARDED, {
+		"runStatus": RunState.RUN_STATUS_WON,
+	})
+	if not bool(service.call("hasUnlockedAchievement", ACHIEVEMENT_EVENT_MAP.ACHIEVEMENT_RUN_WON)):
+		result.addError("PlatformEventBridge did not unlock run won achievement.")
+
+	var scene := load("res://scenes/main/Main.tscn") as PackedScene
+	if scene == null:
+		result.addError("Main.tscn could not be loaded for platform service test.")
+	else:
+		var main = scene.instantiate()
+		add_child(main)
+		var mainPlatformService = main.get_node("GameRoot/Managers/PlatformService")
+		var mainBridge = main.get_node("GameRoot/Managers/PlatformEventBridge")
+		if mainPlatformService == null or mainBridge == null:
+			result.addError("Main scene did not create platform service bridge.")
+		_cleanupMainForTest(main)
+
+	remove_child(bridge)
+	remove_child(service)
+	remove_child(bus)
+	bridge.free()
+	service.free()
+	bus.free()
 	return result
 
 

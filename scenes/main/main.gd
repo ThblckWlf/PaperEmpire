@@ -3,6 +3,8 @@ extends Node
 
 const INPUT_ACTIONS := preload("res://src/core/input/input_actions.gd")
 const SETTINGS_MANAGER_SCRIPT := preload("res://src/save/settings_manager.gd")
+const MOCK_PLATFORM_SERVICE_SCRIPT := preload("res://src/platform/mock_platform_service.gd")
+const PLATFORM_EVENT_BRIDGE_SCRIPT := preload("res://src/platform/platform_event_bridge.gd")
 
 @onready var eventBus: EventBus = $GameRoot/Managers/EventBus as EventBus
 @onready var managersNode: Node = $GameRoot/Managers as Node
@@ -17,7 +19,11 @@ func _ready() -> void:
 	INPUT_ACTIONS.ensureDefaultActions()
 	var saveManager := _createSaveManager()
 	var settingsManager := _createSettingsManager()
+	var platformService := _createPlatformService()
+	var platformEventBridge := _createPlatformEventBridge()
 	eventBus.logGameEvents = OS.is_debug_build()
+	platformService.call("initialize")
+	platformEventBridge.call("configure", eventBus, platformService)
 	gameManager.setEventBus(eventBus)
 	gameManager.setSimulationManager(simulationManager)
 	gameManager.setSaveManager(saveManager)
@@ -54,3 +60,25 @@ func _createSettingsManager() -> Node:
 	settingsManager.name = "SettingsManager"
 	managersNode.add_child(settingsManager)
 	return settingsManager
+
+
+func _createPlatformService() -> Node:
+	var existingPlatformService := managersNode.get_node_or_null("PlatformService")
+	if existingPlatformService != null:
+		return existingPlatformService
+
+	var platformService := MOCK_PLATFORM_SERVICE_SCRIPT.new()
+	platformService.name = "PlatformService"
+	managersNode.add_child(platformService)
+	return platformService
+
+
+func _createPlatformEventBridge() -> Node:
+	var existingBridge := managersNode.get_node_or_null("PlatformEventBridge")
+	if existingBridge != null:
+		return existingBridge
+
+	var bridge := PLATFORM_EVENT_BRIDGE_SCRIPT.new()
+	bridge.name = "PlatformEventBridge"
+	managersNode.add_child(bridge)
+	return bridge
