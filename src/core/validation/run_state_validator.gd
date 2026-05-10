@@ -9,6 +9,7 @@ static func validate(runState: RunState) -> ValidationResult:
 	_validateEconomy(runState.economy, result)
 	_validateSpeed(runState.speed, result)
 	_validateArmyLocations(runState, result)
+	_validateBattles(runState, result)
 	return result
 
 
@@ -94,6 +95,49 @@ static func _validateArmyLocations(runState: RunState, result: ValidationResult)
 
 		if army.targetCountryId != GameIds.EMPTY_ID and not runState.countries.has(army.targetCountryId):
 			result.addError("Army %s has unknown targetCountryId: %s." % [army.id, army.targetCountryId])
+
+
+static func _validateBattles(runState: RunState, result: ValidationResult) -> void:
+	for battleId in runState.battles.keys():
+		var battle := runState.battles[battleId] as Object
+		if battle == null:
+			result.addError("RunState battle %s is not an Object." % battleId)
+			continue
+
+		var storedId := StringName(str(battle.get("id")))
+		var attackerArmyId := StringName(str(battle.get("attackerArmyId")))
+		var sourceCountryId := StringName(str(battle.get("sourceCountryId")))
+		var targetCountryId := StringName(str(battle.get("targetCountryId")))
+		var status := int(battle.get("status"))
+		var elapsedSeconds := float(battle.get("elapsedSeconds"))
+		var durationSeconds := float(battle.get("durationSeconds"))
+
+		if storedId == GameIds.EMPTY_ID:
+			result.addError("Battle has empty id.")
+		elif storedId != battleId:
+			result.addError("Battle %s is stored under mismatched key %s." % [storedId, battleId])
+
+		if not runState.armies.has(attackerArmyId):
+			result.addError("Battle %s has unknown attackerArmyId: %s." % [storedId, attackerArmyId])
+
+		if not runState.countries.has(sourceCountryId):
+			result.addError("Battle %s has unknown sourceCountryId: %s." % [storedId, sourceCountryId])
+
+		if not runState.countries.has(targetCountryId):
+			result.addError("Battle %s has unknown targetCountryId: %s." % [storedId, targetCountryId])
+
+		if not [
+			BattleStatus.Value.Pending,
+			BattleStatus.Value.Active,
+			BattleStatus.Value.Ended,
+		].has(status):
+			result.addError("Battle %s has invalid status: %s." % [storedId, status])
+
+		if elapsedSeconds < 0.0 or is_nan(elapsedSeconds):
+			result.addError("Battle %s has invalid elapsedSeconds." % storedId)
+
+		if durationSeconds < 0.0 or is_nan(durationSeconds):
+			result.addError("Battle %s has invalid durationSeconds." % storedId)
 
 
 static func _isNumeric(value: Variant) -> bool:

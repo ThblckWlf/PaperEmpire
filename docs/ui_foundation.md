@@ -60,7 +60,7 @@ File: `res://scenes/ui/army_panel.gd`
 - Target
 - Unit counts
 
-It refreshes on run, army selection, movement start, movement completion, recruitment, army creation, month tick, and speed events. Movement and recruitment rules stay in core simulation code.
+It refreshes on run, army selection, movement start, movement completion, battle start/end, conquest, recruitment, army creation, month tick, and speed events. Movement, combat, and recruitment rules stay in core simulation code.
 
 ## TimeControls
 

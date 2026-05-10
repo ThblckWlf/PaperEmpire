@@ -66,7 +66,7 @@ func _refreshAll() -> void:
 
 func _onGameEventRaised(eventName: StringName, _payload: Dictionary) -> void:
 	match eventName:
-		EventType.RUN_STARTED, EventType.RUN_RESET, EventType.COUNTRY_SELECTED, EventType.ARMY_SELECTED, EventType.ARMY_MOVE_STARTED, EventType.ARMY_MOVED, EventType.UNITS_RECRUITED, EventType.ARMY_CREATED, EventType.GAME_SPEED_CHANGED, EventType.MONTH_TICK:
+		EventType.RUN_STARTED, EventType.RUN_RESET, EventType.COUNTRY_SELECTED, EventType.ARMY_SELECTED, EventType.ARMY_MOVE_STARTED, EventType.ARMY_MOVED, EventType.UNITS_RECRUITED, EventType.ARMY_CREATED, EventType.BATTLE_STARTED, EventType.BATTLE_ENDED, EventType.COUNTRY_CONQUERED, EventType.GAME_SPEED_CHANGED, EventType.MONTH_TICK:
 			_refreshAll()
 
 

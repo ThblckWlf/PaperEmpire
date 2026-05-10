@@ -98,6 +98,12 @@ Phase 13 recruitment uses the same boundary:
 - `GameManager` delegates validation to `RecruitmentSimulation`.
 - UI and map scenes refresh from `unitsRecruited` and `armyCreated`.
 
+Phase 14 combat uses the same boundary:
+
+- Map input requests `start_attack` for non-player-owned targets.
+- `GameManager` delegates validation to `CombatSimulation`.
+- `SimulationManager` emits `battleEnded` and `countryConquered` after deterministic battle completion.
+
 ## Naming
 
 - Signal names use `lowerCamelCase`.

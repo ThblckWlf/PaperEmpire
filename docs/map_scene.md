@@ -60,9 +60,10 @@ Camera input uses `_unhandled_input()` so UI controls can consume pointer events
 Phase 12 adds army movement input:
 
 1. Left-click an `ArmyNode` to request `select_army`.
-2. Right-click a country to request `move_army` for the selected army.
-3. `GameManager` validates through core movement rules and emits movement events.
-4. `WorldMap` updates army positions from `RunState`.
+2. Right-click a player-owned country to request `move_army` for the selected army.
+3. Right-click a non-player-owned country to request `start_attack` for the selected army.
+4. `GameManager` validates through core rules and emits movement or battle events.
+5. `WorldMap` updates country owners and army positions from `RunState`.
 
 ## Prototype Shapes
 

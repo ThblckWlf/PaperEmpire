@@ -9,6 +9,7 @@ const RUN_STATE_VIEW := preload("res://src/core/view/run_state_view.gd")
 const ECONOMY_SIMULATION := preload("res://src/core/simulation/economy_simulation.gd")
 const ARMY_MOVEMENT_SIMULATION := preload("res://src/core/simulation/army_movement_simulation.gd")
 const RECRUITMENT_SIMULATION := preload("res://src/core/simulation/recruitment_simulation.gd")
+const COMBAT_SIMULATION := preload("res://src/core/simulation/combat_simulation.gd")
 
 
 func _ready() -> void:
@@ -40,6 +41,9 @@ func runAll() -> void:
 	_runTest("GameManager move army command emits events", _testGameManagerMoveArmyCommand)
 	_runTest("RecruitmentSimulation applies recruitment rules", _testRecruitmentAppliesRules)
 	_runTest("GameManager recruit and create army commands emit events", _testGameManagerRecruitAndCreateArmyCommands)
+	_runTest("CombatSimulation calculates combat power", _testCombatCalculatesPower)
+	_runTest("CombatSimulation starts valid attacks only", _testCombatStartsValidAttacks)
+	_runTest("SimulationManager completes battle and conquest", _testSimulationCompletesBattleAndConquest)
 	_runTest("WorldMap creates country and army nodes", _testWorldMapCreatesCountryAndArmyNodes)
 	_runTest("MapCamera clamps pan and zoom", _testMapCameraClampsPanAndZoom)
 	_runTest("RunStateView creates UI summaries", _testRunStateViewCreatesSummaries)
@@ -535,6 +539,109 @@ func _testGameManagerRecruitAndCreateArmyCommands() -> ValidationResult:
 	return result
 
 
+func _testCombatCalculatesPower() -> ValidationResult:
+	var result := ValidationResult.new()
+	var runState := NewRunFactory.createNewRun(&"paperland")
+	var army := runState.armies[&"army_start"] as ArmyData
+	var targetCountry := runState.countries[&"inkreich"] as CountryData
+	var power := COMBAT_SIMULATION.calculateArmyCombatPower(army, PrototypeContentLoader.loadUnits(), runState.economy, {
+		"targetDefense": targetCountry.defense,
+	})
+	var expectedPower := 178.0
+	if not is_equal_approx(power, expectedPower):
+		result.addError("CombatSimulation calculated wrong army power: %s." % power)
+
+	runState.economy["combatPowerMultiplier"] = 0.8
+	var malusPower := COMBAT_SIMULATION.calculateArmyCombatPower(army, PrototypeContentLoader.loadUnits(), runState.economy, {
+		"targetDefense": targetCountry.defense,
+	})
+	if not is_equal_approx(malusPower, expectedPower * 0.8):
+		result.addError("CombatSimulation did not apply food combat malus.")
+
+	var defensePower := COMBAT_SIMULATION.calculateCountryDefensePower(targetCountry)
+	if not is_equal_approx(defensePower, float(targetCountry.defense) * COMBAT_SIMULATION.COUNTRY_DEFENSE_POWER_MULTIPLIER):
+		result.addError("CombatSimulation calculated wrong country defense power.")
+	return result
+
+
+func _testCombatStartsValidAttacks() -> ValidationResult:
+	var result := ValidationResult.new()
+	var runState := NewRunFactory.createNewRun(&"paperland")
+	var invalidAttack: Dictionary = COMBAT_SIMULATION.startAttack(runState, &"army_start", &"graphia", PrototypeContentLoader.loadUnits())
+	if bool(invalidAttack.get("accepted", false)):
+		result.addError("CombatSimulation accepted a non-neighbor attack.")
+
+	var attack: Dictionary = COMBAT_SIMULATION.startAttack(runState, &"army_start", &"inkreich", PrototypeContentLoader.loadUnits())
+	if not bool(attack.get("accepted", false)):
+		result.addError("CombatSimulation rejected a valid attack.")
+	if not runState.battles.has(StringName(str(attack.get("battleId", "")))):
+		result.addError("CombatSimulation did not create BattleData.")
+
+	var army := runState.armies[&"army_start"] as ArmyData
+	if army.status != ArmyStatus.Value.Attacking:
+		result.addError("CombatSimulation did not set attacker status.")
+	if army.targetCountryId != &"inkreich":
+		result.addError("CombatSimulation did not set attacker target.")
+
+	var secondAttack: Dictionary = COMBAT_SIMULATION.startAttack(runState, &"army_start", &"foldmark", PrototypeContentLoader.loadUnits())
+	if bool(secondAttack.get("accepted", false)):
+		result.addError("CombatSimulation accepted an attack from a non-stationed army.")
+
+	var validation := RunStateValidator.validate(runState)
+	if not validation.isValid():
+		for error in validation.errors:
+			result.addError("Combat start produced invalid RunState: %s" % error)
+	return result
+
+
+func _testSimulationCompletesBattleAndConquest() -> ValidationResult:
+	var result := ValidationResult.new()
+	var manager := GameManager.new()
+	var simulation := SimulationManager.new()
+	var bus := EventBus.new()
+	capturedEvents.clear()
+	bus.gameEventRaised.connect(_recordGameEvent)
+	manager.setEventBus(bus)
+	manager.setSimulationManager(simulation)
+	manager.startNewRun("paperland")
+
+	bus.requestCommand(CommandType.START_ATTACK, {
+		"armyId": "army_start",
+		"targetCountryId": "inkreich",
+	})
+	if not _capturedEvent(EventType.BATTLE_STARTED):
+		result.addError("start_attack command did not emit battleStarted.")
+
+	var army := manager.getCurrentRunState().armies[&"army_start"] as ArmyData
+	if army.status != ArmyStatus.Value.Attacking:
+		result.addError("start_attack command did not set army attacking.")
+
+	simulation.stepSimulation(COMBAT_SIMULATION.BATTLE_DURATION_SECONDS)
+	var targetCountry := manager.getCurrentRunState().countries[&"inkreich"] as CountryData
+	if targetCountry.ownerId != GameIds.PLAYER_OWNER_ID:
+		result.addError("SimulationManager did not conquer target country.")
+	if army.locationCountryId != &"inkreich":
+		result.addError("Conquering army did not station in target country.")
+	if army.status != ArmyStatus.Value.Stationed:
+		result.addError("Conquering army did not return to stationed status.")
+	if _unitCount(army.units) < 0:
+		result.addError("Combat casualties produced negative unit count.")
+	if not _capturedEvent(EventType.BATTLE_ENDED):
+		result.addError("SimulationManager did not emit battleEnded.")
+	if not _capturedEvent(EventType.COUNTRY_CONQUERED):
+		result.addError("SimulationManager did not emit countryConquered.")
+
+	var validation := RunStateValidator.validate(manager.getCurrentRunState())
+	if not validation.isValid():
+		for error in validation.errors:
+			result.addError("Battle completion produced invalid RunState: %s" % error)
+
+	manager.free()
+	simulation.free()
+	bus.free()
+	return result
+
+
 func _testWorldMapCreatesCountryAndArmyNodes() -> ValidationResult:
 	var result := ValidationResult.new()
 	var scene := load("res://scenes/world/WorldMap.tscn") as PackedScene
@@ -818,6 +925,13 @@ func _unitFromCatalog(unitId: StringName) -> UnitData:
 		if unit.id == unitId:
 			return unit
 	return null
+
+
+func _unitCount(units: Dictionary) -> int:
+	var total := 0
+	for unitId in units.keys():
+		total += int(units.get(unitId, 0))
+	return total
 
 
 func _countryShapeBounds(center: Vector2, points: PackedVector2Array) -> Rect2:

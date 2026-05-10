@@ -67,6 +67,25 @@ Fields:
 
 `units` is a dictionary from unit ID to amount. Movement and combat logic are intentionally not implemented here.
 
+## BattleData
+
+File: `res://src/core/model/battle_data.gd`
+
+Fields:
+
+- `id: StringName`
+- `attackerArmyId: StringName`
+- `sourceCountryId: StringName`
+- `targetCountryId: StringName`
+- `status: int`
+- `elapsedSeconds: float`
+- `durationSeconds: float`
+- `attackerPower: float`
+- `defenderPower: float`
+- `attackerWon: bool`
+- `winnerOwnerId: StringName`
+- `casualties: Dictionary`
+
 ## RunState
 
 File: `res://src/core/model/run_state.gd`
@@ -152,6 +171,7 @@ Later validation can add stricter event type checks and fixture-file loading onc
 - `select_country`
 - `select_army`
 - `move_army`
+- `start_attack`
 - `recruit_units`
 - `create_army`
 - `set_game_speed`
@@ -162,3 +182,5 @@ Later validation can add stricter event type checks and fixture-file loading onc
 Phase 12 keeps army movement behind `move_army`; UI scenes request the command and core simulation validates the move.
 
 Phase 13 keeps recruitment and army creation behind `recruit_units` and `create_army`. Recruitment mutates army unit counts and gold only after `RecruitmentSimulation` validates country ownership, resources, food reserve, and target army state.
+
+Phase 14 keeps combat behind `start_attack`; battle lifecycle is advanced by `SimulationManager` and rules live in `CombatSimulation`.

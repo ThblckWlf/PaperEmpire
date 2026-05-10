@@ -4,6 +4,7 @@ class_name GameManager
 
 const ARMY_MOVEMENT_SIMULATION := preload("res://src/core/simulation/army_movement_simulation.gd")
 const RECRUITMENT_SIMULATION := preload("res://src/core/simulation/recruitment_simulation.gd")
+const COMBAT_SIMULATION := preload("res://src/core/simulation/combat_simulation.gd")
 
 var currentRunState: RunState
 var eventBus: EventBus
@@ -44,6 +45,11 @@ func submitCommand(commandName: StringName, payload: Dictionary = {}) -> void:
 			_selectArmy(StringName(str(payload.get("armyId", ""))))
 		CommandType.MOVE_ARMY:
 			_moveArmy(
+				StringName(str(payload.get("armyId", selectedArmyId))),
+				StringName(str(payload.get("targetCountryId", "")))
+			)
+		CommandType.START_ATTACK:
+			_startAttack(
 				StringName(str(payload.get("armyId", selectedArmyId))),
 				StringName(str(payload.get("targetCountryId", "")))
 			)
@@ -134,6 +140,28 @@ func _moveArmy(armyId: StringName, targetCountryId: StringName) -> void:
 		"armyId": armyId,
 	})
 	_raiseEvent(EventType.ARMY_MOVE_STARTED, moveResult)
+
+
+func _startAttack(armyId: StringName, targetCountryId: StringName) -> void:
+	var attackResult: Dictionary = COMBAT_SIMULATION.startAttack(
+		currentRunState,
+		armyId,
+		targetCountryId,
+		PrototypeContentLoader.loadUnits()
+	)
+	if not bool(attackResult.get("accepted", false)):
+		push_warning("Cannot start attack: %s" % str(attackResult.get("reason", "unknown_reason")))
+		return
+
+	selectedArmyId = armyId
+	selectedCountryId = targetCountryId
+	_raiseEvent(EventType.ARMY_SELECTED, {
+		"armyId": selectedArmyId,
+	})
+	_raiseEvent(EventType.COUNTRY_SELECTED, {
+		"countryId": selectedCountryId,
+	})
+	_raiseEvent(EventType.BATTLE_STARTED, attackResult)
 
 
 func _recruitUnits(countryId: StringName, unitId: StringName, amount: int) -> void:

@@ -90,7 +90,14 @@ func _onCountryMoveTargetPressed(countryId: StringName) -> void:
 	if armyId == GameIds.EMPTY_ID:
 		return
 
-	eventBus.requestCommand(CommandType.MOVE_ARMY, {
+	var commandName := CommandType.MOVE_ARMY
+	var runState := gameManager.getCurrentRunState()
+	if runState != null and runState.countries.has(countryId):
+		var targetCountry := runState.countries[countryId] as CountryData
+		if targetCountry != null and targetCountry.ownerId != GameIds.PLAYER_OWNER_ID:
+			commandName = CommandType.START_ATTACK
+
+	eventBus.requestCommand(commandName, {
 		"armyId": str(armyId),
 		"targetCountryId": str(countryId),
 	})
@@ -113,10 +120,11 @@ func _onGameEventRaised(eventName: StringName, payload: Dictionary) -> void:
 			_updateSelection(StringName(str(payload.get("countryId", ""))))
 		EventType.ARMY_SELECTED:
 			_updateArmySelection(StringName(str(payload.get("armyId", ""))))
-		EventType.ARMY_MOVE_STARTED, EventType.ARMY_MOVED, EventType.UNITS_RECRUITED:
+		EventType.ARMY_MOVE_STARTED, EventType.ARMY_MOVED, EventType.UNITS_RECRUITED, EventType.BATTLE_STARTED, EventType.BATTLE_ENDED:
 			_updateArmyNodesFromRunState()
-		EventType.ARMY_CREATED:
+		EventType.ARMY_CREATED, EventType.COUNTRY_CONQUERED:
 			_refreshArmyNodesFromRunState()
+			_updateCountryOwnersFromRunState()
 		EventType.RUN_STARTED, EventType.RUN_RESET:
 			refreshFromRunState()
 
@@ -169,6 +177,21 @@ func _updateArmySelection(selectedArmyId: StringName) -> void:
 		var node = armyNodes[armyId]
 		if node != null:
 			node.setSelected(armyId == selectedArmyId)
+
+
+func _updateCountryOwnersFromRunState() -> void:
+	if gameManager == null or gameManager.getCurrentRunState() == null:
+		return
+
+	var runState := gameManager.getCurrentRunState()
+	for countryId in countryNodes.keys():
+		if not runState.countries.has(countryId):
+			continue
+
+		var country := runState.countries[countryId] as CountryData
+		var node = countryNodes[countryId]
+		if country != null and node != null:
+			node.setOwner(country.ownerId)
 
 
 func _clearCountryNodes() -> void:
