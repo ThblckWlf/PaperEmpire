@@ -12,6 +12,7 @@ static func validate(runState: RunState) -> ValidationResult:
 	_validateWorldReaction(runState.worldReaction, result)
 	_validateEconomy(runState.economy, result)
 	_validateUpgrades(runState, result)
+	_validateMiniGoalState(runState, result)
 	_validateSpeed(runState.speed, result)
 	_validateArmyLocations(runState, result)
 	_validateBattles(runState, result)
@@ -196,6 +197,34 @@ static func _validateUpgrades(runState: RunState, result: ValidationResult) -> v
 		var choices = runState.activeUpgradeChoice.get("choices", [])
 		if not (choices is Array):
 			result.addError("RunState activeUpgradeChoice choices is not an array.")
+
+
+static func _validateMiniGoalState(runState: RunState, result: ValidationResult) -> void:
+	var rarityBoost = runState.miniGoalState.get("upgradeRarityBoost", 0)
+	if not _isNumeric(rarityBoost):
+		result.addError("RunState miniGoalState upgradeRarityBoost is not numeric.")
+	elif int(rarityBoost) < 0:
+		result.addError("RunState miniGoalState upgradeRarityBoost is negative.")
+
+	var seenGoalIds := {}
+	for goal in runState.miniGoals:
+		var goalId := StringName(str(goal.get("id", "")))
+		if goalId == GameIds.EMPTY_ID:
+			result.addError("RunState mini goal has empty id.")
+		elif seenGoalIds.has(goalId):
+			result.addError("RunState mini goals contains duplicate id: %s." % goalId)
+		else:
+			seenGoalIds[goalId] = true
+
+		var progress = goal.get("progress", 0.0)
+		if not _isNumeric(progress):
+			result.addError("Mini goal %s progress is not numeric." % goalId)
+		elif float(progress) < 0.0 or is_nan(float(progress)):
+			result.addError("Mini goal %s progress is invalid." % goalId)
+
+		for key in ["isCompleted", "isRewardClaimed", "isFailed"]:
+			if goal.has(key) and typeof(goal.get(key)) != TYPE_BOOL:
+				result.addError("Mini goal %s %s is not bool." % [goalId, key])
 
 
 static func _isNumeric(value: Variant) -> bool:

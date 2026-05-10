@@ -5,6 +5,7 @@ Phase 10 UI scripts display prepared state and emit commands through `EventBus`.
 - `ui_root.gd` wires the HUD, event refreshes, and ESC menu behavior.
 - `top_bar.gd` displays run resources, army count, threat, and date.
 - `army_panel.gd` displays the currently selected army.
+- `mini_goal_panel.gd` displays mini-goal progress and sends reward-claim commands.
 - `country_panel.gd` displays the currently selected country and sends recruitment/create-army commands.
 - `time_controls.gd` emits pause and speed commands.
 - `esc_menu.gd` exposes Resume and a Quit-to-Menu stub.

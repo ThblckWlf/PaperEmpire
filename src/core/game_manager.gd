@@ -7,6 +7,7 @@ const RECRUITMENT_SIMULATION := preload("res://src/core/simulation/recruitment_s
 const COMBAT_SIMULATION := preload("res://src/core/simulation/combat_simulation.gd")
 const UPGRADE_SIMULATION := preload("res://src/core/simulation/upgrade_simulation.gd")
 const THREAT_SIMULATION := preload("res://src/core/simulation/threat_simulation.gd")
+const MINI_GOAL_SIMULATION := preload("res://src/core/simulation/mini_goal_simulation.gd")
 
 var currentRunState: RunState
 var eventBus: EventBus
@@ -65,6 +66,8 @@ func submitCommand(commandName: StringName, payload: Dictionary = {}) -> void:
 			_createArmy(StringName(str(payload.get("countryId", selectedCountryId))))
 		CommandType.CHOOSE_UPGRADE:
 			_chooseUpgrade(StringName(str(payload.get("upgradeId", ""))))
+		CommandType.CLAIM_MINI_GOAL_REWARD:
+			_claimMiniGoalReward(StringName(str(payload.get("goalId", ""))))
 		CommandType.SET_GAME_SPEED:
 			_setGameSpeed(int(payload.get("speed", GameSpeed.Value.Normal)))
 		CommandType.PAUSE_GAME:
@@ -183,6 +186,15 @@ func _chooseUpgrade(upgradeId: StringName) -> void:
 	_setGameSpeed(GameSpeed.Value.Normal)
 
 
+func _claimMiniGoalReward(goalId: StringName) -> void:
+	var rewardResult: Dictionary = MINI_GOAL_SIMULATION.claimReward(currentRunState, goalId)
+	if not bool(rewardResult.get("accepted", false)):
+		push_warning("Cannot claim mini goal reward: %s" % str(rewardResult.get("reason", "unknown_reason")))
+		return
+
+	_raiseEvent(EventType.MINI_GOAL_REWARD_CLAIMED, rewardResult)
+
+
 func _recruitUnits(countryId: StringName, unitId: StringName, amount: int) -> void:
 	var recruitResult: Dictionary = RECRUITMENT_SIMULATION.applyRecruitment(
 		currentRunState,
@@ -247,6 +259,9 @@ func _setGameSpeed(speed: int) -> void:
 func _raiseEvent(eventType: StringName, payload: Dictionary = {}) -> void:
 	if eventBus == null:
 		return
+
+	if currentRunState != null:
+		MINI_GOAL_SIMULATION.updateProgress(currentRunState, eventType, payload, PrototypeContentLoader.loadUnits())
 
 	var gameEvent := GameEvent.new()
 	gameEvent.type = eventType

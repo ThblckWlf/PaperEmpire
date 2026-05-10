@@ -2,6 +2,8 @@ extends RefCounted
 class_name NewRunFactory
 
 
+const MINI_GOAL_SIMULATION := preload("res://src/core/simulation/mini_goal_simulation.gd")
+
 const DEFAULT_START_COUNTRY_ID: StringName = &"paperland"
 const START_GOLD: int = 150
 const START_FOOD: int = 100
@@ -32,7 +34,7 @@ static func createNewRun(startCountryId: StringName = DEFAULT_START_COUNTRY_ID) 
 		"threat": 0,
 	}
 	runState.speed = GameSpeed.Value.Normal
-	runState.miniGoals = PrototypeContentLoader.loadMiniGoals()
+	runState.miniGoals = MINI_GOAL_SIMULATION.initializeGoals(PrototypeContentLoader.loadMiniGoals())
 
 	if hasStartCountry:
 		runState.runStatus = RunState.RUN_STATUS_ACTIVE

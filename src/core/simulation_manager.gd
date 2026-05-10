@@ -11,6 +11,7 @@ const ARMY_MOVEMENT_SIMULATION := preload("res://src/core/simulation/army_moveme
 const COMBAT_SIMULATION := preload("res://src/core/simulation/combat_simulation.gd")
 const UPGRADE_SIMULATION := preload("res://src/core/simulation/upgrade_simulation.gd")
 const THREAT_SIMULATION := preload("res://src/core/simulation/threat_simulation.gd")
+const MINI_GOAL_SIMULATION := preload("res://src/core/simulation/mini_goal_simulation.gd")
 
 var fixedStepSeconds: float = DEFAULT_FIXED_STEP_SECONDS
 var accumulatedSeconds: float = 0.0
@@ -153,6 +154,9 @@ func _handleBattleEvent(battleEvent: Dictionary) -> void:
 
 
 func _raiseEvent(eventType: StringName, payload: Dictionary = {}) -> void:
+	if runState != null:
+		MINI_GOAL_SIMULATION.updateProgress(runState, eventType, payload, PrototypeContentLoader.loadUnits())
+
 	var gameEvent := GameEvent.new()
 	gameEvent.type = eventType
 	gameEvent.payload = payload

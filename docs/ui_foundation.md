@@ -64,6 +64,12 @@ File: `res://scenes/ui/army_panel.gd`
 
 It refreshes on run, army selection, movement start, movement completion, battle start/end, conquest, recruitment, army creation, month tick, and speed events. Movement, combat, and recruitment rules stay in core simulation code.
 
+## MiniGoalPanel
+
+File: `res://scenes/ui/mini_goal_panel.gd`
+
+Displays prototype mini-goal progress. Completed unclaimed goals become claim buttons and request `claim_mini_goal_reward`.
+
 ## TimeControls
 
 File: `res://scenes/ui/time_controls.gd`
@@ -92,3 +98,5 @@ File: `res://src/core/view/run_state_view.gd`
 `RunStateView` creates display dictionaries for UI scripts. This keeps TopBar and CountryPanel simple and prevents UI scripts from owning gameplay rules.
 
 Phase 12 adds selected army panel data to the same view layer.
+
+Phase 17 adds mini-goal panel data to the same view layer.

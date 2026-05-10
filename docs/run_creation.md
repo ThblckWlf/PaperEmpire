@@ -13,7 +13,7 @@ File: `res://src/core/new_run_factory.gd`
 - Resets any previous fixture player-owned country to `neutral`.
 - Sets starting resources.
 - Adds a starting army at the start country.
-- Loads prototype mini-goals.
+- Loads and initializes prototype mini-goals with runtime progress fields.
 - Marks the run as `active` when the start country exists.
 
 The phase plan calls this `create_new_run`; the project uses `createNewRun` to stay consistent with the GDScript naming rules in `AGENTS.md`.

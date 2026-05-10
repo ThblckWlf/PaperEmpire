@@ -103,6 +103,7 @@ Fields:
 - `activeUpgradeChoice: Dictionary`
 - `upgrades: Array[StringName]`
 - `upgradeEffects: Dictionary`
+- `miniGoalState: Dictionary`
 - `miniGoals: Array[Dictionary]`
 - `runStatus: StringName`
 
@@ -142,6 +143,7 @@ Phase 3 event types:
 - `upgradeChosen`
 - `threatChanged`
 - `worldReactionUpdated`
+- `miniGoalRewardClaimed`
 - `missileLaunched`
 - `runStarted`
 - `runReset`

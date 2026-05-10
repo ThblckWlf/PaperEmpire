@@ -6,6 +6,7 @@ const RUN_STATE_VIEW := preload("res://src/core/view/run_state_view.gd")
 @onready var rootControl: Control = $Root as Control
 @onready var topBar = $Root/TopBar
 @onready var leftPanel = $Root/LeftPanel
+@onready var miniGoalPanel = $Root/MiniGoalPanel
 @onready var rightPanel = $Root/RightPanel
 @onready var bottomBar = $Root/BottomBar
 @onready var modalLayer: Control = $Root/ModalLayer as Control
@@ -46,6 +47,7 @@ func configure(newGameManager: GameManager, newEventBus: EventBus) -> void:
 	eventBus = newEventBus
 	bottomBar.configure(eventBus)
 	rightPanel.configure(eventBus)
+	miniGoalPanel.configure(eventBus)
 	upgradeModal.configure(eventBus)
 	_connectEventBus()
 	_refreshAll()
@@ -65,6 +67,7 @@ func _refreshAll() -> void:
 
 	topBar.setData(RUN_STATE_VIEW.createTopBarData(runState))
 	leftPanel.setData(RUN_STATE_VIEW.createArmyPanelData(runState, gameManager.getSelectedArmyId()))
+	miniGoalPanel.setData(RUN_STATE_VIEW.createMiniGoalPanelData(runState))
 	rightPanel.setData(RUN_STATE_VIEW.createCountryPanelData(runState, gameManager.getSelectedCountryId()))
 	bottomBar.setCurrentSpeed(int(runState.speed))
 
@@ -76,7 +79,7 @@ func _onGameEventRaised(eventName: StringName, payload: Dictionary) -> void:
 		EventType.UPGRADE_CHOSEN:
 			_closeUpgradeModal()
 			_refreshAll()
-		EventType.RUN_STARTED, EventType.RUN_RESET, EventType.COUNTRY_SELECTED, EventType.ARMY_SELECTED, EventType.ARMY_MOVE_STARTED, EventType.ARMY_MOVED, EventType.UNITS_RECRUITED, EventType.ARMY_CREATED, EventType.BATTLE_STARTED, EventType.BATTLE_ENDED, EventType.COUNTRY_CONQUERED, EventType.THREAT_CHANGED, EventType.WORLD_REACTION_UPDATED, EventType.GAME_SPEED_CHANGED, EventType.MONTH_TICK:
+		EventType.RUN_STARTED, EventType.RUN_RESET, EventType.COUNTRY_SELECTED, EventType.ARMY_SELECTED, EventType.ARMY_MOVE_STARTED, EventType.ARMY_MOVED, EventType.UNITS_RECRUITED, EventType.ARMY_CREATED, EventType.BATTLE_STARTED, EventType.BATTLE_ENDED, EventType.COUNTRY_CONQUERED, EventType.MINI_GOAL_REWARD_CLAIMED, EventType.THREAT_CHANGED, EventType.WORLD_REACTION_UPDATED, EventType.GAME_SPEED_CHANGED, EventType.MONTH_TICK:
 			_refreshAll()
 
 
@@ -160,7 +163,13 @@ func _applyLayout() -> void:
 	leftPanel.offset_left = 16.0
 	leftPanel.offset_top = 72.0
 	leftPanel.offset_right = 296.0
-	leftPanel.offset_bottom = -88.0
+	leftPanel.offset_bottom = -360.0
+
+	miniGoalPanel.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	miniGoalPanel.offset_left = 16.0
+	miniGoalPanel.offset_top = -344.0
+	miniGoalPanel.offset_right = 296.0
+	miniGoalPanel.offset_bottom = -88.0
 
 	rightPanel.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
 	rightPanel.offset_left = -356.0

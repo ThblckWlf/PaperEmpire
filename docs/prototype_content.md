@@ -7,7 +7,7 @@ Phase 5 adds small JSON fixtures for manual testing and future prototype scenes.
 - `res://data/units.json` - exactly three MVP units: infantry, cavalry, artillery.
 - `res://data/countries.json` - 12 test countries with owners, income, defense, center points, and bidirectional neighbors.
 - `res://data/upgrades.json` - 10 passive run upgrades using the Phase 15 supported effect types.
-- `res://data/miniGoals.json` - 6 simple mini-goals.
+- `res://data/miniGoals.json` - 6 simple mini-goals with progress rules and rewards.
 - `res://data/mapShapes.json` - local polygon points for the Phase 8 prototype map.
 
 ## Loader
@@ -39,5 +39,5 @@ Run `res://tests_debug/DebugTestRunner.tscn` and check the Output panel for PASS
 - No real world map import; Phase 8 uses simple non-overlapping prototype polygons.
 - No pathfinding.
 - Gameplay simulation exists for economy, movement, recruitment, combat, and passive upgrades.
-- No mini-goal completion logic.
+- Mini-goal completion and one-time reward claiming exist for the prototype goals.
 - No active abilities.

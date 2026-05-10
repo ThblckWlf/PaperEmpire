@@ -116,6 +116,12 @@ Phase 16 threat uses the same boundary:
 - `SimulationManager` emits `threatChanged` and `worldReactionUpdated`.
 - UI refreshes warning states from prepared view data.
 
+Phase 17 mini-goals use the same boundary:
+
+- Core systems update mini-goal progress from gameplay events.
+- `MiniGoalPanel` requests `claim_mini_goal_reward`.
+- `GameManager` delegates reward claiming to `MiniGoalSimulation` and emits `miniGoalRewardClaimed`.
+
 ## Naming
 
 - Signal names use `lowerCamelCase`.

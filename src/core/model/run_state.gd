@@ -45,5 +45,8 @@ var upgradeEffects: Dictionary = {
 	"warThreatMultiplier": 1.0,
 	"defenseCombatMultiplier": 1.0,
 }
+var miniGoalState: Dictionary = {
+	"upgradeRarityBoost": 0,
+}
 var miniGoals: Array[Dictionary] = []
 var runStatus: StringName = RUN_STATUS_NOT_STARTED

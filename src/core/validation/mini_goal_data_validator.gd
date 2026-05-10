@@ -18,6 +18,14 @@ static func validate(miniGoals: Array[Dictionary]) -> ValidationResult:
 		"food": true,
 		"upgradeRarityBoost": true,
 	}
+	var allowedProgressRules := {
+		"countryConquered": true,
+		"resourceValue": true,
+		"armyPower": true,
+		"battleResult": true,
+		"monthTick": true,
+		"countryConqueredWithLimit": true,
+	}
 
 	if miniGoals.size() < 5 or miniGoals.size() > 8:
 		result.addError("MiniGoal fixture should contain 5-8 goals, found %d." % miniGoals.size())
@@ -40,6 +48,9 @@ static func validate(miniGoals: Array[Dictionary]) -> ValidationResult:
 		if not allowedGoalTypes.has(str(miniGoal.get("goalType", ""))):
 			result.addError("MiniGoal %s has invalid goalType." % id)
 
+		if not allowedProgressRules.has(str(miniGoal.get("progressRule", ""))):
+			result.addError("MiniGoal %s has invalid progressRule." % id)
+
 		if not allowedRewardTypes.has(str(miniGoal.get("rewardType", ""))):
 			result.addError("MiniGoal %s has invalid rewardType." % id)
 
@@ -54,6 +65,11 @@ static func validate(miniGoals: Array[Dictionary]) -> ValidationResult:
 			result.addError("MiniGoal %s rewardValue is not numeric." % id)
 		elif float(rewardValue) <= 0.0 or is_nan(float(rewardValue)):
 			result.addError("MiniGoal %s rewardValue must be positive." % id)
+
+		if miniGoal.has("limit"):
+			var limit = miniGoal.get("limit", null)
+			if typeof(limit) != TYPE_INT and typeof(limit) != TYPE_FLOAT:
+				result.addError("MiniGoal %s limit is not numeric." % id)
 
 		if miniGoal.has("chainId"):
 			result.addError("MiniGoal %s defines chainId, which is not MVP content." % id)

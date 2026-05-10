@@ -4,6 +4,7 @@
     "name": "First Expansion",
     "description": "Conquer 3 countries.",
     "goalType": "conquerCountries",
+    "progressRule": "countryConquered",
     "target": 3,
     "rewardType": "gold",
     "rewardValue": 150
@@ -13,6 +14,7 @@
     "name": "Full Treasury",
     "description": "Reach 500 gold.",
     "goalType": "reachGold",
+    "progressRule": "resourceValue",
     "target": 500,
     "rewardType": "food",
     "rewardValue": 100
@@ -22,6 +24,7 @@
     "name": "Field Army",
     "description": "Reach 150 total army power.",
     "goalType": "reachArmyPower",
+    "progressRule": "armyPower",
     "target": 150,
     "rewardType": "gold",
     "rewardValue": 120
@@ -31,6 +34,7 @@
     "name": "Hard Target",
     "description": "Defeat a country with higher defense than your army's base strength.",
     "goalType": "defeatStrongerCountry",
+    "progressRule": "battleResult",
     "target": 1,
     "rewardType": "upgradeRarityBoost",
     "rewardValue": 1
@@ -40,6 +44,7 @@
     "name": "Hold The Border",
     "description": "Hold a threatened country for 3 months.",
     "goalType": "holdThreatenedCountryMonths",
+    "progressRule": "monthTick",
     "target": 3,
     "rewardType": "food",
     "rewardValue": 160
@@ -49,6 +54,7 @@
     "name": "Quiet Advance",
     "description": "Conquer 2 countries while threat stays below 25.",
     "goalType": "conquerWithThreatBelow",
+    "progressRule": "countryConqueredWithLimit",
     "target": 2,
     "limit": 25,
     "rewardType": "gold",

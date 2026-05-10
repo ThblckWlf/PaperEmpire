@@ -92,6 +92,31 @@ static func createArmyPanelData(runState: RunState, armyId: StringName) -> Dicti
 	}
 
 
+static func createMiniGoalPanelData(runState: RunState) -> Dictionary:
+	if runState == null:
+		return {
+			"goalRows": [],
+		}
+
+	var rows: Array[Dictionary] = []
+	for goal in runState.miniGoals:
+		var progress := float(goal.get("progress", 0.0))
+		var target := float(goal.get("target", 1.0))
+		var isCompleted := bool(goal.get("isCompleted", false))
+		var isRewardClaimed := bool(goal.get("isRewardClaimed", false))
+		rows.append({
+			"id": StringName(str(goal.get("id", ""))),
+			"name": str(goal.get("name", "Goal")),
+			"progressText": "%d/%d" % [int(progress), int(target)],
+			"isCompleted": isCompleted,
+			"isRewardClaimed": isRewardClaimed,
+			"canClaim": isCompleted and not isRewardClaimed,
+		})
+	return {
+		"goalRows": rows,
+	}
+
+
 static func _dateText(time: Dictionary) -> String:
 	return "Y%d M%d W%d" % [
 		int(time.get("year", 1)),
