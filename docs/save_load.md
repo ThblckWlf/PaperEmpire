@@ -1,6 +1,6 @@
 # Save And Load
 
-Phase 19.1 defines the first versioned save schema. Runtime file IO and RunState serialization are added in later Phase 19 steps.
+Phase 19 defines the first versioned save schema, run serialization, and local file persistence.
 
 ## Save Root
 
@@ -33,3 +33,9 @@ The serializer explicitly converts:
 - `CountryData`, `ArmyData`, and battle objects to plain dictionaries
 
 It does not write files, read files, migrate old saves, or restore a `RunState`.
+
+## Local Save Files
+
+Phase 19.3 adds `SaveManager` file IO under `user://paper_empire/`.
+
+`SaveManager.saveGame(slotId, root)` writes only validated save roots. `loadGame(slotId)` returns a validated dictionary or `{}`. Slot IDs are sanitized into JSON filenames, and no project-folder save files or Steam Cloud calls are used.

@@ -66,6 +66,7 @@ func runAll() -> void:
 	_runTest("AudioManager creates buses and sound stubs", _testAudioManagerCreatesBusesAndSoundStubs)
 	_runTest("SaveFormat defines versioned save schema", _testSaveFormatDefinesVersionedSchema)
 	_runTest("RunStateSerializer writes pure data", _testRunStateSerializerWritesPureData)
+	_runTest("SaveManager writes and loads user saves", _testSaveManagerWritesAndLoadsUserSaves)
 
 	if failedTests == 0:
 		print("[DebugTestRunner] PASS: %d/%d tests passed." % [totalTests, totalTests])
@@ -1338,6 +1339,38 @@ func _testRunStateSerializerWritesPureData() -> ValidationResult:
 	var root: Dictionary = SAVE_FORMAT.createRunSaveRoot(serialized)
 	if not SAVE_FORMAT.isValidSaveRoot(root):
 		result.addError("Serialized RunState could not be placed in a valid save root.")
+	return result
+
+
+func _testSaveManagerWritesAndLoadsUserSaves() -> ValidationResult:
+	var result := ValidationResult.new()
+	var manager := SaveManager.new()
+	add_child(manager)
+	var slotId := "debug_test_slot"
+	manager.deleteSave(slotId)
+
+	var runState := NewRunFactory.createNewRun(&"paperland")
+	var runData: Dictionary = RUN_STATE_SERIALIZER.serializeRunState(runState)
+	var root: Dictionary = SAVE_FORMAT.createRunSaveRoot(runData)
+	if not manager.saveGame(slotId, root):
+		result.addError("SaveManager rejected a valid save root.")
+	if not manager.hasSave(slotId):
+		result.addError("SaveManager did not report saved slot.")
+
+	var loaded: Dictionary = manager.loadGame(slotId)
+	if loaded.is_empty():
+		result.addError("SaveManager did not load saved data.")
+	elif not SAVE_FORMAT.isValidSaveRoot(loaded):
+		result.addError("SaveManager loaded invalid save data.")
+	else:
+		var loadedRun: Dictionary = loaded.get(SAVE_FORMAT.RUN_STATE_KEY, {})
+		var loadedCountries: Dictionary = loadedRun.get("countries", {})
+		if not loadedCountries.has("paperland"):
+			result.addError("Loaded save is missing serialized country data.")
+
+	manager.deleteSave(slotId)
+	remove_child(manager)
+	manager.free()
 	return result
 
 
