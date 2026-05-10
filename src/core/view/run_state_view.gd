@@ -47,6 +47,8 @@ static func createCountryPanelData(runState: RunState, countryId: StringName) ->
 		"id": country.id,
 		"name": country.name,
 		"ownerId": country.ownerId,
+		"isPlayerOwned": country.ownerId == GameIds.PLAYER_OWNER_ID,
+		"canRecruit": country.ownerId == GameIds.PLAYER_OWNER_ID and not bool(runState.economy.get("recruitmentBlocked", false)),
 		"goldPerMonth": country.goldPerMonth,
 		"foodPerMonth": country.foodPerMonth,
 		"defense": country.defense,
@@ -142,4 +144,6 @@ static func _unitRows(units: Dictionary) -> Array[String]:
 	unitIds.sort()
 	for unitId in unitIds:
 		rows.append("%s: %d" % [str(unitId).capitalize(), int(units[unitId])])
+	if rows.is_empty():
+		rows.append("None")
 	return rows

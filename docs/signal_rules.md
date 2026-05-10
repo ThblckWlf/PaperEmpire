@@ -34,6 +34,8 @@ Examples:
 - `countryConquered`
 - `armyMoveStarted`
 - `armyMoved`
+- `unitsRecruited`
+- `armyCreated`
 - `battleStarted`
 - `battleResolved`
 - `resourcesChanged`
@@ -89,6 +91,12 @@ Phase 12 army movement uses the same boundary:
 - Right-click country target requests `move_army`.
 - `GameManager` delegates move validation to `ArmyMovementSimulation`.
 - `SimulationManager` emits `armyMoved` when movement completes.
+
+Phase 13 recruitment uses the same boundary:
+
+- `CountryPanel` buttons request `recruit_units` or `create_army`.
+- `GameManager` delegates validation to `RecruitmentSimulation`.
+- UI and map scenes refresh from `unitsRecruited` and `armyCreated`.
 
 ## Naming
 

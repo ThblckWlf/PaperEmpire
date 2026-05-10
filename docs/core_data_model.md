@@ -111,6 +111,8 @@ Phase 3 event types:
 - `armySelected`
 - `armyMoveStarted`
 - `armyMoved`
+- `unitsRecruited`
+- `armyCreated`
 - `battleStarted`
 - `battleEnded`
 - `countryConquered`
@@ -150,9 +152,13 @@ Later validation can add stricter event type checks and fixture-file loading onc
 - `select_country`
 - `select_army`
 - `move_army`
+- `recruit_units`
+- `create_army`
 - `set_game_speed`
 - `pause_game`
 - `resume_game`
 - `reset_run`
 
 Phase 12 keeps army movement behind `move_army`; UI scenes request the command and core simulation validates the move.
+
+Phase 13 keeps recruitment and army creation behind `recruit_units` and `create_army`. Recruitment mutates army unit counts and gold only after `RecruitmentSimulation` validates country ownership, resources, food reserve, and target army state.

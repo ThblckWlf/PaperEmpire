@@ -40,3 +40,5 @@ When food reaches `0`, `RunState.economy` exposes:
 - `healingBlocked`
 
 After two shortage months, `combatPowerMultiplier` becomes `0.8`. The later combat and recruitment systems can consume these flags; they are not applied to combat or recruitment yet.
+
+Phase 13 consumes `recruitmentBlocked` in `RecruitmentSimulation`, so food shortage can reject new recruitment. Combat still only reads the multiplier in later phases.

@@ -48,10 +48,12 @@ The runner currently checks:
 - `EconomySimulation` income, upkeep, month tick application, and food-shortage flags.
 - `ArmyMovementSimulation` neighbor validation, deterministic progress, and completion.
 - `GameManager` move-army command and movement events.
+- `RecruitmentSimulation` cost checks, resource limits, and recruitment blocking.
+- `GameManager` recruit/create-army commands and events.
 - `WorldMap` country-node and army-node creation plus selection updates.
 - `MapCamera` pan bounds and zoom clamps.
 - `RunStateView` UI summary and selected army panel data.
-- Main UI layout, CountryPanel selection binding, TimeControls commands, and ESC menu behavior.
+- Main UI layout, CountryPanel selection and recruit button binding, TimeControls commands, and ESC menu behavior.
 
 ## Git Checks
 

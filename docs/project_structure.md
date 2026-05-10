@@ -13,7 +13,7 @@ This document records the Phase 1 folder layout. It is intentionally light: the 
 ## Source And Data
 
 - `res://src/core/` - Canonical home for game simulation and domain logic.
-- `res://src/core/simulation/` - Rule modules such as economy, movement, combat, and future systems.
+- `res://src/core/simulation/` - Rule modules such as economy, movement, recruitment, combat, and future systems.
 - `res://src/core/view/` - Core-side display data builders used by UI scenes.
 - `res://src/save/` - Save/load implementation. Runtime saves should use `user://`.
 - `res://src/platform/` - Desktop/Steam abstraction layer. No GodotSteam dependency in Phase 1.

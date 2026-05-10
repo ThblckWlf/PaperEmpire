@@ -160,6 +160,30 @@ text = "Defense: -"
 layout_mode = 2
 text = "Armies: -"
 
+[node name="RecruitLabel" type="Label" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Recruitment: -"
+
+[node name="RecruitButtons" type="HBoxContainer" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="InfantryButton" type="Button" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer/RecruitButtons"]
+layout_mode = 2
+text = "+Inf"
+
+[node name="CavalryButton" type="Button" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer/RecruitButtons"]
+layout_mode = 2
+text = "+Cav"
+
+[node name="ArtilleryButton" type="Button" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer/RecruitButtons"]
+layout_mode = 2
+text = "+Art"
+
+[node name="CreateArmyButton" type="Button" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Create Army"
+
 [node name="BottomBar" type="PanelContainer" parent="GameRoot/UIRoot/Root"]
 layout_mode = 1
 script = ExtResource("9_time_controls")

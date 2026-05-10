@@ -8,6 +8,7 @@ var capturedEvents: Array[Dictionary] = []
 const RUN_STATE_VIEW := preload("res://src/core/view/run_state_view.gd")
 const ECONOMY_SIMULATION := preload("res://src/core/simulation/economy_simulation.gd")
 const ARMY_MOVEMENT_SIMULATION := preload("res://src/core/simulation/army_movement_simulation.gd")
+const RECRUITMENT_SIMULATION := preload("res://src/core/simulation/recruitment_simulation.gd")
 
 
 func _ready() -> void:
@@ -37,6 +38,8 @@ func runAll() -> void:
 	_runTest("EconomySimulation applies month tick and shortage", _testEconomyAppliesMonthTickAndShortage)
 	_runTest("ArmyMovementSimulation validates and advances movement", _testArmyMovementValidatesAndAdvances)
 	_runTest("GameManager move army command emits events", _testGameManagerMoveArmyCommand)
+	_runTest("RecruitmentSimulation applies recruitment rules", _testRecruitmentAppliesRules)
+	_runTest("GameManager recruit and create army commands emit events", _testGameManagerRecruitAndCreateArmyCommands)
 	_runTest("WorldMap creates country and army nodes", _testWorldMapCreatesCountryAndArmyNodes)
 	_runTest("MapCamera clamps pan and zoom", _testMapCameraClampsPanAndZoom)
 	_runTest("RunStateView creates UI summaries", _testRunStateViewCreatesSummaries)
@@ -435,6 +438,103 @@ func _testGameManagerMoveArmyCommand() -> ValidationResult:
 	return result
 
 
+func _testRecruitmentAppliesRules() -> ValidationResult:
+	var result := ValidationResult.new()
+	var units := PrototypeContentLoader.loadUnits()
+	var infantry := _unitFromCatalog(GameIds.INFANTRY_UNIT_ID)
+	var cost: Dictionary = RECRUITMENT_SIMULATION.calculateRecruitmentCost(infantry, 2)
+	if int(cost.get("goldCost", 0)) != 100:
+		result.addError("RecruitmentSimulation calculated wrong infantry gold cost.")
+	if int(cost.get("foodReserveRequired", 0)) != 2:
+		result.addError("RecruitmentSimulation calculated wrong infantry food reserve.")
+
+	var runState := NewRunFactory.createNewRun(&"paperland")
+	var recruit: Dictionary = RECRUITMENT_SIMULATION.applyRecruitment(
+		runState,
+		&"paperland",
+		GameIds.CAVALRY_UNIT_ID,
+		1,
+		units,
+		&"army_start"
+	)
+	if not bool(recruit.get("accepted", false)):
+		result.addError("RecruitmentSimulation rejected valid recruitment.")
+
+	var army := runState.armies[&"army_start"] as ArmyData
+	if int(runState.resources.get("gold", 0)) != NewRunFactory.START_GOLD - 90:
+		result.addError("RecruitmentSimulation did not spend gold.")
+	if int(army.units.get(GameIds.CAVALRY_UNIT_ID, 0)) != NewRunFactory.START_CAVALRY + 1:
+		result.addError("RecruitmentSimulation did not add recruited units.")
+
+	var enemyRecruit: Dictionary = RECRUITMENT_SIMULATION.applyRecruitment(runState, &"inkreich", GameIds.INFANTRY_UNIT_ID, 1, units, &"army_start")
+	if bool(enemyRecruit.get("accepted", false)):
+		result.addError("RecruitmentSimulation accepted recruitment in non-owned country.")
+
+	runState.resources["gold"] = 10
+	var expensiveRecruit: Dictionary = RECRUITMENT_SIMULATION.applyRecruitment(runState, &"paperland", GameIds.ARTILLERY_UNIT_ID, 1, units, &"army_start")
+	if bool(expensiveRecruit.get("accepted", false)):
+		result.addError("RecruitmentSimulation accepted recruitment without enough gold.")
+
+	runState.resources["gold"] = 1000
+	runState.resources["food"] = 0
+	var noFoodRecruit: Dictionary = RECRUITMENT_SIMULATION.applyRecruitment(runState, &"paperland", GameIds.INFANTRY_UNIT_ID, 1, units, &"army_start")
+	if bool(noFoodRecruit.get("accepted", false)):
+		result.addError("RecruitmentSimulation accepted recruitment without food reserve.")
+
+	runState.resources["food"] = 100
+	runState.economy["recruitmentBlocked"] = true
+	var blockedRecruit: Dictionary = RECRUITMENT_SIMULATION.applyRecruitment(runState, &"paperland", GameIds.INFANTRY_UNIT_ID, 1, units, &"army_start")
+	if bool(blockedRecruit.get("accepted", false)):
+		result.addError("RecruitmentSimulation ignored recruitmentBlocked.")
+	return result
+
+
+func _testGameManagerRecruitAndCreateArmyCommands() -> ValidationResult:
+	var result := ValidationResult.new()
+	var manager := GameManager.new()
+	var simulation := SimulationManager.new()
+	var bus := EventBus.new()
+	capturedEvents.clear()
+	bus.gameEventRaised.connect(_recordGameEvent)
+	manager.setEventBus(bus)
+	manager.setSimulationManager(simulation)
+	manager.startNewRun("paperland")
+
+	bus.requestCommand(CommandType.RECRUIT_UNITS, {
+		"countryId": "paperland",
+		"unitType": "infantry",
+		"amount": 1,
+	})
+	var army := manager.getCurrentRunState().armies[&"army_start"] as ArmyData
+	if int(manager.getCurrentRunState().resources.get("gold", 0)) != NewRunFactory.START_GOLD - 50:
+		result.addError("recruit_units command did not spend gold.")
+	if int(army.units.get(GameIds.INFANTRY_UNIT_ID, 0)) != NewRunFactory.START_INFANTRY + 1:
+		result.addError("recruit_units command did not add infantry.")
+	if not _capturedEvent(EventType.UNITS_RECRUITED):
+		result.addError("recruit_units command did not emit unitsRecruited.")
+
+	var previousArmyCount := manager.getCurrentRunState().armies.size()
+	bus.requestCommand(CommandType.CREATE_ARMY, {
+		"countryId": "paperland",
+	})
+	if manager.getCurrentRunState().armies.size() != previousArmyCount + 1:
+		result.addError("create_army command did not add an army.")
+	if manager.getSelectedArmyId() == &"army_start":
+		result.addError("create_army command did not select the new army.")
+	if not _capturedEvent(EventType.ARMY_CREATED):
+		result.addError("create_army command did not emit armyCreated.")
+
+	var validation := RunStateValidator.validate(manager.getCurrentRunState())
+	if not validation.isValid():
+		for error in validation.errors:
+			result.addError("Created army produced invalid RunState: %s" % error)
+
+	manager.free()
+	simulation.free()
+	bus.free()
+	return result
+
+
 func _testWorldMapCreatesCountryAndArmyNodes() -> ValidationResult:
 	var result := ValidationResult.new()
 	var scene := load("res://scenes/world/WorldMap.tscn") as PackedScene
@@ -463,6 +563,12 @@ func _testWorldMapCreatesCountryAndArmyNodes() -> ValidationResult:
 		result.addError("WorldMap did not create an ArmyNode for every army.")
 	if worldMap.getArmyNode(&"army_start") == null:
 		result.addError("WorldMap did not expose the starting ArmyNode.")
+
+	bus.requestCommand(CommandType.CREATE_ARMY, {
+		"countryId": "paperland",
+	})
+	if worldMap.getArmyNodeCount() != runState.armies.size():
+		result.addError("WorldMap did not refresh ArmyNodes after army creation.")
 
 	bus.requestCommand(CommandType.SELECT_COUNTRY, {
 		"countryId": "inkreich",
@@ -542,6 +648,8 @@ func _testRunStateViewCreatesSummaries() -> ValidationResult:
 		result.addError("RunStateView country panel name is wrong.")
 	if int(countryData.get("stationedArmyCount", 0)) != 1:
 		result.addError("RunStateView stationed army count is wrong.")
+	if not bool(countryData.get("canRecruit", false)):
+		result.addError("RunStateView did not mark owned country as recruitable.")
 
 	var armyData: Dictionary = RUN_STATE_VIEW.createArmyPanelData(runState, &"army_start")
 	if str(armyData.get("status", "")) != "Stationed":
@@ -582,11 +690,16 @@ func _testMainUiLayoutBindsStateAndCommands() -> ValidationResult:
 	if armyTitle.text != "army_start":
 		result.addError("ArmyPanel did not bind selected army.")
 
+	var infantryButton := main.get_node("GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer/RecruitButtons/InfantryButton") as Button
+	infantryButton.emit_signal("pressed")
+	if goldLabel.text != "Gold: %d" % (NewRunFactory.START_GOLD - 50):
+		result.addError("Recruit button did not update top bar gold.")
+
 	eventBus.requestCommand(CommandType.SET_GAME_SPEED, {
 		"speed": GameSpeed.Value.Normal,
 	})
 	simulationManager.stepSimulation(GameTime.SECONDS_PER_WEEK_AT_1X * GameTime.WEEKS_PER_MONTH)
-	if goldLabel.text != "Gold: %d" % (NewRunFactory.START_GOLD + 35):
+	if goldLabel.text != "Gold: %d" % (NewRunFactory.START_GOLD - 50 + 35):
 		result.addError("TopBar did not update after month tick economy apply.")
 
 	eventBus.requestCommand(CommandType.SELECT_COUNTRY, {
@@ -698,6 +811,13 @@ func _validOwnerIds() -> Array[StringName]:
 		GameIds.NEUTRAL_OWNER_ID,
 		GameIds.WORLD_OWNER_ID,
 	]
+
+
+func _unitFromCatalog(unitId: StringName) -> UnitData:
+	for unit in PrototypeContentLoader.loadUnits():
+		if unit.id == unitId:
+			return unit
+	return null
 
 
 func _countryShapeBounds(center: Vector2, points: PackedVector2Array) -> Rect2:

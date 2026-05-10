@@ -42,8 +42,12 @@ File: `res://scenes/ui/country_panel.gd`
 - Food/month
 - Defense
 - Stationed armies and units
+- MVP recruitment buttons
+- Create Army button
 
 It refreshes when `countrySelected`, `runStarted`, or `runReset` events are raised.
+
+Phase 13 buttons send commands through `EventBus`; the panel does not spend resources or modify armies directly.
 
 ## ArmyPanel
 
@@ -56,7 +60,7 @@ File: `res://scenes/ui/army_panel.gd`
 - Target
 - Unit counts
 
-It refreshes on run, army selection, movement start, movement completion, month tick, and speed events. Movement rules stay in core simulation code.
+It refreshes on run, army selection, movement start, movement completion, recruitment, army creation, month tick, and speed events. Movement and recruitment rules stay in core simulation code.
 
 ## TimeControls
 

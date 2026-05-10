@@ -3,6 +3,7 @@ class_name GameManager
 
 
 const ARMY_MOVEMENT_SIMULATION := preload("res://src/core/simulation/army_movement_simulation.gd")
+const RECRUITMENT_SIMULATION := preload("res://src/core/simulation/recruitment_simulation.gd")
 
 var currentRunState: RunState
 var eventBus: EventBus
@@ -46,6 +47,14 @@ func submitCommand(commandName: StringName, payload: Dictionary = {}) -> void:
 				StringName(str(payload.get("armyId", selectedArmyId))),
 				StringName(str(payload.get("targetCountryId", "")))
 			)
+		CommandType.RECRUIT_UNITS:
+			_recruitUnits(
+				StringName(str(payload.get("countryId", selectedCountryId))),
+				StringName(str(payload.get("unitType", payload.get("unitId", "")))),
+				int(payload.get("amount", 0))
+			)
+		CommandType.CREATE_ARMY:
+			_createArmy(StringName(str(payload.get("countryId", selectedCountryId))))
 		CommandType.SET_GAME_SPEED:
 			_setGameSpeed(int(payload.get("speed", GameSpeed.Value.Normal)))
 		CommandType.PAUSE_GAME:
@@ -125,6 +134,41 @@ func _moveArmy(armyId: StringName, targetCountryId: StringName) -> void:
 		"armyId": armyId,
 	})
 	_raiseEvent(EventType.ARMY_MOVE_STARTED, moveResult)
+
+
+func _recruitUnits(countryId: StringName, unitId: StringName, amount: int) -> void:
+	var recruitResult: Dictionary = RECRUITMENT_SIMULATION.applyRecruitment(
+		currentRunState,
+		countryId,
+		unitId,
+		amount,
+		PrototypeContentLoader.loadUnits(),
+		selectedArmyId
+	)
+	if not bool(recruitResult.get("accepted", false)):
+		push_warning("Cannot recruit units: %s" % str(recruitResult.get("reason", "unknown_reason")))
+		return
+
+	selectedCountryId = countryId
+	selectedArmyId = StringName(str(recruitResult.get("armyId", selectedArmyId)))
+	_raiseEvent(EventType.ARMY_SELECTED, {
+		"armyId": selectedArmyId,
+	})
+	_raiseEvent(EventType.UNITS_RECRUITED, recruitResult)
+
+
+func _createArmy(countryId: StringName) -> void:
+	var createResult: Dictionary = RECRUITMENT_SIMULATION.createArmy(currentRunState, countryId)
+	if not bool(createResult.get("accepted", false)):
+		push_warning("Cannot create army: %s" % str(createResult.get("reason", "unknown_reason")))
+		return
+
+	selectedCountryId = countryId
+	selectedArmyId = StringName(str(createResult.get("armyId", GameIds.EMPTY_ID)))
+	_raiseEvent(EventType.ARMY_CREATED, createResult)
+	_raiseEvent(EventType.ARMY_SELECTED, {
+		"armyId": selectedArmyId,
+	})
 
 
 func _setGameSpeed(speed: int) -> void:

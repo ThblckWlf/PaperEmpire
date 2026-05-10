@@ -113,8 +113,10 @@ func _onGameEventRaised(eventName: StringName, payload: Dictionary) -> void:
 			_updateSelection(StringName(str(payload.get("countryId", ""))))
 		EventType.ARMY_SELECTED:
 			_updateArmySelection(StringName(str(payload.get("armyId", ""))))
-		EventType.ARMY_MOVE_STARTED, EventType.ARMY_MOVED:
+		EventType.ARMY_MOVE_STARTED, EventType.ARMY_MOVED, EventType.UNITS_RECRUITED:
 			_updateArmyNodesFromRunState()
+		EventType.ARMY_CREATED:
+			_refreshArmyNodesFromRunState()
 		EventType.RUN_STARTED, EventType.RUN_RESET:
 			refreshFromRunState()
 
