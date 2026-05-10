@@ -110,6 +110,12 @@ Phase 15 upgrades use the same boundary:
 - `UpgradeModal` requests `choose_upgrade`.
 - `GameManager` delegates effect application to `UpgradeSimulation` and emits `upgradeChosen`.
 
+Phase 16 threat uses the same boundary:
+
+- Core systems call `ThreatSimulation` for all threat changes.
+- `SimulationManager` emits `threatChanged` and `worldReactionUpdated`.
+- UI refreshes warning states from prepared view data.
+
 ## Naming
 
 - Signal names use `lowerCamelCase`.

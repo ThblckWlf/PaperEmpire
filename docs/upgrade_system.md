@@ -64,3 +64,5 @@ Implemented effects:
 - Conquest gold multiplier changes immediate conquest rewards.
 - War threat multiplier changes threat added when starting attacks.
 - Defense combat multiplier changes owned-country defense power.
+
+Phase 16 centralizes threat in `ThreatSimulation`; upgrade code only provides the `warThreatMultiplier` value.

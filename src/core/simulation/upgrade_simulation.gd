@@ -11,6 +11,7 @@ const FOOD_UPKEEP_MULTIPLIER: String = "foodUpkeepMultiplier"
 const CONQUEST_GOLD_MULTIPLIER: String = "conquestGoldMultiplier"
 const WAR_THREAT_MULTIPLIER: String = "warThreatMultiplier"
 const DEFENSE_COMBAT_MULTIPLIER: String = "defenseCombatMultiplier"
+const THREAT_SIMULATION := preload("res://src/core/simulation/threat_simulation.gd")
 
 
 static func supportedEffectTypes() -> Dictionary:
@@ -102,19 +103,7 @@ static func applyUpgradeChoice(runState: RunState, upgradeId: StringName) -> Dic
 
 
 static func applyWarThreat(runState: RunState) -> Dictionary:
-	var result := {
-		"threatAdded": 0,
-		"threat": 0,
-	}
-	if runState == null:
-		return result
-
-	var multiplier := float(runState.upgradeEffects.get(WAR_THREAT_MULTIPLIER, 1.0))
-	var threatAdded := maxi(1, int(round(float(WAR_THREAT_BASE) * multiplier)))
-	runState.resources["threat"] = int(runState.resources.get("threat", 0)) + threatAdded
-	result["threatAdded"] = threatAdded
-	result["threat"] = int(runState.resources.get("threat", 0))
-	return result
+	return THREAT_SIMULATION.applyActionThreat(runState, THREAT_SIMULATION.ACTION_WAR_STARTED)
 
 
 static func applyConquestReward(runState: RunState, countryId: StringName) -> Dictionary:

@@ -43,12 +43,18 @@ static func calculateArmyCombatPower(
 	return maxf(totalPower, 0.0)
 
 
-static func calculateCountryDefensePower(country: CountryData, upgradeEffects: Dictionary = {}) -> float:
+static func calculateCountryDefensePower(
+	country: CountryData,
+	upgradeEffects: Dictionary = {},
+	worldReaction: Dictionary = {}
+) -> float:
 	if country == null:
 		return 0.0
 	var multiplier := 1.0
 	if country.ownerId == GameIds.PLAYER_OWNER_ID:
 		multiplier = float(upgradeEffects.get("defenseCombatMultiplier", 1.0))
+	else:
+		multiplier = float(worldReaction.get("enemyStrengthMultiplier", 1.0))
 	return maxf(float(country.defense) * COUNTRY_DEFENSE_POWER_MULTIPLIER * multiplier, 0.0)
 
 
@@ -74,7 +80,7 @@ static func startAttack(
 	battle.attackerPower = calculateArmyCombatPower(army, units, runState.economy, {
 		"targetDefense": targetCountry.defense,
 	})
-	battle.defenderPower = calculateCountryDefensePower(targetCountry, runState.upgradeEffects)
+	battle.defenderPower = calculateCountryDefensePower(targetCountry, runState.upgradeEffects, runState.worldReaction)
 	runState.battles[battle.id] = battle
 
 	army.status = ArmyStatus.Value.Attacking
@@ -119,7 +125,7 @@ static func _finishBattle(runState: RunState, battle: Variant, units: Array[Unit
 	battle.attackerPower = calculateArmyCombatPower(army, units, runState.economy, {
 		"targetDefense": targetCountry.defense,
 	})
-	battle.defenderPower = calculateCountryDefensePower(targetCountry, runState.upgradeEffects)
+	battle.defenderPower = calculateCountryDefensePower(targetCountry, runState.upgradeEffects, runState.worldReaction)
 	battle.attackerWon = battle.attackerPower >= battle.defenderPower
 	battle.winnerOwnerId = GameIds.PLAYER_OWNER_ID if battle.attackerWon else targetCountry.ownerId
 	var previousOwnerId := targetCountry.ownerId

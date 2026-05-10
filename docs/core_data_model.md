@@ -95,6 +95,7 @@ Fields:
 - `time: Dictionary`
 - `speed: int`
 - `resources: Dictionary`
+- `worldReaction: Dictionary`
 - `economy: Dictionary`
 - `countries: Dictionary`
 - `armies: Dictionary`
@@ -139,6 +140,8 @@ Phase 3 event types:
 - `countryConquered`
 - `upgradeChoiceOpened`
 - `upgradeChosen`
+- `threatChanged`
+- `worldReactionUpdated`
 - `missileLaunched`
 - `runStarted`
 - `runReset`

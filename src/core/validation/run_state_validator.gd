@@ -9,6 +9,7 @@ static func validate(runState: RunState) -> ValidationResult:
 	var result := ValidationResult.new()
 	_validateTime(runState.time, result)
 	_validateResources(runState.resources, result)
+	_validateWorldReaction(runState.worldReaction, result)
 	_validateEconomy(runState.economy, result)
 	_validateUpgrades(runState, result)
 	_validateSpeed(runState.speed, result)
@@ -53,6 +54,30 @@ static func _validateResources(resources: Dictionary, result: ValidationResult) 
 
 		if valueType == TYPE_FLOAT and is_nan(float(value)):
 			result.addError("RunState resource %s is NaN." % key)
+
+
+static func _validateWorldReaction(worldReaction: Dictionary, result: ValidationResult) -> void:
+	for key in ["level", "enemyStrengthMultiplier", "counterAttackPrepared", "lastThreat"]:
+		if not worldReaction.has(key):
+			result.addError("RunState worldReaction missing key: %s." % key)
+
+	if typeof(worldReaction.get("level", "")) != TYPE_STRING:
+		result.addError("RunState worldReaction level is not a string.")
+
+	var multiplier = worldReaction.get("enemyStrengthMultiplier", 1.0)
+	if not _isNumeric(multiplier):
+		result.addError("RunState worldReaction enemyStrengthMultiplier is not numeric.")
+	elif float(multiplier) <= 0.0 or is_nan(float(multiplier)):
+		result.addError("RunState worldReaction enemyStrengthMultiplier must be positive.")
+
+	if typeof(worldReaction.get("counterAttackPrepared", false)) != TYPE_BOOL:
+		result.addError("RunState worldReaction counterAttackPrepared is not bool.")
+
+	var lastThreat = worldReaction.get("lastThreat", 0)
+	if not _isNumeric(lastThreat):
+		result.addError("RunState worldReaction lastThreat is not numeric.")
+	elif int(lastThreat) < 0:
+		result.addError("RunState worldReaction lastThreat is negative.")
 
 
 static func _validateEconomy(economy: Dictionary, result: ValidationResult) -> void:

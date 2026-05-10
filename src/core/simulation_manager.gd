@@ -10,6 +10,7 @@ const ECONOMY_SIMULATION := preload("res://src/core/simulation/economy_simulatio
 const ARMY_MOVEMENT_SIMULATION := preload("res://src/core/simulation/army_movement_simulation.gd")
 const COMBAT_SIMULATION := preload("res://src/core/simulation/combat_simulation.gd")
 const UPGRADE_SIMULATION := preload("res://src/core/simulation/upgrade_simulation.gd")
+const THREAT_SIMULATION := preload("res://src/core/simulation/threat_simulation.gd")
 
 var fixedStepSeconds: float = DEFAULT_FIXED_STEP_SECONDS
 var accumulatedSeconds: float = 0.0
@@ -112,14 +113,19 @@ func _advanceFixedStep(deltaSeconds: float) -> void:
 
 func _raiseMonthTick() -> void:
 	var economyResult: Dictionary = ECONOMY_SIMULATION.applyMonthTick(runState, PrototypeContentLoader.loadUnits())
+	var threatResult: Dictionary = THREAT_SIMULATION.applyMonthlyThreat(runState)
 	var payload := {
 		"week": int(runState.time.get("week", 1)),
 		"month": int(runState.time.get("month", 1)),
 		"year": int(runState.time.get("year", 1)),
 		"elapsedSeconds": GameTime.getElapsedSeconds(runState.time),
 		"economy": economyResult,
+		"threat": threatResult,
 	}
 	monthTick.emit(int(payload["month"]), int(payload["year"]), float(payload["elapsedSeconds"]))
+	if int(threatResult.get("threatAdded", 0)) > 0:
+		_raiseEvent(EventType.THREAT_CHANGED, threatResult)
+		_raiseWorldReactionIfChanged(threatResult)
 	_raiseEvent(EventType.MONTH_TICK, payload)
 
 
@@ -131,8 +137,13 @@ func _handleBattleEvent(battleEvent: Dictionary) -> void:
 		return
 
 	var reward: Dictionary = UPGRADE_SIMULATION.applyConquestReward(runState, StringName(str(payload.get("countryId", ""))))
+	var threatResult: Dictionary = THREAT_SIMULATION.applyActionThreat(runState, THREAT_SIMULATION.ACTION_COUNTRY_CONQUERED)
 	payload["goldReward"] = int(reward.get("goldReward", 0))
 	payload["gold"] = int(reward.get("gold", 0))
+	payload["threatAdded"] = int(threatResult.get("threatAdded", 0))
+	payload["threat"] = int(threatResult.get("threat", 0))
+	_raiseEvent(EventType.THREAT_CHANGED, threatResult)
+	_raiseWorldReactionIfChanged(threatResult)
 	_raiseEvent(eventType, payload)
 
 	var choice: Dictionary = UPGRADE_SIMULATION.rollUpgradeChoices(runState, PrototypeContentLoader.loadUpgrades())
@@ -150,6 +161,12 @@ func _raiseEvent(eventType: StringName, payload: Dictionary = {}) -> void:
 
 	if eventBus != null:
 		eventBus.raiseEvent(gameEvent)
+
+
+func _raiseWorldReactionIfChanged(threatResult: Dictionary) -> void:
+	var worldReaction: Dictionary = threatResult.get("worldReaction", {})
+	if bool(worldReaction.get("changed", false)):
+		_raiseEvent(EventType.WORLD_REACTION_UPDATED, worldReaction)
 
 
 func _isValidGameSpeed(speed: int) -> bool:

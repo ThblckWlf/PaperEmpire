@@ -19,6 +19,12 @@ var resources: Dictionary = {
 	"food": 0,
 	"threat": 0,
 }
+var worldReaction: Dictionary = {
+	"level": "calm",
+	"enemyStrengthMultiplier": 1.0,
+	"counterAttackPrepared": false,
+	"lastThreat": 0,
+}
 var economy: Dictionary = {
 	"isFoodShortage": false,
 	"foodShortageMonths": 0,

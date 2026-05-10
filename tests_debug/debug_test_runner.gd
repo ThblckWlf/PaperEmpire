@@ -11,6 +11,7 @@ const ARMY_MOVEMENT_SIMULATION := preload("res://src/core/simulation/army_moveme
 const RECRUITMENT_SIMULATION := preload("res://src/core/simulation/recruitment_simulation.gd")
 const COMBAT_SIMULATION := preload("res://src/core/simulation/combat_simulation.gd")
 const UPGRADE_SIMULATION := preload("res://src/core/simulation/upgrade_simulation.gd")
+const THREAT_SIMULATION := preload("res://src/core/simulation/threat_simulation.gd")
 
 
 func _ready() -> void:
@@ -48,6 +49,8 @@ func runAll() -> void:
 	_runTest("SimulationManager completes battle and conquest", _testSimulationCompletesBattleAndConquest)
 	_runTest("UpgradeSimulation rolls choices and applies effects", _testUpgradeRollsChoicesAndAppliesEffects)
 	_runTest("Upgrade modal applies one selected upgrade", _testUpgradeModalAppliesSelectedUpgrade)
+	_runTest("ThreatSimulation applies passive and action threat", _testThreatAppliesPassiveAndActionThreat)
+	_runTest("Threat UI summaries expose warning states", _testThreatUiSummariesExposeWarningStates)
 	_runTest("WorldMap creates country and army nodes", _testWorldMapCreatesCountryAndArmyNodes)
 	_runTest("MapCamera clamps pan and zoom", _testMapCameraClampsPanAndZoom)
 	_runTest("RunStateView creates UI summaries", _testRunStateViewCreatesSummaries)
@@ -760,6 +763,71 @@ func _testUpgradeModalAppliesSelectedUpgrade() -> ValidationResult:
 	return result
 
 
+func _testThreatAppliesPassiveAndActionThreat() -> ValidationResult:
+	var result := ValidationResult.new()
+	var runState := NewRunFactory.createNewRun(&"paperland")
+	var simulation := SimulationManager.new()
+	var bus := EventBus.new()
+	capturedEvents.clear()
+	bus.gameEventRaised.connect(_recordGameEvent)
+	simulation.configure(runState, bus)
+
+	simulation.setGameSpeed(GameSpeed.Value.Paused)
+	simulation.stepSimulation(GameTime.SECONDS_PER_WEEK_AT_1X * GameTime.WEEKS_PER_MONTH)
+	if int(runState.resources.get("threat", 0)) != 0:
+		result.addError("Paused run gained passive threat.")
+
+	simulation.setGameSpeed(GameSpeed.Value.Normal)
+	simulation.stepSimulation(GameTime.SECONDS_PER_WEEK_AT_1X * GameTime.WEEKS_PER_MONTH)
+	if int(runState.resources.get("threat", 0)) != THREAT_SIMULATION.PASSIVE_THREAT_PER_MONTH:
+		result.addError("Running run did not gain passive monthly threat.")
+	if not _capturedEvent(EventType.THREAT_CHANGED):
+		result.addError("Passive threat did not emit threatChanged.")
+
+	runState.upgradeEffects["warThreatMultiplier"] = 0.85
+	var warThreat: Dictionary = THREAT_SIMULATION.applyActionThreat(runState, THREAT_SIMULATION.ACTION_WAR_STARTED)
+	if int(warThreat.get("threatAdded", 0)) != 3:
+		result.addError("War threat multiplier did not reduce action threat.")
+
+	var army := runState.armies[&"army_start"] as ArmyData
+	army.units[GameIds.INFANTRY_UNIT_ID] = 60
+	var largeArmyThreat: Dictionary = THREAT_SIMULATION.applyMonthlyThreat(runState)
+	if int(largeArmyThreat.get("largeArmyThreat", 0)) <= 0:
+		result.addError("Large army did not add threat.")
+
+	runState.resources["threat"] = THREAT_SIMULATION.CRITICAL_THRESHOLD
+	var reaction: Dictionary = THREAT_SIMULATION.updateWorldReaction(runState)
+	if str(reaction.get("level", "")) != "mobilized":
+		result.addError("World reaction did not reach mobilized at critical threat.")
+	if not bool(reaction.get("counterAttackPrepared", false)):
+		result.addError("World reaction did not prepare counterattack stub.")
+
+	var enemyCountry := runState.countries[&"inkreich"] as CountryData
+	var enemyDefensePower := COMBAT_SIMULATION.calculateCountryDefensePower(enemyCountry, {}, runState.worldReaction)
+	var expectedDefensePower := float(enemyCountry.defense) * COMBAT_SIMULATION.COUNTRY_DEFENSE_POWER_MULTIPLIER * 1.25
+	if not is_equal_approx(enemyDefensePower, expectedDefensePower):
+		result.addError("World reaction did not boost enemy defense power.")
+
+	simulation.free()
+	bus.free()
+	return result
+
+
+func _testThreatUiSummariesExposeWarningStates() -> ValidationResult:
+	var result := ValidationResult.new()
+	var runState := NewRunFactory.createNewRun(&"paperland")
+	runState.resources["threat"] = 55
+	var topBarData: Dictionary = RUN_STATE_VIEW.createTopBarData(runState)
+	if str(topBarData.get("threatState", "")) != "high":
+		result.addError("RunStateView did not expose high threat state.")
+
+	runState.resources["threat"] = 80
+	topBarData = RUN_STATE_VIEW.createTopBarData(runState)
+	if str(topBarData.get("threatState", "")) != "critical":
+		result.addError("RunStateView did not expose critical threat state.")
+	return result
+
+
 func _testWorldMapCreatesCountryAndArmyNodes() -> ValidationResult:
 	var result := ValidationResult.new()
 	var scene := load("res://scenes/world/WorldMap.tscn") as PackedScene
@@ -910,6 +978,14 @@ func _testMainUiLayoutBindsStateAndCommands() -> ValidationResult:
 	var goldLabel := main.get_node("GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer/GoldLabel") as Label
 	if goldLabel.text != "Gold: %d" % NewRunFactory.START_GOLD:
 		result.addError("TopBar did not bind starting gold.")
+
+	var threatLabel := main.get_node("GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer/ThreatLabel") as Label
+	gameManager.getCurrentRunState().resources["threat"] = 55
+	eventBus.raiseGameEvent(EventType.THREAT_CHANGED, {
+		"threat": 55,
+	})
+	if threatLabel.text != "Threat: 55 (High)":
+		result.addError("TopBar did not show high threat state.")
 
 	var armyTitle := main.get_node("GameRoot/UIRoot/Root/LeftPanel/MarginContainer/VBoxContainer/TitleLabel") as Label
 	if armyTitle.text != "army_start":

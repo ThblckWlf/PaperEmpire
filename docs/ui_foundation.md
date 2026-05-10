@@ -30,6 +30,8 @@ The TopBar does not compute these values.
 
 It refreshes on `monthTick`, so Phase 11 economy changes appear through normal state/event flow.
 
+Phase 16 adds threat state labels and simple colors for low, caution, high, and critical.
+
 ## CountryPanel
 
 File: `res://scenes/ui/country_panel.gd`

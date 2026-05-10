@@ -28,6 +28,7 @@ MVP modifiers:
 - Artillery uses its `fortificationDamage` bonus against defended countries.
 - Food shortage applies `RunState.economy.combatPowerMultiplier`.
 - Owned-country defense can use `defenseCombatMultiplier` from upgrades.
+- Enemy country defense can use `RunState.worldReaction.enemyStrengthMultiplier`.
 
 `calculateCountryDefensePower()` converts country defense into simple defender power.
 
@@ -59,3 +60,5 @@ At battle end:
 Right-clicking a player-owned neighboring country requests movement. Right-clicking a non-player-owned neighboring country requests an attack. Core validation still decides whether the command is legal.
 
 Phase 15 adds attack threat through `UpgradeSimulation.applyWarThreat()`, and conquest rewards plus upgrade choices after `countryConquered`.
+
+Phase 16 moves threat changes to `ThreatSimulation`; combat only reads the resulting world-reaction multiplier.

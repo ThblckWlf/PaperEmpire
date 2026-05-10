@@ -6,6 +6,7 @@ const ARMY_MOVEMENT_SIMULATION := preload("res://src/core/simulation/army_moveme
 const RECRUITMENT_SIMULATION := preload("res://src/core/simulation/recruitment_simulation.gd")
 const COMBAT_SIMULATION := preload("res://src/core/simulation/combat_simulation.gd")
 const UPGRADE_SIMULATION := preload("res://src/core/simulation/upgrade_simulation.gd")
+const THREAT_SIMULATION := preload("res://src/core/simulation/threat_simulation.gd")
 
 var currentRunState: RunState
 var eventBus: EventBus
@@ -158,7 +159,7 @@ func _startAttack(armyId: StringName, targetCountryId: StringName) -> void:
 
 	selectedArmyId = armyId
 	selectedCountryId = targetCountryId
-	var threatResult: Dictionary = UPGRADE_SIMULATION.applyWarThreat(currentRunState)
+	var threatResult: Dictionary = THREAT_SIMULATION.applyActionThreat(currentRunState, THREAT_SIMULATION.ACTION_WAR_STARTED)
 	attackResult["threatAdded"] = int(threatResult.get("threatAdded", 0))
 	attackResult["threat"] = int(threatResult.get("threat", 0))
 	_raiseEvent(EventType.ARMY_SELECTED, {
@@ -167,6 +168,8 @@ func _startAttack(armyId: StringName, targetCountryId: StringName) -> void:
 	_raiseEvent(EventType.COUNTRY_SELECTED, {
 		"countryId": selectedCountryId,
 	})
+	_raiseEvent(EventType.THREAT_CHANGED, threatResult)
+	_raiseWorldReactionIfChanged(threatResult)
 	_raiseEvent(EventType.BATTLE_STARTED, attackResult)
 
 
@@ -252,6 +255,12 @@ func _raiseEvent(eventType: StringName, payload: Dictionary = {}) -> void:
 		gameEvent.occurredAtSeconds = float(currentRunState.time.get("elapsedSeconds", 0.0))
 
 	eventBus.raiseEvent(gameEvent)
+
+
+func _raiseWorldReactionIfChanged(threatResult: Dictionary) -> void:
+	var worldReaction: Dictionary = threatResult.get("worldReaction", {})
+	if bool(worldReaction.get("changed", false)):
+		_raiseEvent(EventType.WORLD_REACTION_UPDATED, worldReaction)
 
 
 func _configureSimulationManager() -> void:

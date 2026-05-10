@@ -52,6 +52,7 @@ The runner currently checks:
 - `GameManager` recruit/create-army commands and events.
 - `CombatSimulation` combat power, valid attack creation, deterministic battle completion, casualties, and conquest.
 - `UpgradeSimulation` choice rolling, duplicate prevention, modal command flow, and passive effect application.
+- `ThreatSimulation` passive/action threat, large-army pressure, world-reaction state, and TopBar warning states.
 - `WorldMap` country-node and army-node creation plus selection updates.
 - `MapCamera` pan bounds and zoom clamps.
 - `RunStateView` UI summary and selected army panel data.

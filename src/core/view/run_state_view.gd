@@ -2,6 +2,9 @@ extends RefCounted
 class_name RunStateView
 
 
+const THREAT_SIMULATION := preload("res://src/core/simulation/threat_simulation.gd")
+
+
 static func createTopBarData(runState: RunState) -> Dictionary:
 	if runState == null:
 		return {}
@@ -10,6 +13,7 @@ static func createTopBarData(runState: RunState) -> Dictionary:
 		"gold": int(runState.resources.get("gold", 0)),
 		"food": int(runState.resources.get("food", 0)),
 		"threat": int(runState.resources.get("threat", 0)),
+		"threatState": THREAT_SIMULATION.threatState(int(runState.resources.get("threat", 0))),
 		"armyStrength": _totalArmyUnits(runState),
 		"dateText": _dateText(runState.time),
 		"speed": int(runState.speed),
