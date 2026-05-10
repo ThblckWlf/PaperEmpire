@@ -104,6 +104,12 @@ Phase 14 combat uses the same boundary:
 - `GameManager` delegates validation to `CombatSimulation`.
 - `SimulationManager` emits `battleEnded` and `countryConquered` after deterministic battle completion.
 
+Phase 15 upgrades use the same boundary:
+
+- `SimulationManager` emits `upgradeChoiceOpened` after conquest.
+- `UpgradeModal` requests `choose_upgrade`.
+- `GameManager` delegates effect application to `UpgradeSimulation` and emits `upgradeChosen`.
+
 ## Naming
 
 - Signal names use `lowerCamelCase`.

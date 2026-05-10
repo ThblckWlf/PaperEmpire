@@ -27,6 +27,7 @@ MVP modifiers:
 - Cavalry uses its `flanking` bonus.
 - Artillery uses its `fortificationDamage` bonus against defended countries.
 - Food shortage applies `RunState.economy.combatPowerMultiplier`.
+- Owned-country defense can use `defenseCombatMultiplier` from upgrades.
 
 `calculateCountryDefensePower()` converts country defense into simple defender power.
 
@@ -56,3 +57,5 @@ At battle end:
 ## Map Input
 
 Right-clicking a player-owned neighboring country requests movement. Right-clicking a non-player-owned neighboring country requests an attack. Core validation still decides whether the command is legal.
+
+Phase 15 adds attack threat through `UpgradeSimulation.applyWarThreat()`, and conquest rewards plus upgrade choices after `countryConquered`.

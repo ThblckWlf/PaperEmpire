@@ -10,6 +10,7 @@ const ECONOMY_SIMULATION := preload("res://src/core/simulation/economy_simulatio
 const ARMY_MOVEMENT_SIMULATION := preload("res://src/core/simulation/army_movement_simulation.gd")
 const RECRUITMENT_SIMULATION := preload("res://src/core/simulation/recruitment_simulation.gd")
 const COMBAT_SIMULATION := preload("res://src/core/simulation/combat_simulation.gd")
+const UPGRADE_SIMULATION := preload("res://src/core/simulation/upgrade_simulation.gd")
 
 
 func _ready() -> void:
@@ -29,6 +30,7 @@ func runAll() -> void:
 	_runTest("Prototype units fixture loads and validates", _testPrototypeUnitsFixture)
 	_runTest("Prototype countries fixture loads and validates", _testPrototypeCountriesFixture)
 	_runTest("Prototype upgrades fixture loads and validates", _testPrototypeUpgradesFixture)
+	_runTest("UpgradeData invalid fixture fails", _testInvalidUpgrades)
 	_runTest("Prototype mini goals fixture loads and validates", _testPrototypeMiniGoalsFixture)
 	_runTest("Prototype map shapes fixture loads and validates", _testPrototypeMapShapesFixture)
 	_runTest("NewRunFactory creates valid prototype run", _testNewRunFactory)
@@ -44,6 +46,8 @@ func runAll() -> void:
 	_runTest("CombatSimulation calculates combat power", _testCombatCalculatesPower)
 	_runTest("CombatSimulation starts valid attacks only", _testCombatStartsValidAttacks)
 	_runTest("SimulationManager completes battle and conquest", _testSimulationCompletesBattleAndConquest)
+	_runTest("UpgradeSimulation rolls choices and applies effects", _testUpgradeRollsChoicesAndAppliesEffects)
+	_runTest("Upgrade modal applies one selected upgrade", _testUpgradeModalAppliesSelectedUpgrade)
 	_runTest("WorldMap creates country and army nodes", _testWorldMapCreatesCountryAndArmyNodes)
 	_runTest("MapCamera clamps pan and zoom", _testMapCameraClampsPanAndZoom)
 	_runTest("RunStateView creates UI summaries", _testRunStateViewCreatesSummaries)
@@ -128,6 +132,19 @@ func _testPrototypeCountriesFixture() -> ValidationResult:
 
 func _testPrototypeUpgradesFixture() -> ValidationResult:
 	return UpgradeDataValidator.validate(PrototypeContentLoader.loadUpgrades())
+
+
+func _testInvalidUpgrades() -> ValidationResult:
+	var invalidUpgrades := PrototypeContentLoader.loadUpgrades()
+	invalidUpgrades.append({
+		"id": "",
+		"name": "",
+		"description": "",
+		"rarity": "mythic",
+		"effectType": "moveSpeedMultiplier",
+		"value": 0,
+	})
+	return _expectFailure(UpgradeDataValidator.validate(invalidUpgrades))
 
 
 func _testPrototypeMiniGoalsFixture() -> ValidationResult:
@@ -630,6 +647,12 @@ func _testSimulationCompletesBattleAndConquest() -> ValidationResult:
 		result.addError("SimulationManager did not emit battleEnded.")
 	if not _capturedEvent(EventType.COUNTRY_CONQUERED):
 		result.addError("SimulationManager did not emit countryConquered.")
+	if not _capturedEvent(EventType.UPGRADE_CHOICE_OPENED):
+		result.addError("Conquest did not open upgrade choices.")
+	if not bool(manager.getCurrentRunState().activeUpgradeChoice.get("isOpen", false)):
+		result.addError("Conquest did not store active upgrade choice in RunState.")
+	if int(manager.getCurrentRunState().speed) != GameSpeed.Value.Paused:
+		result.addError("Upgrade choice did not pause the run.")
 
 	var validation := RunStateValidator.validate(manager.getCurrentRunState())
 	if not validation.isValid():
@@ -639,6 +662,101 @@ func _testSimulationCompletesBattleAndConquest() -> ValidationResult:
 	manager.free()
 	simulation.free()
 	bus.free()
+	return result
+
+
+func _testUpgradeRollsChoicesAndAppliesEffects() -> ValidationResult:
+	var result := ValidationResult.new()
+	var runState := NewRunFactory.createNewRun(&"paperland")
+	var choices: Dictionary = UPGRADE_SIMULATION.rollUpgradeChoices(runState, PrototypeContentLoader.loadUpgrades())
+	if not bool(choices.get("opened", false)):
+		result.addError("UpgradeSimulation did not open choices.")
+	var choiceRows: Array = choices.get("choices", [])
+	if choiceRows.size() != UPGRADE_SIMULATION.CHOICE_COUNT:
+		result.addError("UpgradeSimulation did not roll exactly three choices.")
+	if _hasDuplicateUpgradeIds(choiceRows):
+		result.addError("UpgradeSimulation rolled duplicate choices.")
+
+	runState.activeUpgradeChoice = {"isOpen": true, "choices": [_upgradeById(&"rapidRecruitment")]}
+	var rapid: Dictionary = UPGRADE_SIMULATION.applyUpgradeChoice(runState, &"rapidRecruitment")
+	if not bool(rapid.get("accepted", false)):
+		result.addError("UpgradeSimulation rejected recruitment discount.")
+	var infantry := _unitFromCatalog(GameIds.INFANTRY_UNIT_ID)
+	var discountedCost: Dictionary = RECRUITMENT_SIMULATION.calculateRecruitmentCost(infantry, 1, runState.upgradeEffects)
+	if int(discountedCost.get("goldCost", 0)) != 45:
+		result.addError("Recruitment discount did not change recruitment cost.")
+
+	runState.activeUpgradeChoice = {"isOpen": true, "choices": [_upgradeById(&"efficientSupply")]}
+	UPGRADE_SIMULATION.applyUpgradeChoice(runState, &"efficientSupply")
+	var upkeep := ECONOMY_SIMULATION.calculateArmyFoodUpkeep(runState, PrototypeContentLoader.loadUnits())
+	if upkeep != 16:
+		result.addError("Food upkeep upgrade did not reduce upkeep.")
+
+	runState.activeUpgradeChoice = {"isOpen": true, "choices": [_upgradeById(&"warChest")]}
+	UPGRADE_SIMULATION.applyUpgradeChoice(runState, &"warChest")
+	var reward: Dictionary = UPGRADE_SIMULATION.applyConquestReward(runState, &"inkreich")
+	if int(reward.get("goldReward", 0)) != 85:
+		result.addError("Conquest gold upgrade did not increase reward.")
+
+	runState.activeUpgradeChoice = {"isOpen": true, "choices": [_upgradeById(&"quietWars")]}
+	UPGRADE_SIMULATION.applyUpgradeChoice(runState, &"quietWars")
+	var threat: Dictionary = UPGRADE_SIMULATION.applyWarThreat(runState)
+	if int(threat.get("threatAdded", 0)) != 3:
+		result.addError("War threat upgrade did not reduce threat gain.")
+
+	runState.activeUpgradeChoice = {"isOpen": true, "choices": [_upgradeById(&"strongFronts")]}
+	UPGRADE_SIMULATION.applyUpgradeChoice(runState, &"strongFronts")
+	var ownedCountry := runState.countries[&"paperland"] as CountryData
+	var defensePower := COMBAT_SIMULATION.calculateCountryDefensePower(ownedCountry, runState.upgradeEffects)
+	if not is_equal_approx(defensePower, float(ownedCountry.defense) * COMBAT_SIMULATION.COUNTRY_DEFENSE_POWER_MULTIPLIER * 1.15):
+		result.addError("Defense upgrade did not change owned country defense power.")
+
+	var validation := RunStateValidator.validate(runState)
+	if not validation.isValid():
+		for error in validation.errors:
+			result.addError("Upgrade effects produced invalid RunState: %s" % error)
+	return result
+
+
+func _testUpgradeModalAppliesSelectedUpgrade() -> ValidationResult:
+	var result := ValidationResult.new()
+	var scene := load("res://scenes/main/Main.tscn") as PackedScene
+	if scene == null:
+		result.addError("Main.tscn could not be loaded for upgrade modal test.")
+		return result
+
+	var main = scene.instantiate()
+	add_child(main)
+	var gameManager := main.get_node("GameRoot/Managers/GameManager") as GameManager
+	var eventBus := main.get_node("GameRoot/Managers/EventBus") as EventBus
+	var uiRoot = main.get_node("GameRoot/UIRoot")
+	var modalLayer = main.get_node("GameRoot/UIRoot/Root/ModalLayer")
+	var upgradeModal = main.get_node("GameRoot/UIRoot/Root/ModalLayer/UpgradeModal")
+	var choiceButton := main.get_node("GameRoot/UIRoot/Root/ModalLayer/UpgradeModal/MarginContainer/VBoxContainer/ChoiceButton1") as Button
+	var choices := [
+		_upgradeById(&"rapidRecruitment"),
+		_upgradeById(&"warChest"),
+		_upgradeById(&"efficientSupply"),
+	]
+	gameManager.getCurrentRunState().activeUpgradeChoice = {
+		"isOpen": true,
+		"choices": choices,
+	}
+	eventBus.raiseGameEvent(EventType.UPGRADE_CHOICE_OPENED, {
+		"choices": choices,
+	})
+	if not bool(modalLayer.visible) or not bool(upgradeModal.visible):
+		result.addError("Upgrade modal did not open from event.")
+
+	choiceButton.emit_signal("pressed")
+	if not gameManager.getCurrentRunState().upgrades.has(&"rapidRecruitment"):
+		result.addError("Upgrade modal choice did not apply selected upgrade.")
+	if bool(upgradeModal.visible):
+		result.addError("Upgrade modal did not close after selection.")
+	if bool(uiRoot.call("isEscMenuOpen")):
+		result.addError("Upgrade modal left ESC menu marked open.")
+
+	_cleanupMainForTest(main)
 	return result
 
 
@@ -849,6 +967,20 @@ func _capturedEvent(eventName: StringName) -> bool:
 	return false
 
 
+func _hasDuplicateUpgradeIds(choices: Array) -> bool:
+	var seen := {}
+	for choice in choices:
+		if not (choice is Dictionary):
+			continue
+
+		var upgrade := choice as Dictionary
+		var upgradeId := StringName(str(upgrade.get("id", "")))
+		if seen.has(upgradeId):
+			return true
+		seen[upgradeId] = true
+	return false
+
+
 func _expectFailure(result: ValidationResult) -> ValidationResult:
 	if result.isValid():
 		var wrapper := ValidationResult.new()
@@ -925,6 +1057,13 @@ func _unitFromCatalog(unitId: StringName) -> UnitData:
 		if unit.id == unitId:
 			return unit
 	return null
+
+
+func _upgradeById(upgradeId: StringName) -> Dictionary:
+	for upgrade in PrototypeContentLoader.loadUpgrades():
+		if StringName(str(upgrade.get("id", ""))) == upgradeId:
+			return upgrade
+	return {}
 
 
 func _unitCount(units: Dictionary) -> int:

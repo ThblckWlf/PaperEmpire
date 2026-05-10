@@ -13,6 +13,8 @@ File: `res://src/core/simulation/recruitment_simulation.gd`
 
 Food is checked as an available reserve but is not spent by recruitment. Monthly food upkeep remains owned by the economy system.
 
+Phase 15 applies `recruitmentCostMultiplier` from upgrades to the gold cost.
+
 `RecruitmentSimulation.applyRecruitment()` accepts recruitment only when:
 
 - The country exists and is player-owned.

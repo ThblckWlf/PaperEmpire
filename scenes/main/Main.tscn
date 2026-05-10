@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://scenes/main/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://src/core/event_bus.gd" id="2_event_bus"]
@@ -11,6 +11,7 @@
 [ext_resource type="Script" path="res://scenes/ui/time_controls.gd" id="9_time_controls"]
 [ext_resource type="Script" path="res://scenes/ui/esc_menu.gd" id="10_esc_menu"]
 [ext_resource type="Script" path="res://scenes/ui/army_panel.gd" id="11_army_panel"]
+[ext_resource type="Script" path="res://scenes/ui/upgrade_modal.gd" id="12_upgrade_modal"]
 
 [node name="Main" type="Node"]
 script = ExtResource("1_main")
@@ -261,3 +262,36 @@ text = "Resume"
 [node name="QuitButton" type="Button" parent="GameRoot/UIRoot/Root/ModalLayer/EscMenu/MarginContainer/VBoxContainer"]
 layout_mode = 2
 text = "Quit to Menu"
+
+[node name="UpgradeModal" type="PanelContainer" parent="GameRoot/UIRoot/Root/ModalLayer"]
+visible = false
+layout_mode = 1
+script = ExtResource("12_upgrade_modal")
+
+[node name="MarginContainer" type="MarginContainer" parent="GameRoot/UIRoot/Root/ModalLayer/UpgradeModal"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 18
+
+[node name="VBoxContainer" type="VBoxContainer" parent="GameRoot/UIRoot/Root/ModalLayer/UpgradeModal/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TitleLabel" type="Label" parent="GameRoot/UIRoot/Root/ModalLayer/UpgradeModal/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Choose Upgrade"
+horizontal_alignment = 1
+
+[node name="ChoiceButton1" type="Button" parent="GameRoot/UIRoot/Root/ModalLayer/UpgradeModal/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "-"
+
+[node name="ChoiceButton2" type="Button" parent="GameRoot/UIRoot/Root/ModalLayer/UpgradeModal/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "-"
+
+[node name="ChoiceButton3" type="Button" parent="GameRoot/UIRoot/Root/ModalLayer/UpgradeModal/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "-"

@@ -39,7 +39,8 @@ static func calculateArmyFoodUpkeep(runState: RunState, units: Array[UnitData]) 
 			var unit := unitCatalog.get(unitId, null) as UnitData
 			if unit != null:
 				upkeep += int(army.units[unitId]) * unit.foodUpkeep
-	return upkeep
+	var multiplier := float(runState.upgradeEffects.get("foodUpkeepMultiplier", 1.0))
+	return maxi(0, int(ceil(float(upkeep) * multiplier)))
 
 
 static func applyMonthTick(runState: RunState, units: Array[UnitData]) -> Dictionary:

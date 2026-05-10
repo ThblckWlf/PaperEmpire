@@ -100,6 +100,8 @@ Fields:
 - `armies: Dictionary`
 - `battles: Dictionary`
 - `activeUpgradeChoice: Dictionary`
+- `upgrades: Array[StringName]`
+- `upgradeEffects: Dictionary`
 - `miniGoals: Array[Dictionary]`
 - `runStatus: StringName`
 
@@ -136,6 +138,7 @@ Phase 3 event types:
 - `battleEnded`
 - `countryConquered`
 - `upgradeChoiceOpened`
+- `upgradeChosen`
 - `missileLaunched`
 - `runStarted`
 - `runReset`
@@ -174,6 +177,7 @@ Later validation can add stricter event type checks and fixture-file loading onc
 - `start_attack`
 - `recruit_units`
 - `create_army`
+- `choose_upgrade`
 - `set_game_speed`
 - `pause_game`
 - `resume_game`
@@ -184,3 +188,5 @@ Phase 12 keeps army movement behind `move_army`; UI scenes request the command a
 Phase 13 keeps recruitment and army creation behind `recruit_units` and `create_army`. Recruitment mutates army unit counts and gold only after `RecruitmentSimulation` validates country ownership, resources, food reserve, and target army state.
 
 Phase 14 keeps combat behind `start_attack`; battle lifecycle is advanced by `SimulationManager` and rules live in `CombatSimulation`.
+
+Phase 15 keeps upgrade selection behind `choose_upgrade`; choice rolling and passive effect aggregation live in `UpgradeSimulation`.

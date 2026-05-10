@@ -77,6 +77,12 @@ File: `res://scenes/ui/esc_menu.gd`
 
 ESC opens `ModalLayer`, pauses the run, and shows Resume plus a Quit-to-Menu stub. Resume restores the previous speed. Save/load is intentionally not present in Phase 10.
 
+## UpgradeModal
+
+File: `res://scenes/ui/upgrade_modal.gd`
+
+Shows three upgrade choices after conquest. It uses the same `ModalLayer`, blocks normal interaction, and sends `choose_upgrade` through `EventBus`.
+
 ## View Data
 
 File: `res://src/core/view/run_state_view.gd`

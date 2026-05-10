@@ -10,6 +10,7 @@ const RUN_STATE_VIEW := preload("res://src/core/view/run_state_view.gd")
 @onready var bottomBar = $Root/BottomBar
 @onready var modalLayer: Control = $Root/ModalLayer as Control
 @onready var escMenu = $Root/ModalLayer/EscMenu
+@onready var upgradeModal = $Root/ModalLayer/UpgradeModal
 
 var gameManager: GameManager
 var eventBus: EventBus
@@ -20,6 +21,7 @@ func _ready() -> void:
 	_applyLayout()
 	escMenu.resumeRequested.connect(_resumeFromEscMenu)
 	escMenu.quitToMenuRequested.connect(_handleQuitToMenuStub)
+	upgradeModal.visible = false
 	modalLayer.visible = false
 
 
@@ -29,7 +31,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 	if keyEvent.keycode == KEY_ESCAPE:
-		if modalLayer.visible:
+		if upgradeModal.visible:
+			pass
+		elif modalLayer.visible:
 			_resumeFromEscMenu()
 		else:
 			_openEscMenu()
@@ -42,12 +46,13 @@ func configure(newGameManager: GameManager, newEventBus: EventBus) -> void:
 	eventBus = newEventBus
 	bottomBar.configure(eventBus)
 	rightPanel.configure(eventBus)
+	upgradeModal.configure(eventBus)
 	_connectEventBus()
 	_refreshAll()
 
 
 func isEscMenuOpen() -> bool:
-	return modalLayer.visible
+	return modalLayer.visible and escMenu.visible
 
 
 func _refreshAll() -> void:
@@ -64,13 +69,21 @@ func _refreshAll() -> void:
 	bottomBar.setCurrentSpeed(int(runState.speed))
 
 
-func _onGameEventRaised(eventName: StringName, _payload: Dictionary) -> void:
+func _onGameEventRaised(eventName: StringName, payload: Dictionary) -> void:
 	match eventName:
+		EventType.UPGRADE_CHOICE_OPENED:
+			_openUpgradeModal(payload)
+		EventType.UPGRADE_CHOSEN:
+			_closeUpgradeModal()
+			_refreshAll()
 		EventType.RUN_STARTED, EventType.RUN_RESET, EventType.COUNTRY_SELECTED, EventType.ARMY_SELECTED, EventType.ARMY_MOVE_STARTED, EventType.ARMY_MOVED, EventType.UNITS_RECRUITED, EventType.ARMY_CREATED, EventType.BATTLE_STARTED, EventType.BATTLE_ENDED, EventType.COUNTRY_CONQUERED, EventType.GAME_SPEED_CHANGED, EventType.MONTH_TICK:
 			_refreshAll()
 
 
 func _openEscMenu() -> void:
+	if upgradeModal.visible:
+		return
+
 	if gameManager != null and gameManager.getCurrentRunState() != null:
 		var currentSpeed := int(gameManager.getCurrentRunState().speed)
 		if currentSpeed != GameSpeed.Value.Paused:
@@ -78,11 +91,13 @@ func _openEscMenu() -> void:
 
 	if eventBus != null:
 		eventBus.requestCommand(CommandType.PAUSE_GAME)
+	escMenu.visible = true
 	modalLayer.visible = true
 	_refreshAll()
 
 
 func _resumeFromEscMenu() -> void:
+	escMenu.visible = false
 	modalLayer.visible = false
 	if eventBus != null:
 		eventBus.requestCommand(CommandType.SET_GAME_SPEED, {
@@ -93,6 +108,20 @@ func _resumeFromEscMenu() -> void:
 
 func _handleQuitToMenuStub() -> void:
 	push_warning("Quit to menu is not implemented yet.")
+
+
+func _openUpgradeModal(data: Dictionary) -> void:
+	escMenu.visible = false
+	upgradeModal.visible = true
+	upgradeModal.setData(data)
+	modalLayer.visible = true
+	_refreshAll()
+
+
+func _closeUpgradeModal() -> void:
+	upgradeModal.visible = false
+	if not escMenu.visible:
+		modalLayer.visible = false
 
 
 func _connectEventBus() -> void:
@@ -157,3 +186,9 @@ func _applyLayout() -> void:
 	escMenu.offset_top = -90.0
 	escMenu.offset_right = 140.0
 	escMenu.offset_bottom = 90.0
+
+	upgradeModal.set_anchors_preset(Control.PRESET_CENTER)
+	upgradeModal.offset_left = -260.0
+	upgradeModal.offset_top = -190.0
+	upgradeModal.offset_right = 260.0
+	upgradeModal.offset_bottom = 190.0

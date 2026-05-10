@@ -2,11 +2,15 @@ extends RefCounted
 class_name RunStateValidator
 
 
+const UPGRADE_SIMULATION := preload("res://src/core/simulation/upgrade_simulation.gd")
+
+
 static func validate(runState: RunState) -> ValidationResult:
 	var result := ValidationResult.new()
 	_validateTime(runState.time, result)
 	_validateResources(runState.resources, result)
 	_validateEconomy(runState.economy, result)
+	_validateUpgrades(runState, result)
 	_validateSpeed(runState.speed, result)
 	_validateArmyLocations(runState, result)
 	_validateBattles(runState, result)
@@ -138,6 +142,35 @@ static func _validateBattles(runState: RunState, result: ValidationResult) -> vo
 
 		if durationSeconds < 0.0 or is_nan(durationSeconds):
 			result.addError("Battle %s has invalid durationSeconds." % storedId)
+
+
+static func _validateUpgrades(runState: RunState, result: ValidationResult) -> void:
+	var seenUpgradeIds := {}
+	for upgradeId in runState.upgrades:
+		if upgradeId == GameIds.EMPTY_ID:
+			result.addError("RunState upgrades contains empty id.")
+		elif seenUpgradeIds.has(upgradeId):
+			result.addError("RunState upgrades contains duplicate id: %s." % upgradeId)
+		else:
+			seenUpgradeIds[upgradeId] = true
+
+	for effectType in UPGRADE_SIMULATION.supportedEffectTypes().keys():
+		if not runState.upgradeEffects.has(effectType):
+			result.addError("RunState upgradeEffects missing key: %s." % effectType)
+			continue
+
+		var value = runState.upgradeEffects[effectType]
+		if not _isNumeric(value):
+			result.addError("RunState upgrade effect %s is not numeric." % effectType)
+		elif float(value) <= 0.0 or is_nan(float(value)):
+			result.addError("RunState upgrade effect %s must be positive." % effectType)
+
+	if not runState.activeUpgradeChoice.is_empty():
+		if typeof(runState.activeUpgradeChoice.get("isOpen", false)) != TYPE_BOOL:
+			result.addError("RunState activeUpgradeChoice isOpen is not bool.")
+		var choices = runState.activeUpgradeChoice.get("choices", [])
+		if not (choices is Array):
+			result.addError("RunState activeUpgradeChoice choices is not an array.")
 
 
 static func _isNumeric(value: Variant) -> bool:

@@ -8,5 +8,6 @@ Phase 10 UI scripts display prepared state and emit commands through `EventBus`.
 - `country_panel.gd` displays the currently selected country and sends recruitment/create-army commands.
 - `time_controls.gd` emits pause and speed commands.
 - `esc_menu.gd` exposes Resume and a Quit-to-Menu stub.
+- `upgrade_modal.gd` displays three upgrade choices and sends `choose_upgrade`.
 
 UI scripts must not calculate combat, economy, movement, ownership changes, or save/load behavior.

@@ -2,10 +2,10 @@
   {
     "id": "rapidRecruitment",
     "name": "Rapid Recruitment",
-    "description": "Recruitment is faster for the rest of the run.",
+    "description": "Recruitment costs less for the rest of the run.",
     "rarity": "common",
-    "effectType": "recruitmentSpeedMultiplier",
-    "value": 0.8
+    "effectType": "recruitmentCostMultiplier",
+    "value": 0.9
   },
   {
     "id": "warChest",
@@ -41,42 +41,42 @@
   },
   {
     "id": "fieldLogistics",
-    "name": "Field Logistics",
-    "description": "Moving armies travel faster.",
+    "name": "Levy Forms",
+    "description": "Recruitment gets a larger cost discount.",
     "rarity": "common",
-    "effectType": "moveSpeedMultiplier",
-    "value": 1.1
+    "effectType": "recruitmentCostMultiplier",
+    "value": 0.85
   },
   {
     "id": "siegeCrews",
-    "name": "Siege Crews",
-    "description": "Artillery gains extra combat power.",
+    "name": "Border Keeps",
+    "description": "Owned countries defend more effectively.",
     "rarity": "uncommon",
-    "effectType": "artilleryCombatMultiplier",
-    "value": 1.2
+    "effectType": "defenseCombatMultiplier",
+    "value": 1.1
   },
   {
     "id": "foragers",
-    "name": "Foragers",
-    "description": "Controlled countries produce more food.",
+    "name": "Ration Masters",
+    "description": "Armies consume much less food.",
     "rarity": "common",
-    "effectType": "foodIncomeMultiplier",
-    "value": 1.15
+    "effectType": "foodUpkeepMultiplier",
+    "value": 0.8
   },
   {
     "id": "taxClerks",
-    "name": "Tax Clerks",
-    "description": "Controlled countries produce more gold.",
+    "name": "Tribute Office",
+    "description": "Conquests grant more immediate gold.",
     "rarity": "common",
-    "effectType": "goldIncomeMultiplier",
+    "effectType": "conquestGoldMultiplier",
     "value": 1.15
   },
   {
     "id": "veteranOfficers",
-    "name": "Veteran Officers",
-    "description": "All armies gain a small combat bonus.",
+    "name": "War Clerks",
+    "description": "Wars generate much less threat.",
     "rarity": "rare",
-    "effectType": "armyCombatMultiplier",
-    "value": 1.1
+    "effectType": "warThreatMultiplier",
+    "value": 0.75
   }
 ]

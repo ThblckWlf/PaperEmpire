@@ -2,6 +2,9 @@ extends RefCounted
 class_name UpgradeDataValidator
 
 
+const UPGRADE_SIMULATION := preload("res://src/core/simulation/upgrade_simulation.gd")
+
+
 static func validate(upgrades: Array[Dictionary]) -> ValidationResult:
 	var result := ValidationResult.new()
 	var knownIds: Dictionary = {}
@@ -10,6 +13,7 @@ static func validate(upgrades: Array[Dictionary]) -> ValidationResult:
 		"uncommon": true,
 		"rare": true,
 	}
+	var allowedEffectTypes: Dictionary = UPGRADE_SIMULATION.supportedEffectTypes()
 
 	if upgrades.size() < 8 or upgrades.size() > 12:
 		result.addError("Upgrade fixture should contain 8-12 upgrades, found %d." % upgrades.size())
@@ -32,8 +36,11 @@ static func validate(upgrades: Array[Dictionary]) -> ValidationResult:
 		if not allowedRarities.has(str(upgrade.get("rarity", ""))):
 			result.addError("Upgrade %s has invalid rarity." % id)
 
-		if str(upgrade.get("effectType", "")).is_empty():
+		var effectType := str(upgrade.get("effectType", ""))
+		if effectType.is_empty():
 			result.addError("Upgrade %s has empty effectType." % id)
+		elif not allowedEffectTypes.has(effectType):
+			result.addError("Upgrade %s has unsupported effectType: %s." % [id, effectType])
 
 		var value = upgrade.get("value", null)
 		if typeof(value) != TYPE_INT and typeof(value) != TYPE_FLOAT:

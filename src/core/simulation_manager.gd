@@ -9,6 +9,7 @@ const DEFAULT_FIXED_STEP_SECONDS: float = 0.1
 const ECONOMY_SIMULATION := preload("res://src/core/simulation/economy_simulation.gd")
 const ARMY_MOVEMENT_SIMULATION := preload("res://src/core/simulation/army_movement_simulation.gd")
 const COMBAT_SIMULATION := preload("res://src/core/simulation/combat_simulation.gd")
+const UPGRADE_SIMULATION := preload("res://src/core/simulation/upgrade_simulation.gd")
 
 var fixedStepSeconds: float = DEFAULT_FIXED_STEP_SECONDS
 var accumulatedSeconds: float = 0.0
@@ -102,7 +103,7 @@ func _advanceFixedStep(deltaSeconds: float) -> void:
 
 	var battleEvents: Array[Dictionary] = COMBAT_SIMULATION.advanceBattles(runState, deltaSeconds, PrototypeContentLoader.loadUnits())
 	for battleEvent in battleEvents:
-		_raiseEvent(StringName(str(battleEvent.get("eventType", ""))), battleEvent.get("payload", {}))
+		_handleBattleEvent(battleEvent)
 
 	var monthTickCount := GameTime.advance(runState.time, deltaSeconds)
 	for _index in range(monthTickCount):
@@ -120,6 +121,24 @@ func _raiseMonthTick() -> void:
 	}
 	monthTick.emit(int(payload["month"]), int(payload["year"]), float(payload["elapsedSeconds"]))
 	_raiseEvent(EventType.MONTH_TICK, payload)
+
+
+func _handleBattleEvent(battleEvent: Dictionary) -> void:
+	var eventType := StringName(str(battleEvent.get("eventType", "")))
+	var payload: Dictionary = battleEvent.get("payload", {})
+	if eventType != EventType.COUNTRY_CONQUERED:
+		_raiseEvent(eventType, payload)
+		return
+
+	var reward: Dictionary = UPGRADE_SIMULATION.applyConquestReward(runState, StringName(str(payload.get("countryId", ""))))
+	payload["goldReward"] = int(reward.get("goldReward", 0))
+	payload["gold"] = int(reward.get("gold", 0))
+	_raiseEvent(eventType, payload)
+
+	var choice: Dictionary = UPGRADE_SIMULATION.rollUpgradeChoices(runState, PrototypeContentLoader.loadUpgrades())
+	if bool(choice.get("opened", false)):
+		runState.speed = GameSpeed.Value.Paused
+		_raiseEvent(EventType.UPGRADE_CHOICE_OPENED, choice)
 
 
 func _raiseEvent(eventType: StringName, payload: Dictionary = {}) -> void:

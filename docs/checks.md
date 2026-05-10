@@ -51,6 +51,7 @@ The runner currently checks:
 - `RecruitmentSimulation` cost checks, resource limits, and recruitment blocking.
 - `GameManager` recruit/create-army commands and events.
 - `CombatSimulation` combat power, valid attack creation, deterministic battle completion, casualties, and conquest.
+- `UpgradeSimulation` choice rolling, duplicate prevention, modal command flow, and passive effect application.
 - `WorldMap` country-node and army-node creation plus selection updates.
 - `MapCamera` pan bounds and zoom clamps.
 - `RunStateView` UI summary and selected army panel data.

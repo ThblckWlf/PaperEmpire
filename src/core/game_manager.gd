@@ -5,6 +5,7 @@ class_name GameManager
 const ARMY_MOVEMENT_SIMULATION := preload("res://src/core/simulation/army_movement_simulation.gd")
 const RECRUITMENT_SIMULATION := preload("res://src/core/simulation/recruitment_simulation.gd")
 const COMBAT_SIMULATION := preload("res://src/core/simulation/combat_simulation.gd")
+const UPGRADE_SIMULATION := preload("res://src/core/simulation/upgrade_simulation.gd")
 
 var currentRunState: RunState
 var eventBus: EventBus
@@ -61,6 +62,8 @@ func submitCommand(commandName: StringName, payload: Dictionary = {}) -> void:
 			)
 		CommandType.CREATE_ARMY:
 			_createArmy(StringName(str(payload.get("countryId", selectedCountryId))))
+		CommandType.CHOOSE_UPGRADE:
+			_chooseUpgrade(StringName(str(payload.get("upgradeId", ""))))
 		CommandType.SET_GAME_SPEED:
 			_setGameSpeed(int(payload.get("speed", GameSpeed.Value.Normal)))
 		CommandType.PAUSE_GAME:
@@ -155,6 +158,9 @@ func _startAttack(armyId: StringName, targetCountryId: StringName) -> void:
 
 	selectedArmyId = armyId
 	selectedCountryId = targetCountryId
+	var threatResult: Dictionary = UPGRADE_SIMULATION.applyWarThreat(currentRunState)
+	attackResult["threatAdded"] = int(threatResult.get("threatAdded", 0))
+	attackResult["threat"] = int(threatResult.get("threat", 0))
 	_raiseEvent(EventType.ARMY_SELECTED, {
 		"armyId": selectedArmyId,
 	})
@@ -162,6 +168,16 @@ func _startAttack(armyId: StringName, targetCountryId: StringName) -> void:
 		"countryId": selectedCountryId,
 	})
 	_raiseEvent(EventType.BATTLE_STARTED, attackResult)
+
+
+func _chooseUpgrade(upgradeId: StringName) -> void:
+	var chooseResult: Dictionary = UPGRADE_SIMULATION.applyUpgradeChoice(currentRunState, upgradeId)
+	if not bool(chooseResult.get("accepted", false)):
+		push_warning("Cannot choose upgrade: %s" % str(chooseResult.get("reason", "unknown_reason")))
+		return
+
+	_raiseEvent(EventType.UPGRADE_CHOSEN, chooseResult)
+	_setGameSpeed(GameSpeed.Value.Normal)
 
 
 func _recruitUnits(countryId: StringName, unitId: StringName, amount: int) -> void:

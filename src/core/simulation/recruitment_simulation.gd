@@ -2,15 +2,16 @@ extends RefCounted
 class_name RecruitmentSimulation
 
 
-static func calculateRecruitmentCost(unitData: UnitData, amount: int) -> Dictionary:
+static func calculateRecruitmentCost(unitData: UnitData, amount: int, upgradeEffects: Dictionary = {}) -> Dictionary:
 	if unitData == null or amount <= 0:
 		return {
 			"goldCost": 0,
 			"foodReserveRequired": 0,
 		}
 
+	var costMultiplier := float(upgradeEffects.get("recruitmentCostMultiplier", 1.0))
 	return {
-		"goldCost": unitData.cost * amount,
+		"goldCost": maxi(1, int(ceil(float(unitData.cost * amount) * costMultiplier))),
 		"foodReserveRequired": unitData.foodUpkeep * amount,
 	}
 
@@ -128,7 +129,7 @@ static func _validateRecruitment(
 		result["reason"] = "no_stationed_army"
 		return result
 
-	var cost := calculateRecruitmentCost(unitData, amount)
+	var cost := calculateRecruitmentCost(unitData, amount, runState.upgradeEffects)
 	result["armyId"] = targetArmy.id
 	result["goldCost"] = int(cost.get("goldCost", 0))
 	result["foodReserveRequired"] = int(cost.get("foodReserveRequired", 0))

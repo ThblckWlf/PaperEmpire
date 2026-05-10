@@ -31,5 +31,13 @@ var countries: Dictionary = {}
 var armies: Dictionary = {}
 var battles: Dictionary = {}
 var activeUpgradeChoice: Dictionary = {}
+var upgrades: Array[StringName] = []
+var upgradeEffects: Dictionary = {
+	"recruitmentCostMultiplier": 1.0,
+	"foodUpkeepMultiplier": 1.0,
+	"conquestGoldMultiplier": 1.0,
+	"warThreatMultiplier": 1.0,
+	"defenseCombatMultiplier": 1.0,
+}
 var miniGoals: Array[Dictionary] = []
 var runStatus: StringName = RUN_STATUS_NOT_STARTED
