@@ -8,10 +8,14 @@ const COMBAT_SIMULATION := preload("res://src/core/simulation/combat_simulation.
 const UPGRADE_SIMULATION := preload("res://src/core/simulation/upgrade_simulation.gd")
 const THREAT_SIMULATION := preload("res://src/core/simulation/threat_simulation.gd")
 const MINI_GOAL_SIMULATION := preload("res://src/core/simulation/mini_goal_simulation.gd")
+const META_PROGRESS_SIMULATION := preload("res://src/core/simulation/meta_progress_simulation.gd")
 const SAVE_FORMAT := preload("res://src/save/save_format.gd")
 const RUN_STATE_SERIALIZER := preload("res://src/save/run_state_serializer.gd")
+const META_PROGRESS := preload("res://src/save/meta_progress.gd")
+const SHOP_STATE_VIEW := preload("res://src/core/view/shop_state_view.gd")
 
 var currentRunState: RunState
+var metaProgressData: Dictionary = {}
 var eventBus: EventBus
 var simulationManager: SimulationManager
 var saveManager: SaveManager
@@ -34,10 +38,11 @@ func setSimulationManager(newSimulationManager: SimulationManager) -> void:
 
 func setSaveManager(newSaveManager: SaveManager) -> void:
 	saveManager = newSaveManager
+	_loadMetaProgress()
 
 
 func startNewRun(startCountryId: String) -> void:
-	currentRunState = NewRunFactory.createNewRun(StringName(startCountryId))
+	currentRunState = NewRunFactory.createNewRun(StringName(startCountryId), metaProgressData, PrototypeContentLoader.loadMetaUpgrades())
 	selectedCountryId = StringName(startCountryId)
 	selectedArmyId = _firstArmyId()
 	_configureSimulationManager()
@@ -79,6 +84,10 @@ func submitCommand(commandName: StringName, payload: Dictionary = {}) -> void:
 			_saveGame(str(payload.get("slotId", "manual_1")))
 		CommandType.LOAD_GAME:
 			_loadGame(str(payload.get("slotId", "manual_1")))
+		CommandType.PURCHASE_META_UPGRADE:
+			_purchaseMetaUpgrade(StringName(str(payload.get("upgradeId", ""))))
+		CommandType.AWARD_RUN_END_CROWNS:
+			_awardRunEndCrowns()
 		CommandType.SET_GAME_SPEED:
 			_setGameSpeed(int(payload.get("speed", GameSpeed.Value.Normal)))
 		CommandType.PAUSE_GAME:
@@ -99,7 +108,7 @@ func resetRun(startCountryId: StringName = GameIds.EMPTY_ID) -> void:
 	if nextStartCountryId == GameIds.EMPTY_ID:
 		nextStartCountryId = NewRunFactory.DEFAULT_START_COUNTRY_ID
 
-	currentRunState = NewRunFactory.createNewRun(nextStartCountryId)
+	currentRunState = NewRunFactory.createNewRun(nextStartCountryId, metaProgressData, PrototypeContentLoader.loadMetaUpgrades())
 	selectedCountryId = nextStartCountryId
 	selectedArmyId = _firstArmyId()
 	_configureSimulationManager()
@@ -123,6 +132,14 @@ func getSelectedCountryId() -> StringName:
 
 func getSelectedArmyId() -> StringName:
 	return selectedArmyId
+
+
+func getMetaProgressData() -> Dictionary:
+	return metaProgressData.duplicate(true)
+
+
+func getShopPanelData() -> Dictionary:
+	return SHOP_STATE_VIEW.createShopPanelData(metaProgressData, PrototypeContentLoader.loadMetaUpgrades())
 
 
 func _selectCountry(countryId: StringName) -> void:
@@ -212,7 +229,7 @@ func _saveGame(slotId: String) -> void:
 		return
 
 	var runData: Dictionary = RUN_STATE_SERIALIZER.serializeRunState(currentRunState)
-	var root: Dictionary = SAVE_FORMAT.createRunSaveRoot(runData)
+	var root: Dictionary = SAVE_FORMAT.createRunSaveRoot(runData, metaProgressData)
 	if not saveManager.saveGame(slotId, root):
 		push_warning("Save command failed for slot: %s" % slotId)
 
@@ -228,6 +245,9 @@ func _loadGame(slotId: String) -> void:
 		return
 
 	var runData: Dictionary = root.get(SAVE_FORMAT.RUN_STATE_KEY, {})
+	var loadedMetaData: Dictionary = root.get(SAVE_FORMAT.META_PROGRESS_KEY, {})
+	if META_PROGRESS.isValidDictionary(loadedMetaData, PrototypeContentLoader.loadMetaUpgrades()):
+		metaProgressData = loadedMetaData.duplicate(true)
 	var loadedRunState: RunState = RUN_STATE_SERIALIZER.deserializeRunState(runData)
 	var validation := RunStateValidator.validate(loadedRunState)
 	if not validation.isValid():
@@ -243,6 +263,42 @@ func _loadGame(slotId: String) -> void:
 		"startCountryId": selectedCountryId,
 		"selectedArmyId": selectedArmyId,
 		"source": "load",
+	})
+
+
+func _purchaseMetaUpgrade(upgradeId: StringName) -> void:
+	var purchaseResult: Dictionary = META_PROGRESS_SIMULATION.purchaseUpgrade(
+		metaProgressData,
+		upgradeId,
+		PrototypeContentLoader.loadMetaUpgrades()
+	)
+	if not bool(purchaseResult.get("accepted", false)):
+		push_warning("Cannot purchase meta upgrade: %s" % str(purchaseResult.get("reason", "unknown_reason")))
+		return
+
+	metaProgressData = (purchaseResult.get("metaProgress", {}) as Dictionary).duplicate(true)
+	_saveMetaProgress()
+	_raiseEvent(EventType.META_UPGRADE_PURCHASED, purchaseResult)
+	_raiseEvent(EventType.META_PROGRESS_CHANGED, {
+		"metaProgress": metaProgressData,
+	})
+
+
+func _awardRunEndCrowns() -> void:
+	var rewardResult: Dictionary = META_PROGRESS_SIMULATION.awardRunEndCrowns(
+		metaProgressData,
+		currentRunState,
+		PrototypeContentLoader.loadMetaUpgrades()
+	)
+	if not bool(rewardResult.get("accepted", false)):
+		push_warning("Cannot award crowns: %s" % str(rewardResult.get("reason", "unknown_reason")))
+		return
+
+	metaProgressData = (rewardResult.get("metaProgress", {}) as Dictionary).duplicate(true)
+	_saveMetaProgress()
+	_raiseEvent(EventType.CROWNS_REWARDED, rewardResult)
+	_raiseEvent(EventType.META_PROGRESS_CHANGED, {
+		"metaProgress": metaProgressData,
 	})
 
 
@@ -332,6 +388,27 @@ func _raiseWorldReactionIfChanged(threatResult: Dictionary) -> void:
 func _configureSimulationManager() -> void:
 	if simulationManager != null:
 		simulationManager.configure(currentRunState, eventBus)
+
+
+func _loadMetaProgress() -> void:
+	var metaUpgradeRows := PrototypeContentLoader.loadMetaUpgrades()
+	if saveManager == null:
+		metaProgressData = META_PROGRESS.createDefaultDataForUpgrades(metaUpgradeRows)
+		return
+
+	var loadedMeta := saveManager.loadMetaProgress()
+	if META_PROGRESS.isValidDictionary(loadedMeta, metaUpgradeRows):
+		metaProgressData = loadedMeta.duplicate(true)
+	else:
+		metaProgressData = META_PROGRESS.createDefaultDataForUpgrades(metaUpgradeRows)
+
+
+func _saveMetaProgress() -> void:
+	if saveManager == null:
+		return
+
+	if not saveManager.saveMetaProgress(metaProgressData):
+		push_warning("Meta progress save failed.")
 
 
 func _firstArmyId() -> StringName:

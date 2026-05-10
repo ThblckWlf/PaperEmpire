@@ -21,114 +21,171 @@ func toDictionary() -> Dictionary:
 
 
 static func createDefaultData() -> Dictionary:
+	return createDefaultDataForUpgrades([])
+
+
+static func createDefaultDataForUpgrades(upgradeRows: Array[Dictionary]) -> Dictionary:
+	var definitions := upgradeRows
+	if definitions.is_empty():
+		definitions = _fallbackUpgradeDefinitions()
+
 	return {
 		"schemaVersion": SCHEMA_VERSION,
 		"crowns": 0,
-		"generalUpgrades": createDefaultGeneralUpgradeState(),
-		"countryUpgrades": createDefaultCountryUpgradeState(),
+		"generalUpgrades": createDefaultGeneralUpgradeState(definitions),
+		"countryUpgrades": createDefaultCountryUpgradeState(definitions),
 	}
 
 
 static func generalUpgradeDefinitions() -> Array[Dictionary]:
+	var definitions: Array[Dictionary] = []
+	for row in _fallbackUpgradeDefinitions():
+		if str(row.get("scope", "")) == "general":
+			definitions.append(row)
+	return definitions
+
+
+static func countryUpgradeDefinitions() -> Dictionary:
+	var definitions := {}
+	for row in _fallbackUpgradeDefinitions():
+		if str(row.get("scope", "")) != "country":
+			continue
+
+		var countryId := str(row.get("countryId", ""))
+		if not definitions.has(countryId):
+			definitions[countryId] = []
+		(definitions[countryId] as Array).append(row)
+	return definitions
+
+
+static func createDefaultGeneralUpgradeState(upgradeRows: Array[Dictionary] = []) -> Dictionary:
+	var definitions := upgradeRows
+	if definitions.is_empty():
+		definitions = _fallbackUpgradeDefinitions()
+
+	var state := {}
+	for definition in definitions:
+		if str(definition.get("scope", "")) != "general":
+			continue
+		state[str(definition.get("id", ""))] = _upgradeStateRow(definition)
+	return state
+
+
+static func createDefaultCountryUpgradeState(upgradeRows: Array[Dictionary] = []) -> Dictionary:
+	var definitions := upgradeRows
+	if definitions.is_empty():
+		definitions = _fallbackUpgradeDefinitions()
+
+	var state := {}
+	for definition in definitions:
+		if str(definition.get("scope", "")) != "country":
+			continue
+
+		var countryId := str(definition.get("countryId", ""))
+		if countryId == "":
+			continue
+		if not state.has(countryId):
+			state[countryId] = {}
+		var countryState := state[countryId] as Dictionary
+		countryState[str(definition.get("id", ""))] = _upgradeStateRow(definition)
+	return state
+
+
+static func isValidDictionary(data: Dictionary, upgradeRows: Array[Dictionary] = []) -> bool:
+	if int(data.get("schemaVersion", 0)) != SCHEMA_VERSION:
+		return false
+	if int(data.get("crowns", 0)) < 0:
+		return false
+
+	var definitions := upgradeRows
+	if definitions.is_empty():
+		definitions = _fallbackUpgradeDefinitions()
+
+	var generalState: Variant = data.get("generalUpgrades", {})
+	if not (generalState is Dictionary):
+		return false
+	if not _isValidGeneralUpgradeState(generalState as Dictionary, definitions):
+		return false
+	var countryState: Variant = data.get("countryUpgrades", {})
+	if not (countryState is Dictionary):
+		return false
+	if not _isValidCountryUpgradeState(countryState as Dictionary, definitions):
+		return false
+	return true
+
+
+static func _fallbackUpgradeDefinitions() -> Array[Dictionary]:
 	return [
 		{
 			"id": "startGold",
+			"scope": "general",
 			"name": "Starting Treasury",
 			"description": "Adds gold at the start of future runs.",
 			"maxLevel": 3,
+			"baseCost": 20,
+			"costPerLevel": 15,
 			"effectType": "startGoldBonus",
 			"valuePerLevel": 50,
 		},
 		{
 			"id": "startFood",
+			"scope": "general",
 			"name": "Stored Rations",
 			"description": "Adds food at the start of future runs.",
 			"maxLevel": 3,
+			"baseCost": 18,
+			"costPerLevel": 12,
 			"effectType": "startFoodBonus",
 			"valuePerLevel": 30,
 		},
 		{
 			"id": "bonusCrowns",
+			"scope": "general",
 			"name": "Royal Accountants",
 			"description": "Improves future crown rewards.",
 			"maxLevel": 2,
+			"baseCost": 30,
+			"costPerLevel": 20,
 			"effectType": "crownRewardMultiplier",
 			"valuePerLevel": 0.05,
 		},
+		{
+			"id": "paperlandDiscipline",
+			"scope": "country",
+			"countryId": "paperland",
+			"name": "Paperland Discipline",
+			"description": "Paperland starts future runs with better drilled troops.",
+			"maxLevel": 2,
+			"baseCost": 22,
+			"costPerLevel": 16,
+			"effectType": "countryStartArmyBonus",
+			"valuePerLevel": 1,
+		},
+		{
+			"id": "inkreichTreasury",
+			"scope": "country",
+			"countryId": "inkreich",
+			"name": "Inkreich Treasury",
+			"description": "Inkreich starts future runs with extra gold.",
+			"maxLevel": 2,
+			"baseCost": 22,
+			"costPerLevel": 16,
+			"effectType": "countryStartGoldBonus",
+			"valuePerLevel": 40,
+		},
+		{
+			"id": "foldmarkGranaries",
+			"scope": "country",
+			"countryId": "foldmark",
+			"name": "Foldmark Granaries",
+			"description": "Foldmark starts future runs with extra food.",
+			"maxLevel": 2,
+			"baseCost": 20,
+			"costPerLevel": 14,
+			"effectType": "countryStartFoodBonus",
+			"valuePerLevel": 25,
+		},
 	]
-
-
-static func countryUpgradeDefinitions() -> Dictionary:
-	return {
-		"paperland": [
-			{
-				"id": "paperlandDiscipline",
-				"name": "Paperland Discipline",
-				"description": "Paperland starts future runs with better drilled troops.",
-				"maxLevel": 2,
-				"effectType": "countryStartArmyBonus",
-				"valuePerLevel": 1,
-			},
-		],
-		"inkreich": [
-			{
-				"id": "inkreichTreasury",
-				"name": "Inkreich Treasury",
-				"description": "Inkreich starts future runs with extra gold.",
-				"maxLevel": 2,
-				"effectType": "countryStartGoldBonus",
-				"valuePerLevel": 40,
-			},
-		],
-		"foldmark": [
-			{
-				"id": "foldmarkGranaries",
-				"name": "Foldmark Granaries",
-				"description": "Foldmark starts future runs with extra food.",
-				"maxLevel": 2,
-				"effectType": "countryStartFoodBonus",
-				"valuePerLevel": 25,
-			},
-		],
-	}
-
-
-static func createDefaultGeneralUpgradeState() -> Dictionary:
-	var state := {}
-	for definition in generalUpgradeDefinitions():
-		state[str(definition.get("id", ""))] = _upgradeStateRow(definition)
-	return state
-
-
-static func createDefaultCountryUpgradeState() -> Dictionary:
-	var state := {}
-	var definitions := countryUpgradeDefinitions()
-	var countryIds := definitions.keys()
-	countryIds.sort()
-	for countryId in countryIds:
-		var countryState := {}
-		for definition in definitions[countryId] as Array:
-			countryState[str((definition as Dictionary).get("id", ""))] = _upgradeStateRow(definition as Dictionary)
-		state[str(countryId)] = countryState
-	return state
-
-
-static func isValidDictionary(data: Dictionary) -> bool:
-	if int(data.get("schemaVersion", 0)) != SCHEMA_VERSION:
-		return false
-	if int(data.get("crowns", 0)) < 0:
-		return false
-	var generalState: Variant = data.get("generalUpgrades", {})
-	if not (generalState is Dictionary):
-		return false
-	if not _isValidGeneralUpgradeState(generalState as Dictionary):
-		return false
-	var countryState: Variant = data.get("countryUpgrades", {})
-	if not (countryState is Dictionary):
-		return false
-	if not _isValidCountryUpgradeState(countryState as Dictionary):
-		return false
-	return true
 
 
 static func _upgradeStateRow(definition: Dictionary) -> Dictionary:
@@ -138,30 +195,44 @@ static func _upgradeStateRow(definition: Dictionary) -> Dictionary:
 	}
 
 
-static func _isValidGeneralUpgradeState(state: Dictionary) -> bool:
-	return _isValidUpgradeStateForDefinitions(state, generalUpgradeDefinitions())
+static func _isValidGeneralUpgradeState(state: Dictionary, definitions: Array[Dictionary]) -> bool:
+	var generalDefinitions: Array[Dictionary] = []
+	for definition in definitions:
+		if str(definition.get("scope", "")) == "general":
+			generalDefinitions.append(definition)
+	return _isValidUpgradeStateForDefinitions(state, generalDefinitions)
 
 
-static func _isValidCountryUpgradeState(state: Dictionary) -> bool:
-	var definitions := countryUpgradeDefinitions()
-	for countryId in definitions.keys():
-		if not state.has(str(countryId)):
+static func _isValidCountryUpgradeState(state: Dictionary, definitions: Array[Dictionary]) -> bool:
+	var definitionsByCountry := {}
+	for definition in definitions:
+		if str(definition.get("scope", "")) != "country":
+			continue
+
+		var countryId := str(definition.get("countryId", ""))
+		if not definitionsByCountry.has(countryId):
+			definitionsByCountry[countryId] = []
+		(definitionsByCountry[countryId] as Array).append(definition)
+
+	for countryId in definitionsByCountry.keys():
+		var countryIdString := str(countryId)
+		if not state.has(countryIdString):
 			return false
-		var countryState = state.get(str(countryId), {})
+		var countryState = state.get(countryIdString, {})
 		if not (countryState is Dictionary):
 			return false
-		if not _isValidUpgradeStateForDefinitions(countryState as Dictionary, definitions[countryId] as Array):
+		var countryDefinitions: Array[Dictionary] = []
+		for definition in definitionsByCountry[countryId]:
+			if definition is Dictionary:
+				countryDefinitions.append(definition as Dictionary)
+		if not _isValidUpgradeStateForDefinitions(countryState as Dictionary, countryDefinitions):
 			return false
 	return true
 
 
-static func _isValidUpgradeStateForDefinitions(state: Dictionary, definitions: Array) -> bool:
+static func _isValidUpgradeStateForDefinitions(state: Dictionary, definitions: Array[Dictionary]) -> bool:
 	for definition in definitions:
-		if not (definition is Dictionary):
-			return false
-
-		var definitionData := definition as Dictionary
-		var upgradeId := str(definitionData.get("id", ""))
+		var upgradeId := str(definition.get("id", ""))
 		if upgradeId == "":
 			return false
 		if not state.has(upgradeId):
@@ -174,7 +245,7 @@ static func _isValidUpgradeStateForDefinitions(state: Dictionary, definitions: A
 		var rowData := row as Dictionary
 		var level := int(rowData.get(UPGRADE_LEVEL_KEY, -1))
 		var maxLevel := int(rowData.get(UPGRADE_MAX_LEVEL_KEY, 0))
-		var expectedMaxLevel := int(definitionData.get("maxLevel", 1))
+		var expectedMaxLevel := int(definition.get("maxLevel", 1))
 		if maxLevel != expectedMaxLevel:
 			return false
 		if level < 0 or level > maxLevel:

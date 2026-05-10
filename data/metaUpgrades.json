@@ -1,0 +1,71 @@
+[
+  {
+    "id": "startGold",
+    "scope": "general",
+    "name": "Starting Treasury",
+    "description": "Adds gold at the start of future runs.",
+    "maxLevel": 3,
+    "baseCost": 20,
+    "costPerLevel": 15,
+    "effectType": "startGoldBonus",
+    "valuePerLevel": 50
+  },
+  {
+    "id": "startFood",
+    "scope": "general",
+    "name": "Stored Rations",
+    "description": "Adds food at the start of future runs.",
+    "maxLevel": 3,
+    "baseCost": 18,
+    "costPerLevel": 12,
+    "effectType": "startFoodBonus",
+    "valuePerLevel": 30
+  },
+  {
+    "id": "bonusCrowns",
+    "scope": "general",
+    "name": "Royal Accountants",
+    "description": "Improves future crown rewards.",
+    "maxLevel": 2,
+    "baseCost": 30,
+    "costPerLevel": 20,
+    "effectType": "crownRewardMultiplier",
+    "valuePerLevel": 0.05
+  },
+  {
+    "id": "paperlandDiscipline",
+    "scope": "country",
+    "countryId": "paperland",
+    "name": "Paperland Discipline",
+    "description": "Paperland starts future runs with better drilled troops.",
+    "maxLevel": 2,
+    "baseCost": 22,
+    "costPerLevel": 16,
+    "effectType": "countryStartArmyBonus",
+    "valuePerLevel": 1
+  },
+  {
+    "id": "inkreichTreasury",
+    "scope": "country",
+    "countryId": "inkreich",
+    "name": "Inkreich Treasury",
+    "description": "Inkreich starts future runs with extra gold.",
+    "maxLevel": 2,
+    "baseCost": 22,
+    "costPerLevel": 16,
+    "effectType": "countryStartGoldBonus",
+    "valuePerLevel": 40
+  },
+  {
+    "id": "foldmarkGranaries",
+    "scope": "country",
+    "countryId": "foldmark",
+    "name": "Foldmark Granaries",
+    "description": "Foldmark starts future runs with extra food.",
+    "maxLevel": 2,
+    "baseCost": 20,
+    "costPerLevel": 14,
+    "effectType": "countryStartFoodBonus",
+    "valuePerLevel": 25
+  }
+]

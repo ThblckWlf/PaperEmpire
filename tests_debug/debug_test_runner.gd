@@ -13,9 +13,15 @@ const COMBAT_SIMULATION := preload("res://src/core/simulation/combat_simulation.
 const UPGRADE_SIMULATION := preload("res://src/core/simulation/upgrade_simulation.gd")
 const THREAT_SIMULATION := preload("res://src/core/simulation/threat_simulation.gd")
 const MINI_GOAL_SIMULATION := preload("res://src/core/simulation/mini_goal_simulation.gd")
+const META_PROGRESS_SIMULATION := preload("res://src/core/simulation/meta_progress_simulation.gd")
+const SHOP_STATE_VIEW := preload("res://src/core/view/shop_state_view.gd")
+const SHOP_PANEL_SCRIPT := preload("res://scenes/ui/shop_panel.gd")
+const META_UPGRADE_DATA_VALIDATOR := preload("res://src/core/validation/meta_upgrade_data_validator.gd")
 const SAVE_FORMAT := preload("res://src/save/save_format.gd")
 const META_PROGRESS := preload("res://src/save/meta_progress.gd")
 const RUN_STATE_SERIALIZER := preload("res://src/save/run_state_serializer.gd")
+
+var lastShopUpgradeId: StringName = GameIds.EMPTY_ID
 
 
 func _ready() -> void:
@@ -38,6 +44,7 @@ func runAll() -> void:
 	_runTest("UpgradeData invalid fixture fails", _testInvalidUpgrades)
 	_runTest("Prototype mini goals fixture loads and validates", _testPrototypeMiniGoalsFixture)
 	_runTest("MiniGoalData invalid fixture fails", _testInvalidMiniGoals)
+	_runTest("Prototype meta upgrades fixture loads and validates", _testPrototypeMetaUpgradesFixture)
 	_runTest("Prototype map shapes fixture loads and validates", _testPrototypeMapShapesFixture)
 	_runTest("NewRunFactory creates valid prototype run", _testNewRunFactory)
 	_runTest("GameManager commands update state and emit events", _testGameManagerCommands)
@@ -69,6 +76,8 @@ func runAll() -> void:
 	_runTest("SaveManager writes and loads user saves", _testSaveManagerWritesAndLoadsUserSaves)
 	_runTest("Manual save load UI restores run state", _testManualSaveLoadUiRestoresRunState)
 	_runTest("MetaProgress stores upgrade state", _testMetaProgressStoresUpgradeState)
+	_runTest("MetaProgress awards crowns and applies purchases", _testMetaProgressAwardsCrownsAndAppliesPurchases)
+	_runTest("Shop panel sends purchase commands", _testShopPanelSendsPurchaseCommands)
 
 	if failedTests == 0:
 		print("[DebugTestRunner] PASS: %d/%d tests passed." % [totalTests, totalTests])
@@ -181,6 +190,10 @@ func _testInvalidMiniGoals() -> ValidationResult:
 		"rewardValue": 0,
 	})
 	return _expectFailure(MiniGoalDataValidator.validate(invalidGoals))
+
+
+func _testPrototypeMetaUpgradesFixture() -> ValidationResult:
+	return META_UPGRADE_DATA_VALIDATOR.validate(PrototypeContentLoader.loadMetaUpgrades(), PrototypeContentLoader.loadCountries())
 
 
 func _testPrototypeMapShapesFixture() -> ValidationResult:
@@ -1108,7 +1121,8 @@ func _testMainUiLayoutBindsStateAndCommands() -> ValidationResult:
 		return result
 
 	var goldLabel := main.get_node("GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer/GoldLabel") as Label
-	if goldLabel.text != "Gold: %d" % NewRunFactory.START_GOLD:
+	var startingGold := int(gameManager.getCurrentRunState().resources.get("gold", 0))
+	if goldLabel.text != "Gold: %d" % startingGold:
 		result.addError("TopBar did not bind starting gold.")
 
 	var threatLabel := main.get_node("GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer/ThreatLabel") as Label
@@ -1125,14 +1139,14 @@ func _testMainUiLayoutBindsStateAndCommands() -> ValidationResult:
 
 	var infantryButton := main.get_node("GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer/RecruitButtons/InfantryButton") as Button
 	infantryButton.emit_signal("pressed")
-	if goldLabel.text != "Gold: %d" % (NewRunFactory.START_GOLD - 50):
+	if goldLabel.text != "Gold: %d" % (startingGold - 50):
 		result.addError("Recruit button did not update top bar gold.")
 
 	eventBus.requestCommand(CommandType.SET_GAME_SPEED, {
 		"speed": GameSpeed.Value.Normal,
 	})
 	simulationManager.stepSimulation(GameTime.SECONDS_PER_WEEK_AT_1X * GameTime.WEEKS_PER_MONTH)
-	if goldLabel.text != "Gold: %d" % (NewRunFactory.START_GOLD - 50 + 35):
+	if goldLabel.text != "Gold: %d" % (startingGold - 50 + 35):
 		result.addError("TopBar did not update after month tick economy apply.")
 
 	eventBus.requestCommand(CommandType.SELECT_COUNTRY, {
@@ -1147,10 +1161,22 @@ func _testMainUiLayoutBindsStateAndCommands() -> ValidationResult:
 	if gameManager.getCurrentRunState().speed != GameSpeed.Value.Paused:
 		result.addError("TimeControls pause button did not request pause.")
 
+	var shopButton := main.get_node("GameRoot/UIRoot/Root/ModalLayer/EscMenu/MarginContainer/VBoxContainer/ShopButton") as Button
+	var shopPanel = main.get_node("GameRoot/UIRoot/Root/ModalLayer/ShopPanel")
+	if shopButton == null or shopPanel == null:
+		result.addError("Shop UI is missing required nodes.")
+
 	uiRoot.call("_openEscMenu")
 	if not bool(uiRoot.call("isEscMenuOpen")):
 		result.addError("ESC menu did not open.")
 
+	if shopButton != null:
+		shopButton.emit_signal("pressed")
+		if not bool(shopPanel.get("visible")):
+			result.addError("Shop button did not open shop panel.")
+		uiRoot.call("_closeShopPanel")
+
+	uiRoot.call("_openEscMenu")
 	uiRoot.call("_resumeFromEscMenu")
 	if bool(uiRoot.call("isEscMenuOpen")):
 		result.addError("ESC menu did not close on resume.")
@@ -1461,11 +1487,124 @@ func _testMetaProgressStoresUpgradeState() -> ValidationResult:
 	return result
 
 
+func _testMetaProgressAwardsCrownsAndAppliesPurchases() -> ValidationResult:
+	var result := ValidationResult.new()
+	var metaUpgradeRows := PrototypeContentLoader.loadMetaUpgrades()
+	var fixtureResult := META_UPGRADE_DATA_VALIDATOR.validate(metaUpgradeRows, PrototypeContentLoader.loadCountries())
+	if not fixtureResult.isValid():
+		return fixtureResult
+
+	var metaData: Dictionary = META_PROGRESS.createDefaultDataForUpgrades(metaUpgradeRows)
+	var runState := NewRunFactory.createNewRun(&"paperland", metaData, metaUpgradeRows)
+	runState.upgrades.append(&"rapidRecruitment")
+	var conqueredCountry := runState.countries[&"inkreich"] as CountryData
+	conqueredCountry.ownerId = GameIds.PLAYER_OWNER_ID
+
+	var reward: Dictionary = META_PROGRESS_SIMULATION.calculateCrownsReward(runState, metaData, metaUpgradeRows)
+	if not bool(reward.get("accepted", false)):
+		result.addError("MetaProgressSimulation rejected valid run reward.")
+	if int(reward.get("crowns", 0)) != 14:
+		result.addError("MetaProgressSimulation calculated wrong crown reward.")
+
+	var awarded: Dictionary = META_PROGRESS_SIMULATION.awardRunEndCrowns(metaData, runState, metaUpgradeRows)
+	if int(awarded.get("totalCrowns", 0)) != 14:
+		result.addError("MetaProgressSimulation did not add rewarded crowns.")
+
+	metaData["crowns"] = 50
+	var purchaseResult: Dictionary = META_PROGRESS_SIMULATION.purchaseUpgrade(metaData, &"startGold", metaUpgradeRows)
+	if not bool(purchaseResult.get("accepted", false)):
+		result.addError("MetaProgressSimulation rejected affordable purchase.")
+
+	var purchasedMeta := purchaseResult.get("metaProgress", {}) as Dictionary
+	var purchasedGeneral := purchasedMeta.get("generalUpgrades", {}) as Dictionary
+	var startGoldUpgrade := purchasedGeneral.get("startGold", {}) as Dictionary
+	if int(startGoldUpgrade.get("level", 0)) != 1:
+		result.addError("MetaProgressSimulation did not raise purchased upgrade level.")
+	if int(purchasedMeta.get("crowns", 0)) != 30:
+		result.addError("MetaProgressSimulation did not subtract purchase cost.")
+
+	var bonusRun := NewRunFactory.createNewRun(&"paperland", purchasedMeta, metaUpgradeRows)
+	if int(bonusRun.resources.get("gold", 0)) != NewRunFactory.START_GOLD + 50:
+		result.addError("NewRunFactory did not apply purchased starting gold bonus.")
+
+	purchasedMeta["crowns"] = 50
+	var countryPurchase: Dictionary = META_PROGRESS_SIMULATION.purchaseUpgrade(purchasedMeta, &"paperlandDiscipline", metaUpgradeRows)
+	var countryMeta := countryPurchase.get("metaProgress", {}) as Dictionary
+	var countryBonusRun := NewRunFactory.createNewRun(&"paperland", countryMeta, metaUpgradeRows)
+	var startArmy := countryBonusRun.armies[&"army_start"] as ArmyData
+	if int(startArmy.units.get(GameIds.INFANTRY_UNIT_ID, 0)) != NewRunFactory.START_INFANTRY + 1:
+		result.addError("NewRunFactory did not apply country starting army bonus.")
+
+	var manager := GameManager.new()
+	var simulation := SimulationManager.new()
+	var bus := EventBus.new()
+	add_child(manager)
+	add_child(simulation)
+	add_child(bus)
+	capturedEvents.clear()
+	bus.gameEventRaised.connect(_recordGameEvent)
+	manager.setEventBus(bus)
+	manager.setSimulationManager(simulation)
+	manager.startNewRun("paperland")
+	var commandMeta: Dictionary = META_PROGRESS.createDefaultDataForUpgrades(metaUpgradeRows)
+	commandMeta["crowns"] = 20
+	manager.metaProgressData = commandMeta
+	bus.requestCommand(CommandType.PURCHASE_META_UPGRADE, {
+		"upgradeId": "startGold",
+	})
+	var commandResultMeta := manager.getMetaProgressData()
+	var commandGeneral := commandResultMeta.get("generalUpgrades", {}) as Dictionary
+	var commandStartGold := commandGeneral.get("startGold", {}) as Dictionary
+	if int(commandStartGold.get("level", 0)) != 1:
+		result.addError("GameManager purchase command did not update MetaProgress.")
+	if not _capturedEvent(EventType.META_UPGRADE_PURCHASED) or not _capturedEvent(EventType.META_PROGRESS_CHANGED):
+		result.addError("GameManager purchase command did not emit meta progress events.")
+
+	remove_child(manager)
+	remove_child(simulation)
+	remove_child(bus)
+	manager.free()
+	simulation.free()
+	bus.free()
+	return result
+
+
+func _testShopPanelSendsPurchaseCommands() -> ValidationResult:
+	var result := ValidationResult.new()
+	var metaUpgradeRows := PrototypeContentLoader.loadMetaUpgrades()
+	var metaData: Dictionary = META_PROGRESS.createDefaultDataForUpgrades(metaUpgradeRows)
+	metaData["crowns"] = 20
+	var panel = SHOP_PANEL_SCRIPT.new()
+	add_child(panel)
+	lastShopUpgradeId = GameIds.EMPTY_ID
+	panel.connect("purchaseRequested", Callable(self, "_recordShopPurchase"))
+	panel.call("setData", SHOP_STATE_VIEW.createShopPanelData(metaData, metaUpgradeRows))
+
+	var buttons := panel.get("rowButtons") as Array
+	if buttons.is_empty():
+		result.addError("ShopPanel did not create purchase rows.")
+	else:
+		var firstButton := buttons[0] as Button
+		if firstButton.disabled:
+			result.addError("ShopPanel disabled affordable upgrade row.")
+		firstButton.emit_signal("pressed")
+		if lastShopUpgradeId != &"startGold":
+			result.addError("ShopPanel did not emit selected upgrade id.")
+
+	remove_child(panel)
+	panel.free()
+	return result
+
+
 func _recordGameEvent(eventName: StringName, payload: Dictionary) -> void:
 	capturedEvents.append({
 		"eventName": eventName,
 		"payload": payload,
 	})
+
+
+func _recordShopPurchase(upgradeId: StringName) -> void:
+	lastShopUpgradeId = upgradeId
 
 
 func _capturedEvent(eventName: StringName) -> bool:

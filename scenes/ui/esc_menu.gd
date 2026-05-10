@@ -4,6 +4,7 @@ extends PanelContainer
 signal resumeRequested
 signal saveRequested
 signal loadRequested
+signal shopRequested
 signal quitToMenuRequested
 
 @onready var buttonContainer: VBoxContainer = $MarginContainer/VBoxContainer as VBoxContainer
@@ -12,6 +13,7 @@ signal quitToMenuRequested
 
 var saveButton: Button
 var loadButton: Button
+var shopButton: Button
 
 
 func _ready() -> void:
@@ -19,6 +21,7 @@ func _ready() -> void:
 	resumeButton.pressed.connect(_onResumePressed)
 	saveButton.pressed.connect(_onSavePressed)
 	loadButton.pressed.connect(_onLoadPressed)
+	shopButton.pressed.connect(_onShopPressed)
 	quitButton.pressed.connect(_onQuitPressed)
 
 
@@ -32,6 +35,10 @@ func _onSavePressed() -> void:
 
 func _onLoadPressed() -> void:
 	loadRequested.emit()
+
+
+func _onShopPressed() -> void:
+	shopRequested.emit()
 
 
 func _onQuitPressed() -> void:
@@ -54,3 +61,11 @@ func _ensureManualSaveButtons() -> void:
 		loadButton.text = "Load"
 		buttonContainer.add_child(loadButton)
 		buttonContainer.move_child(loadButton, saveButton.get_index() + 1)
+
+	shopButton = buttonContainer.get_node_or_null("ShopButton") as Button
+	if shopButton == null:
+		shopButton = Button.new()
+		shopButton.name = "ShopButton"
+		shopButton.text = "Shop"
+		buttonContainer.add_child(shopButton)
+		buttonContainer.move_child(shopButton, loadButton.get_index() + 1)

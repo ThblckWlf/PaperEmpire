@@ -6,6 +6,7 @@ const SAVE_FORMAT := preload("res://src/save/save_format.gd")
 const SAVE_SCHEMA_VERSION: int = SAVE_FORMAT.SCHEMA_VERSION
 const SAVE_DIRECTORY: String = "user://paper_empire"
 const SAVE_EXTENSION: String = ".json"
+const META_SLOT_ID: String = "meta"
 
 
 func saveGame(slotId: String, state: Dictionary) -> bool:
@@ -60,6 +61,26 @@ func deleteSave(slotId: String) -> bool:
 		return false
 
 	return DirAccess.remove_absolute(savePath) == OK
+
+
+func saveMetaProgress(metaProgressData: Dictionary) -> bool:
+	var root: Dictionary = SAVE_FORMAT.createSaveRoot(SAVE_FORMAT.createEmptyRunStateData(), metaProgressData)
+	return saveGame(META_SLOT_ID, root)
+
+
+func loadMetaProgress() -> Dictionary:
+	var root := loadGame(META_SLOT_ID)
+	if root.is_empty():
+		return {}
+	return root.get(SAVE_FORMAT.META_PROGRESS_KEY, {}) as Dictionary
+
+
+func hasMetaProgress() -> bool:
+	return hasSave(META_SLOT_ID)
+
+
+func deleteMetaProgress() -> bool:
+	return deleteSave(META_SLOT_ID)
 
 
 func getSavePath(slotId: String) -> String:

@@ -3,6 +3,7 @@ class_name NewRunFactory
 
 
 const MINI_GOAL_SIMULATION := preload("res://src/core/simulation/mini_goal_simulation.gd")
+const META_PROGRESS_SIMULATION := preload("res://src/core/simulation/meta_progress_simulation.gd")
 
 const DEFAULT_START_COUNTRY_ID: StringName = &"paperland"
 const START_GOLD: int = 150
@@ -12,7 +13,11 @@ const START_CAVALRY: int = 2
 const START_ARTILLERY: int = 1
 
 
-static func createNewRun(startCountryId: StringName = DEFAULT_START_COUNTRY_ID) -> RunState:
+static func createNewRun(
+	startCountryId: StringName = DEFAULT_START_COUNTRY_ID,
+	metaProgressData: Dictionary = {},
+	metaUpgradeRows: Array[Dictionary] = []
+) -> RunState:
 	var runState := RunState.new()
 	runState.time = GameTime.createInitialState()
 	var countries := PrototypeContentLoader.loadCountries()
@@ -39,6 +44,7 @@ static func createNewRun(startCountryId: StringName = DEFAULT_START_COUNTRY_ID) 
 	if hasStartCountry:
 		runState.runStatus = RunState.RUN_STATUS_ACTIVE
 		runState.armies[&"army_start"] = _createStartingArmy(startCountryId)
+		META_PROGRESS_SIMULATION.applyStartingBonuses(runState, startCountryId, metaProgressData, metaUpgradeRows)
 	else:
 		runState.runStatus = RunState.RUN_STATUS_NOT_STARTED
 		push_error("Cannot create run. Unknown start country: %s" % startCountryId)

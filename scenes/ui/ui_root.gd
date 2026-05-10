@@ -2,6 +2,7 @@ extends CanvasLayer
 
 
 const RUN_STATE_VIEW := preload("res://src/core/view/run_state_view.gd")
+const SHOP_PANEL_SCRIPT := preload("res://scenes/ui/shop_panel.gd")
 
 @onready var rootControl: Control = $Root as Control
 @onready var topBar = $Root/TopBar
@@ -16,6 +17,7 @@ const RUN_STATE_VIEW := preload("res://src/core/view/run_state_view.gd")
 var gameManager: GameManager
 var eventBus: EventBus
 var speedBeforePause: int = GameSpeed.Value.Normal
+var shopPanel: PanelContainer
 
 
 func _ready() -> void:
@@ -23,8 +25,11 @@ func _ready() -> void:
 	escMenu.resumeRequested.connect(_resumeFromEscMenu)
 	escMenu.saveRequested.connect(_saveFromEscMenu)
 	escMenu.loadRequested.connect(_loadFromEscMenu)
+	escMenu.shopRequested.connect(_openShopPanel)
 	escMenu.quitToMenuRequested.connect(_handleQuitToMenuStub)
+	_ensureShopPanel()
 	upgradeModal.visible = false
+	shopPanel.visible = false
 	modalLayer.visible = false
 
 
@@ -36,6 +41,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if keyEvent.keycode == KEY_ESCAPE:
 		if upgradeModal.visible:
 			pass
+		elif shopPanel != null and shopPanel.visible:
+			_closeShopPanel()
 		elif modalLayer.visible:
 			_resumeFromEscMenu()
 		else:
@@ -72,6 +79,8 @@ func _refreshAll() -> void:
 	miniGoalPanel.setData(RUN_STATE_VIEW.createMiniGoalPanelData(runState))
 	rightPanel.setData(RUN_STATE_VIEW.createCountryPanelData(runState, gameManager.getSelectedCountryId()))
 	bottomBar.setCurrentSpeed(int(runState.speed))
+	if shopPanel != null and shopPanel.visible:
+		shopPanel.call("setData", gameManager.getShopPanelData())
 
 
 func _onGameEventRaised(eventName: StringName, payload: Dictionary) -> void:
@@ -81,7 +90,7 @@ func _onGameEventRaised(eventName: StringName, payload: Dictionary) -> void:
 		EventType.UPGRADE_CHOSEN:
 			_closeUpgradeModal()
 			_refreshAll()
-		EventType.RUN_STARTED, EventType.RUN_RESET, EventType.COUNTRY_SELECTED, EventType.ARMY_SELECTED, EventType.ARMY_MOVE_STARTED, EventType.ARMY_MOVED, EventType.UNITS_RECRUITED, EventType.ARMY_CREATED, EventType.BATTLE_STARTED, EventType.BATTLE_ENDED, EventType.COUNTRY_CONQUERED, EventType.MINI_GOAL_REWARD_CLAIMED, EventType.THREAT_CHANGED, EventType.WORLD_REACTION_UPDATED, EventType.GAME_SPEED_CHANGED, EventType.MONTH_TICK:
+		EventType.RUN_STARTED, EventType.RUN_RESET, EventType.COUNTRY_SELECTED, EventType.ARMY_SELECTED, EventType.ARMY_MOVE_STARTED, EventType.ARMY_MOVED, EventType.UNITS_RECRUITED, EventType.ARMY_CREATED, EventType.BATTLE_STARTED, EventType.BATTLE_ENDED, EventType.COUNTRY_CONQUERED, EventType.MINI_GOAL_REWARD_CLAIMED, EventType.META_PROGRESS_CHANGED, EventType.META_UPGRADE_PURCHASED, EventType.CROWNS_REWARDED, EventType.THREAT_CHANGED, EventType.WORLD_REACTION_UPDATED, EventType.GAME_SPEED_CHANGED, EventType.MONTH_TICK:
 			_refreshAll()
 
 
@@ -103,6 +112,8 @@ func _openEscMenu() -> void:
 
 func _resumeFromEscMenu() -> void:
 	escMenu.visible = false
+	if shopPanel != null:
+		shopPanel.visible = false
 	modalLayer.visible = false
 	if eventBus != null:
 		eventBus.requestCommand(CommandType.SET_GAME_SPEED, {
@@ -133,8 +144,37 @@ func _handleQuitToMenuStub() -> void:
 	push_warning("Quit to menu is not implemented yet.")
 
 
+func _openShopPanel() -> void:
+	_ensureShopPanel()
+	escMenu.visible = false
+	shopPanel.visible = true
+	modalLayer.visible = true
+	if gameManager != null:
+		shopPanel.call("setData", gameManager.getShopPanelData())
+
+
+func _closeShopPanel() -> void:
+	if shopPanel == null:
+		return
+
+	shopPanel.visible = false
+	if not escMenu.visible and not upgradeModal.visible:
+		modalLayer.visible = false
+
+
+func _purchaseMetaUpgrade(upgradeId: StringName) -> void:
+	if eventBus != null:
+		eventBus.requestCommand(CommandType.PURCHASE_META_UPGRADE, {
+			"upgradeId": str(upgradeId),
+		})
+	if gameManager != null and shopPanel != null:
+		shopPanel.call("setData", gameManager.getShopPanelData())
+
+
 func _openUpgradeModal(data: Dictionary) -> void:
 	escMenu.visible = false
+	if shopPanel != null:
+		shopPanel.visible = false
 	upgradeModal.visible = true
 	upgradeModal.setData(data)
 	modalLayer.visible = true
@@ -143,8 +183,32 @@ func _openUpgradeModal(data: Dictionary) -> void:
 
 func _closeUpgradeModal() -> void:
 	upgradeModal.visible = false
-	if not escMenu.visible:
+	if not escMenu.visible and (shopPanel == null or not shopPanel.visible):
 		modalLayer.visible = false
+
+
+func _ensureShopPanel() -> void:
+	if shopPanel != null:
+		return
+
+	shopPanel = SHOP_PANEL_SCRIPT.new() as PanelContainer
+	shopPanel.name = "ShopPanel"
+	shopPanel.visible = false
+	modalLayer.add_child(shopPanel)
+	_positionShopPanel()
+	shopPanel.connect("purchaseRequested", Callable(self, "_purchaseMetaUpgrade"))
+	shopPanel.connect("closeRequested", Callable(self, "_closeShopPanel"))
+
+
+func _positionShopPanel() -> void:
+	if shopPanel == null:
+		return
+
+	shopPanel.set_anchors_preset(Control.PRESET_CENTER)
+	shopPanel.offset_left = -260.0
+	shopPanel.offset_top = -230.0
+	shopPanel.offset_right = 260.0
+	shopPanel.offset_bottom = 230.0
 
 
 func _connectEventBus() -> void:

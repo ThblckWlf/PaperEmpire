@@ -6,6 +6,7 @@ const UNITS_PATH: String = "res://data/units.json"
 const COUNTRIES_PATH: String = "res://data/countries.json"
 const UPGRADES_PATH: String = "res://data/upgrades.json"
 const MINI_GOALS_PATH: String = "res://data/miniGoals.json"
+const META_UPGRADES_PATH: String = "res://data/metaUpgrades.json"
 const MAP_SHAPES_PATH: String = "res://data/mapShapes.json"
 
 
@@ -56,6 +57,10 @@ static func loadUpgrades() -> Array[Dictionary]:
 
 static func loadMiniGoals() -> Array[Dictionary]:
 	return _dictionaryRows(_loadJsonArray(MINI_GOALS_PATH))
+
+
+static func loadMetaUpgrades() -> Array[Dictionary]:
+	return _dictionaryRows(_loadJsonArray(META_UPGRADES_PATH))
 
 
 static func loadMapShapes() -> Dictionary:

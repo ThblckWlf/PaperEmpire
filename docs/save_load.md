@@ -1,6 +1,6 @@
 # Save And Load
 
-Phase 19 defines the first versioned save schema, run serialization, and local file persistence.
+Phase 19 defines the first versioned save schema, run serialization, and local file persistence. Phase 20 adds the first persistent meta-progression purchase loop.
 
 ## Save Root
 
@@ -14,13 +14,19 @@ Every save root contains:
 
 ## Meta Progress
 
-`MetaProgress` is a small data container for future post-run progression:
+`MetaProgress` stores post-run progression:
 
 - `crowns`
-- `generalUpgrades`: first stub levels for starting gold, starting food, and crown rewards
-- `countryUpgrades`: first stub levels for Paperland, Inkreich, and Foldmark start bonuses
+- `generalUpgrades`: levels for starting gold, starting food, and crown reward bonuses
+- `countryUpgrades`: levels for Paperland, Inkreich, and Foldmark start bonuses
 
-No Steam Cloud, binary saves, or shop purchase flow is part of this step.
+The meta save uses the reserved `meta` slot through `SaveManager.saveMetaProgress()` and `loadMetaProgress()`. No Steam Cloud or binary saves are part of this step.
+
+## Shop And Starting Bonuses
+
+Phase 20 adds `data/metaUpgrades.json`, crown rewards on run end, shop row projection, upgrade purchase commands, and NewRun starting bonuses.
+
+The UI shop only displays `GameManager.getShopPanelData()` and sends `purchase_meta_upgrade`; costs, level caps, crown balances, and start bonuses remain in `res://src/core/simulation/meta_progress_simulation.gd`.
 
 ## Run Serialization
 
