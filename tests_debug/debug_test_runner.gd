@@ -68,6 +68,7 @@ func runAll() -> void:
 	_runTest("RunStateSerializer writes pure data", _testRunStateSerializerWritesPureData)
 	_runTest("SaveManager writes and loads user saves", _testSaveManagerWritesAndLoadsUserSaves)
 	_runTest("Manual save load UI restores run state", _testManualSaveLoadUiRestoresRunState)
+	_runTest("MetaProgress stores upgrade state", _testMetaProgressStoresUpgradeState)
 
 	if failedTests == 0:
 		print("[DebugTestRunner] PASS: %d/%d tests passed." % [totalTests, totalTests])
@@ -1409,6 +1410,54 @@ func _testManualSaveLoadUiRestoresRunState() -> ValidationResult:
 
 	saveManager.deleteSave("manual_1")
 	_cleanupMainForTest(main)
+	return result
+
+
+func _testMetaProgressStoresUpgradeState() -> ValidationResult:
+	var result := ValidationResult.new()
+	var manager := SaveManager.new()
+	add_child(manager)
+	var slotId := "debug_meta_progress_slot"
+	manager.deleteSave(slotId)
+
+	var metaData: Dictionary = META_PROGRESS.createDefaultData()
+	var generalUpgrades: Dictionary = metaData.get("generalUpgrades", {})
+	var countryUpgrades: Dictionary = metaData.get("countryUpgrades", {})
+	if int(metaData.get("crowns", -1)) != 0:
+		result.addError("MetaProgress default crowns are wrong.")
+	if not generalUpgrades.has("startGold") or not generalUpgrades.has("startFood"):
+		result.addError("MetaProgress default general upgrades are missing.")
+	if not countryUpgrades.has("paperland"):
+		result.addError("MetaProgress default country upgrades are missing.")
+
+	metaData["crowns"] = 25
+	(generalUpgrades["startGold"] as Dictionary)["level"] = 1
+	var paperlandUpgrades := countryUpgrades["paperland"] as Dictionary
+	(paperlandUpgrades["paperlandDiscipline"] as Dictionary)["level"] = 1
+	if not META_PROGRESS.isValidDictionary(metaData):
+		result.addError("MetaProgress rejected valid upgraded state.")
+
+	var root: Dictionary = SAVE_FORMAT.createSaveRoot(SAVE_FORMAT.createEmptyRunStateData(), metaData)
+	if not manager.saveGame(slotId, root):
+		result.addError("SaveManager rejected MetaProgress save root.")
+
+	var loaded: Dictionary = manager.loadGame(slotId)
+	var loadedMeta: Dictionary = loaded.get(SAVE_FORMAT.META_PROGRESS_KEY, {})
+	if int(loadedMeta.get("crowns", 0)) != 25:
+		result.addError("Loaded MetaProgress crowns are wrong.")
+	var loadedGeneral: Dictionary = loadedMeta.get("generalUpgrades", {})
+	var loadedStartGold := loadedGeneral.get("startGold", {}) as Dictionary
+	if int(loadedStartGold.get("level", 0)) != 1:
+		result.addError("Loaded MetaProgress general upgrade level is wrong.")
+
+	var invalidMeta := metaData.duplicate(true)
+	((invalidMeta["generalUpgrades"] as Dictionary)["startGold"] as Dictionary)["level"] = 99
+	if META_PROGRESS.isValidDictionary(invalidMeta):
+		result.addError("MetaProgress accepted level above maxLevel.")
+
+	manager.deleteSave(slotId)
+	remove_child(manager)
+	manager.free()
 	return result
 
 

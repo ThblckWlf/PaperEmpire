@@ -17,10 +17,10 @@ Every save root contains:
 `MetaProgress` is a small data container for future post-run progression:
 
 - `crowns`
-- `generalUpgrades`
-- `countryUpgrades`
+- `generalUpgrades`: first stub levels for starting gold, starting food, and crown rewards
+- `countryUpgrades`: first stub levels for Paperland, Inkreich, and Foldmark start bonuses
 
-No Steam Cloud, binary saves, shop logic, or file persistence is part of this step.
+No Steam Cloud, binary saves, or shop purchase flow is part of this step.
 
 ## Run Serialization
 
