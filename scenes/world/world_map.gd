@@ -10,10 +10,12 @@ const ARMY_NODE_SCENE: PackedScene = preload("res://scenes/world/ArmyNode.tscn")
 
 @onready var countryLayer: Node2D = $CountryLayer as Node2D
 @onready var armyLayer: Node2D = $ArmyLayer as Node2D
+@onready var effectsLayer: Node = $EffectsLayer as Node
 @onready var mapCamera = $MapCamera
 
 var gameManager: GameManager
 var eventBus: EventBus
+var audioManager: AudioManager
 var countryNodes: Dictionary = {}
 var armyNodes: Dictionary = {}
 
@@ -22,11 +24,13 @@ func _process(_delta: float) -> void:
 	_updateArmyNodesFromRunState()
 
 
-func configure(newGameManager: GameManager, newEventBus: EventBus) -> void:
+func configure(newGameManager: GameManager, newEventBus: EventBus, newAudioManager: AudioManager = null) -> void:
 	_disconnectEventBus()
 	gameManager = newGameManager
 	eventBus = newEventBus
+	audioManager = newAudioManager
 	_connectEventBus()
+	_configureEffectsLayer()
 	refreshFromRunState()
 
 
@@ -220,6 +224,13 @@ func _configureMapCamera(runState: RunState, mapShapes: Dictionary) -> void:
 
 	var bounds := _calculateMapBounds(runState, mapShapes)
 	mapCamera.setMapBounds(bounds)
+
+
+func _configureEffectsLayer() -> void:
+	if effectsLayer == null or not effectsLayer.has_method("configure"):
+		return
+
+	effectsLayer.call("configure", gameManager, eventBus, self, audioManager)
 
 
 func _calculateMapBounds(runState: RunState, mapShapes: Dictionary) -> Rect2:

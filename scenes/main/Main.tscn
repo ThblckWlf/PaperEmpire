@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="Script" path="res://scenes/main/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://src/core/event_bus.gd" id="2_event_bus"]
@@ -13,6 +13,7 @@
 [ext_resource type="Script" path="res://scenes/ui/army_panel.gd" id="11_army_panel"]
 [ext_resource type="Script" path="res://scenes/ui/upgrade_modal.gd" id="12_upgrade_modal"]
 [ext_resource type="Script" path="res://scenes/ui/mini_goal_panel.gd" id="13_mini_goal_panel"]
+[ext_resource type="Script" path="res://src/core/audio_manager.gd" id="14_audio_manager"]
 
 [node name="Main" type="Node"]
 script = ExtResource("1_main")
@@ -29,6 +30,9 @@ script = ExtResource("3_game_manager")
 
 [node name="SimulationManager" type="Node" parent="GameRoot/Managers"]
 script = ExtResource("4_simulation")
+
+[node name="AudioManager" type="Node" parent="GameRoot/Managers"]
+script = ExtResource("14_audio_manager")
 
 [node name="WorldRoot" type="Node2D" parent="GameRoot"]
 

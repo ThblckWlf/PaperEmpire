@@ -59,6 +59,8 @@ func runAll() -> void:
 	_runTest("MapCamera clamps pan and zoom", _testMapCameraClampsPanAndZoom)
 	_runTest("RunStateView creates UI summaries", _testRunStateViewCreatesSummaries)
 	_runTest("Main UI layout binds state and commands", _testMainUiLayoutBindsStateAndCommands)
+	_runTest("EffectsLayer reacts to event feedback", _testEffectsLayerReactsToEventFeedback)
+	_runTest("AudioManager creates buses and sound stubs", _testAudioManagerCreatesBusesAndSoundStubs)
 
 	if failedTests == 0:
 		print("[DebugTestRunner] PASS: %d/%d tests passed." % [totalTests, totalTests])
@@ -1148,6 +1150,117 @@ func _testMainUiLayoutBindsStateAndCommands() -> ValidationResult:
 		result.addError("ESC menu resume did not restore speed.")
 
 	_cleanupMainForTest(main)
+	return result
+
+
+func _testEffectsLayerReactsToEventFeedback() -> ValidationResult:
+	var result := ValidationResult.new()
+	var scene := load("res://scenes/world/WorldMap.tscn") as PackedScene
+	if scene == null:
+		result.addError("WorldMap.tscn could not be loaded for effects test.")
+		return result
+
+	var worldMap = scene.instantiate()
+	var manager := GameManager.new()
+	var simulation := SimulationManager.new()
+	var bus := EventBus.new()
+	var audio := AudioManager.new()
+	add_child(worldMap)
+	add_child(audio)
+	audio.configure(bus)
+	manager.setEventBus(bus)
+	manager.setSimulationManager(simulation)
+	manager.startNewRun("paperland")
+	worldMap.configure(manager, bus, audio)
+
+	var effectsLayer = worldMap.get_node("EffectsLayer")
+	if effectsLayer == null or not effectsLayer.has_method("getMovementFeedbackCount"):
+		result.addError("EffectsLayer is missing expected feedback methods.")
+		remove_child(worldMap)
+		remove_child(audio)
+		worldMap.free()
+		audio.free()
+		manager.free()
+		simulation.free()
+		bus.free()
+		return result
+
+	bus.requestCommand(CommandType.MOVE_ARMY, {
+		"armyId": "army_start",
+		"targetCountryId": "inkreich",
+	})
+	if int(effectsLayer.call("getMovementFeedbackCount")) != 1:
+		result.addError("EffectsLayer did not create movement feedback after armyMoveStarted.")
+
+	bus.raiseGameEvent(EventType.BATTLE_STARTED, {
+		"battleId": "battle_visual_test",
+		"armyId": "army_start",
+		"sourceCountryId": "paperland",
+		"targetCountryId": "inkreich",
+	})
+	if int(effectsLayer.call("getBattleFeedbackCount")) != 1:
+		result.addError("EffectsLayer did not create battle pulse feedback.")
+
+	bus.raiseGameEvent(EventType.BATTLE_ENDED, {
+		"battleId": "battle_visual_test",
+	})
+	if int(effectsLayer.call("getBattleFeedbackCount")) != 0:
+		result.addError("EffectsLayer did not remove battle pulse feedback after battleEnded.")
+
+	var oneShotBefore := int(effectsLayer.call("getOneShotFeedbackCount"))
+	bus.raiseGameEvent(EventType.COUNTRY_CONQUERED, {
+		"countryId": "inkreich",
+	})
+	if int(effectsLayer.call("getOneShotFeedbackCount")) <= oneShotBefore:
+		result.addError("EffectsLayer did not create conquest flash feedback.")
+
+	oneShotBefore = int(effectsLayer.call("getOneShotFeedbackCount"))
+	bus.raiseGameEvent(EventType.MISSILE_LAUNCHED, {
+		"fromCountryId": "paperland",
+		"targetCountryId": "inkreich",
+	})
+	if int(effectsLayer.call("getOneShotFeedbackCount")) <= oneShotBefore:
+		result.addError("EffectsLayer did not spawn missile feedback.")
+
+	remove_child(worldMap)
+	remove_child(audio)
+	worldMap.free()
+	audio.free()
+	manager.free()
+	simulation.free()
+	bus.free()
+	return result
+
+
+func _testAudioManagerCreatesBusesAndSoundStubs() -> ValidationResult:
+	var result := ValidationResult.new()
+	var bus := EventBus.new()
+	var audio := AudioManager.new()
+	add_child(audio)
+	audio.configure(bus)
+
+	for busName in [AudioManager.BUS_MASTER, AudioManager.BUS_MUSIC, AudioManager.BUS_SFX, AudioManager.BUS_UI]:
+		if AudioServer.get_bus_index(str(busName)) < 0:
+			result.addError("Audio bus missing: %s." % str(busName))
+
+	audio.playSfx(AudioManager.SOUND_BATTLE_START)
+	if audio.getActiveStubPlayerCount() <= 0:
+		result.addError("AudioManager did not create a SFX stub player.")
+
+	var playerCount := audio.getActiveStubPlayerCount()
+	bus.raiseGameEvent(EventType.MISSILE_LAUNCHED, {})
+	if audio.getActiveStubPlayerCount() <= playerCount:
+		result.addError("AudioManager did not react to missileLaunched event.")
+
+	audio.setBusMuted(AudioManager.BUS_SFX, true)
+	var sfxBusIndex := AudioServer.get_bus_index(str(AudioManager.BUS_SFX))
+	if sfxBusIndex >= 0 and not AudioServer.is_bus_mute(sfxBusIndex):
+		result.addError("AudioManager did not mute the SFX bus.")
+	audio.setBusMuted(AudioManager.BUS_SFX, false)
+
+	remove_child(audio)
+	audio.free()
+	bus.free()
 	return result
 
 

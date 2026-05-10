@@ -122,6 +122,12 @@ Phase 17 mini-goals use the same boundary:
 - `MiniGoalPanel` requests `claim_mini_goal_reward`.
 - `GameManager` delegates reward claiming to `MiniGoalSimulation` and emits `miniGoalRewardClaimed`.
 
+Phase 18 effects and audio use the same boundary:
+
+- `EffectsLayer` listens to `GameEvent`s and creates movement paths, battle pulses, conquest flashes, missile visuals, and explosions.
+- `AudioManager` listens to commands and selected `GameEvent`s for placeholder UI and SFX playback through Godot audio buses.
+- Effects and audio do not mutate `RunState` or decide gameplay outcomes.
+
 ## Naming
 
 - Signal names use `lowerCamelCase`.
