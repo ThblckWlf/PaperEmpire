@@ -2,7 +2,8 @@ extends Node
 class_name SaveManager
 
 
-const SAVE_SCHEMA_VERSION: int = 1
+const SAVE_FORMAT := preload("res://src/save/save_format.gd")
+const SAVE_SCHEMA_VERSION: int = SAVE_FORMAT.SCHEMA_VERSION
 
 
 func saveGame(_slotId: String, _state: Dictionary) -> bool:

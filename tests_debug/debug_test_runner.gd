@@ -13,6 +13,8 @@ const COMBAT_SIMULATION := preload("res://src/core/simulation/combat_simulation.
 const UPGRADE_SIMULATION := preload("res://src/core/simulation/upgrade_simulation.gd")
 const THREAT_SIMULATION := preload("res://src/core/simulation/threat_simulation.gd")
 const MINI_GOAL_SIMULATION := preload("res://src/core/simulation/mini_goal_simulation.gd")
+const SAVE_FORMAT := preload("res://src/save/save_format.gd")
+const META_PROGRESS := preload("res://src/save/meta_progress.gd")
 
 
 func _ready() -> void:
@@ -61,6 +63,7 @@ func runAll() -> void:
 	_runTest("Main UI layout binds state and commands", _testMainUiLayoutBindsStateAndCommands)
 	_runTest("EffectsLayer reacts to event feedback", _testEffectsLayerReactsToEventFeedback)
 	_runTest("AudioManager creates buses and sound stubs", _testAudioManagerCreatesBusesAndSoundStubs)
+	_runTest("SaveFormat defines versioned save schema", _testSaveFormatDefinesVersionedSchema)
 
 	if failedTests == 0:
 		print("[DebugTestRunner] PASS: %d/%d tests passed." % [totalTests, totalTests])
@@ -1261,6 +1264,33 @@ func _testAudioManagerCreatesBusesAndSoundStubs() -> ValidationResult:
 	remove_child(audio)
 	audio.free()
 	bus.free()
+	return result
+
+
+func _testSaveFormatDefinesVersionedSchema() -> ValidationResult:
+	var result := ValidationResult.new()
+	var metaData: Dictionary = META_PROGRESS.createDefaultData()
+	if int(metaData.get("schemaVersion", 0)) != META_PROGRESS.SCHEMA_VERSION:
+		result.addError("MetaProgress schemaVersion is missing.")
+	if int(metaData.get("crowns", -1)) != 0:
+		result.addError("MetaProgress default crowns are wrong.")
+	if not META_PROGRESS.isValidDictionary(metaData):
+		result.addError("MetaProgress default data does not validate.")
+
+	var root := SAVE_FORMAT.createSaveRoot(SAVE_FORMAT.createEmptyRunStateData(), metaData)
+	if int(root.get("schemaVersion", 0)) != SAVE_FORMAT.SCHEMA_VERSION:
+		result.addError("Save root schemaVersion is missing.")
+	if str(root.get("gameVersion", "")) == "":
+		result.addError("Save root gameVersion is missing.")
+	if str(root.get("createdAt", "")) == "":
+		result.addError("Save root createdAt is missing.")
+	if not SAVE_FORMAT.isValidSaveRoot(root):
+		result.addError("Save root does not validate.")
+
+	var invalidRoot := root.duplicate(true)
+	invalidRoot["schemaVersion"] = 0
+	if SAVE_FORMAT.isValidSaveRoot(invalidRoot):
+		result.addError("Save root accepted invalid schemaVersion.")
 	return result
 
 
