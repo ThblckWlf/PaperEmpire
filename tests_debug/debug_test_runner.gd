@@ -92,6 +92,8 @@ func runAll() -> void:
 	_runTest("Settings panel sends setting changes", _testSettingsPanelSendsSettingChanges)
 	_runTest("Platform service mock records achievements", _testPlatformServiceMockRecordsAchievements)
 	_runTest("Platform event bridge unlocks mapped achievements", _testPlatformEventBridgeUnlocksMappedAchievements)
+	_runTest("Vertical slice balance envelope is playable", _testVerticalSliceBalanceEnvelope)
+	_runTest("Vertical slice mini run reaches win status", _testVerticalSliceMiniRunReachesWinStatus)
 
 	if failedTests == 0:
 		print("[DebugTestRunner] PASS: %d/%d tests passed." % [totalTests, totalTests])
@@ -1791,6 +1793,146 @@ func _testPlatformEventBridgeUnlocksMappedAchievements() -> ValidationResult:
 	return result
 
 
+func _testVerticalSliceBalanceEnvelope() -> ValidationResult:
+	var result := ValidationResult.new()
+	var countries := PrototypeContentLoader.loadCountries()
+	var units := PrototypeContentLoader.loadUnits()
+	if countries.size() < 10 or countries.size() > 20:
+		result.addError("Vertical slice country count is outside 10-20: %d." % countries.size())
+	if units.size() != 3:
+		result.addError("Vertical slice does not expose exactly three unit types.")
+
+	var runState := NewRunFactory.createNewRun(&"paperland")
+	var startingArmy := runState.armies[&"army_start"] as ArmyData
+	var startingPower := COMBAT_SIMULATION.calculateArmyCombatPower(startingArmy, units, runState.economy, {
+		"targetDefense": 10,
+	})
+	var foldmark := runState.countries[&"foldmark"] as CountryData
+	var notoria := runState.countries[&"notoria"] as CountryData
+	var earlyDefense := COMBAT_SIMULATION.calculateCountryDefensePower(foldmark, runState.upgradeEffects, runState.worldReaction)
+	var lateDefense := COMBAT_SIMULATION.calculateCountryDefensePower(notoria, runState.upgradeEffects, runState.worldReaction)
+	if startingPower <= earlyDefense:
+		result.addError("Starting army cannot beat an early neighbor.")
+	if startingPower >= lateDefense:
+		result.addError("Starting army can already beat the late world country; slice is too trivial.")
+
+	var infantry := _unitFromCatalog(GameIds.INFANTRY_UNIT_ID)
+	var infantryCost: Dictionary = RECRUITMENT_SIMULATION.calculateRecruitmentCost(infantry, 1, runState.upgradeEffects)
+	if int(infantryCost.get("goldCost", 0)) > NewRunFactory.START_GOLD:
+		result.addError("Player cannot afford first infantry recruitment from starting gold.")
+
+	var income: Dictionary = ECONOMY_SIMULATION.calculateMonthlyIncome(runState)
+	if int(income.get("gold", 0)) <= 0 or int(income.get("food", 0)) <= 0:
+		result.addError("Starting country does not produce positive economy income.")
+	return result
+
+
+func _testVerticalSliceMiniRunReachesWinStatus() -> ValidationResult:
+	var result := ValidationResult.new()
+	var manager := GameManager.new()
+	var simulation := SimulationManager.new()
+	var bus := EventBus.new()
+	var saveManager := SaveManager.new()
+	var slotId := "debug_vertical_slice_gate"
+	add_child(manager)
+	add_child(simulation)
+	add_child(bus)
+	add_child(saveManager)
+	saveManager.deleteSave(slotId)
+	capturedEvents.clear()
+	bus.gameEventRaised.connect(_recordGameEvent)
+	manager.setEventBus(bus)
+	manager.setSimulationManager(simulation)
+	manager.setSaveManager(saveManager)
+	manager.startNewRun("paperland")
+
+	var runState := manager.getCurrentRunState()
+	runState.resources["gold"] = 7000
+	runState.resources["food"] = 1000
+	bus.requestCommand(CommandType.RECRUIT_UNITS, {
+		"countryId": "paperland",
+		"unitType": "artillery",
+		"amount": 24,
+	})
+	bus.requestCommand(CommandType.RECRUIT_UNITS, {
+		"countryId": "paperland",
+		"unitType": "infantry",
+		"amount": 20,
+	})
+	var army := runState.armies[&"army_start"] as ArmyData
+	if int(army.units.get(GameIds.ARTILLERY_UNIT_ID, 0)) < NewRunFactory.START_ARTILLERY + 24:
+		result.addError("Vertical slice recruitment did not add artillery.")
+
+	bus.requestCommand(CommandType.START_ATTACK, {
+		"armyId": "army_start",
+		"targetCountryId": "inkreich",
+	})
+	simulation.stepSimulation(COMBAT_SIMULATION.BATTLE_DURATION_SECONDS)
+	_chooseFirstUpgradeForVerticalSlice(manager, bus, result)
+	if (manager.getCurrentRunState().countries[&"inkreich"] as CountryData).ownerId != GameIds.PLAYER_OWNER_ID:
+		result.addError("Vertical slice first conquest failed.")
+
+	var savedGold := int(manager.getCurrentRunState().resources.get("gold", 0))
+	bus.requestCommand(CommandType.SAVE_GAME, {
+		"slotId": slotId,
+	})
+	manager.getCurrentRunState().resources["gold"] = 1
+	bus.requestCommand(CommandType.LOAD_GAME, {
+		"slotId": slotId,
+	})
+	if int(manager.getCurrentRunState().resources.get("gold", 0)) != savedGold:
+		result.addError("Vertical slice save/load did not restore resources.")
+
+	var actions := [
+		{"type": "attack", "target": "graphia"},
+		{"type": "attack", "target": "cartonia"},
+		{"type": "attack", "target": "sealands"},
+		{"type": "attack", "target": "waxholm"},
+		{"type": "attack", "target": "notoria"},
+		{"type": "move", "target": "waxholm"},
+		{"type": "attack", "target": "staplia"},
+		{"type": "attack", "target": "marginia"},
+		{"type": "attack", "target": "vellum"},
+		{"type": "attack", "target": "foldmark"},
+		{"type": "move", "target": "marginia"},
+		{"type": "move", "target": "staplia"},
+		{"type": "attack", "target": "ledgeria"},
+	]
+	for action in actions:
+		if str(action.get("type", "")) == "move":
+			_moveArmyForVerticalSlice(manager, simulation, bus, StringName(str(action.get("target", ""))), result)
+		else:
+			_attackForVerticalSlice(manager, simulation, bus, StringName(str(action.get("target", ""))), result)
+		if not result.isValid():
+			break
+
+	var finalState := manager.getCurrentRunState()
+	if finalState.runStatus != RunState.RUN_STATUS_WON:
+		result.addError("Vertical slice did not end with won run status.")
+	if not _capturedEvent(EventType.RUN_WON):
+		result.addError("Vertical slice did not emit runWon.")
+	for countryId in finalState.countries.keys():
+		var country := finalState.countries[countryId] as CountryData
+		if country != null and country.ownerId != GameIds.PLAYER_OWNER_ID:
+			result.addError("Vertical slice left country unconquered: %s." % str(countryId))
+
+	var validation := RunStateValidator.validate(finalState)
+	if not validation.isValid():
+		for error in validation.errors:
+			result.addError("Vertical slice produced invalid RunState: %s" % error)
+
+	saveManager.deleteSave(slotId)
+	remove_child(saveManager)
+	remove_child(bus)
+	remove_child(simulation)
+	remove_child(manager)
+	saveManager.free()
+	bus.free()
+	simulation.free()
+	manager.free()
+	return result
+
+
 func _recordGameEvent(eventName: StringName, payload: Dictionary) -> void:
 	capturedEvents.append({
 		"eventName": eventName,
@@ -1805,6 +1947,73 @@ func _recordShopPurchase(upgradeId: StringName) -> void:
 func _recordSettingChange(settingKey: StringName, value: Variant) -> void:
 	lastSettingKey = settingKey
 	lastSettingValue = value
+
+
+func _attackForVerticalSlice(
+	manager: GameManager,
+	simulation: SimulationManager,
+	bus: EventBus,
+	targetCountryId: StringName,
+	result: ValidationResult
+) -> void:
+	if not result.isValid():
+		return
+
+	bus.requestCommand(CommandType.START_ATTACK, {
+		"armyId": str(manager.getSelectedArmyId()),
+		"targetCountryId": str(targetCountryId),
+	})
+	var army := manager.getCurrentRunState().armies[manager.getSelectedArmyId()] as ArmyData
+	if army.status != ArmyStatus.Value.Attacking:
+		result.addError("Vertical slice could not start attack on %s." % str(targetCountryId))
+		return
+
+	simulation.stepSimulation(COMBAT_SIMULATION.BATTLE_DURATION_SECONDS)
+	var country := manager.getCurrentRunState().countries[targetCountryId] as CountryData
+	if country.ownerId != GameIds.PLAYER_OWNER_ID:
+		result.addError("Vertical slice did not conquer %s." % str(targetCountryId))
+		return
+
+	if manager.getCurrentRunState().runStatus == RunState.RUN_STATUS_ACTIVE:
+		_chooseFirstUpgradeForVerticalSlice(manager, bus, result)
+
+
+func _moveArmyForVerticalSlice(
+	manager: GameManager,
+	simulation: SimulationManager,
+	bus: EventBus,
+	targetCountryId: StringName,
+	result: ValidationResult
+) -> void:
+	if not result.isValid():
+		return
+
+	bus.requestCommand(CommandType.MOVE_ARMY, {
+		"armyId": str(manager.getSelectedArmyId()),
+		"targetCountryId": str(targetCountryId),
+	})
+	simulation.stepSimulation(ARMY_MOVEMENT_SIMULATION.MOVEMENT_SECONDS_PER_EDGE)
+	var army := manager.getCurrentRunState().armies[manager.getSelectedArmyId()] as ArmyData
+	if army.locationCountryId != targetCountryId or army.status != ArmyStatus.Value.Stationed:
+		result.addError("Vertical slice did not move army to %s." % str(targetCountryId))
+
+
+func _chooseFirstUpgradeForVerticalSlice(manager: GameManager, bus: EventBus, result: ValidationResult) -> void:
+	var runState := manager.getCurrentRunState()
+	if not bool(runState.activeUpgradeChoice.get("isOpen", false)):
+		return
+
+	var choices: Array = runState.activeUpgradeChoice.get("choices", [])
+	if choices.is_empty() or not (choices[0] is Dictionary):
+		result.addError("Vertical slice opened upgrade choice without valid choices.")
+		return
+
+	var choice := choices[0] as Dictionary
+	bus.requestCommand(CommandType.CHOOSE_UPGRADE, {
+		"upgradeId": str(choice.get("id", "")),
+	})
+	if bool(runState.activeUpgradeChoice.get("isOpen", false)):
+		result.addError("Vertical slice upgrade choice did not close.")
 
 
 func _capturedEvent(eventName: StringName) -> bool:

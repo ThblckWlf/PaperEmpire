@@ -147,6 +147,9 @@ func _handleBattleEvent(battleEvent: Dictionary) -> void:
 	_raiseWorldReactionIfChanged(threatResult)
 	_raiseEvent(eventType, payload)
 
+	if _updateRunWonIfComplete():
+		return
+
 	var choice: Dictionary = UPGRADE_SIMULATION.rollUpgradeChoices(runState, PrototypeContentLoader.loadUpgrades())
 	if bool(choice.get("opened", false)):
 		runState.speed = GameSpeed.Value.Paused
@@ -171,6 +174,25 @@ func _raiseWorldReactionIfChanged(threatResult: Dictionary) -> void:
 	var worldReaction: Dictionary = threatResult.get("worldReaction", {})
 	if bool(worldReaction.get("changed", false)):
 		_raiseEvent(EventType.WORLD_REACTION_UPDATED, worldReaction)
+
+
+func _updateRunWonIfComplete() -> bool:
+	if runState == null:
+		return false
+
+	for countryId in runState.countries.keys():
+		var country := runState.countries[countryId] as CountryData
+		if country != null and country.ownerId != GameIds.PLAYER_OWNER_ID:
+			return false
+
+	runState.runStatus = RunState.RUN_STATUS_WON
+	runState.speed = GameSpeed.Value.Paused
+	runState.activeUpgradeChoice = {}
+	_raiseEvent(EventType.RUN_WON, {
+		"runStatus": RunState.RUN_STATUS_WON,
+		"ownedCountryCount": runState.countries.size(),
+	})
+	return true
 
 
 func _isValidGameSpeed(speed: int) -> bool:
