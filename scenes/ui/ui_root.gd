@@ -1,11 +1,17 @@
 extends CanvasLayer
 
 
+signal newRunRequested(startCountryId: String)
+signal loadGameRequested(slotId: String)
+signal returnToMainMenuRequested
+signal quitGameRequested
+signal gameplayVisibilityChanged(isVisible: bool)
+
 const RUN_STATE_VIEW := preload("res://src/core/view/run_state_view.gd")
-const SHOP_PANEL_SCRIPT := preload("res://scenes/ui/shop_panel.gd")
 const SETTINGS_PANEL_SCRIPT := preload("res://scenes/ui/settings_panel.gd")
 const DEBUG_ERROR_OVERLAY_SCRIPT := preload("res://scenes/ui/debug_error_overlay.gd")
 const INPUT_ACTIONS := preload("res://src/core/input/input_actions.gd")
+const MAIN_MENU_SCENE: PackedScene = preload("res://scenes/ui/MainMenu.tscn")
 
 @onready var rootControl: Control = $Root as Control
 @onready var topBar = $Root/TopBar
@@ -20,10 +26,12 @@ const INPUT_ACTIONS := preload("res://src/core/input/input_actions.gd")
 var gameManager: GameManager
 var eventBus: EventBus
 var settingsManager
+var saveManager: SaveManager
 var speedBeforePause: int = GameSpeed.Value.Normal
-var shopPanel: PanelContainer
 var settingsPanel: PanelContainer
 var debugErrorOverlay: PanelContainer
+var mainMenu: Control
+var gameplayVisible: bool = true
 
 
 func _ready() -> void:
@@ -31,14 +39,13 @@ func _ready() -> void:
 	escMenu.resumeRequested.connect(_resumeFromEscMenu)
 	escMenu.saveRequested.connect(_saveFromEscMenu)
 	escMenu.loadRequested.connect(_loadFromEscMenu)
-	escMenu.shopRequested.connect(_openShopPanel)
 	escMenu.settingsRequested.connect(_openSettingsPanel)
-	escMenu.quitToMenuRequested.connect(_handleQuitToMenuStub)
-	_ensureShopPanel()
+	escMenu.returnToMainMenuRequested.connect(_handleReturnToMainMenuRequested)
+	escMenu.quitGameRequested.connect(_handleQuitGameRequested)
+	_ensureMainMenu()
 	_ensureSettingsPanel()
 	_ensureDebugErrorOverlay()
 	upgradeModal.visible = false
-	shopPanel.visible = false
 	settingsPanel.visible = false
 	modalLayer.visible = false
 
@@ -49,10 +56,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 	if event.is_action_pressed(INPUT_ACTIONS.ACTION_OPEN_MENU):
-		if upgradeModal.visible:
+		if mainMenu != null and mainMenu.visible:
+			if bool(mainMenu.call("closeOpenPanel")):
+				get_viewport().set_input_as_handled()
+		elif not gameplayVisible:
 			pass
-		elif shopPanel != null and shopPanel.visible:
-			_closeShopPanel()
+		elif upgradeModal.visible:
+			pass
 		elif settingsPanel != null and settingsPanel.visible:
 			_closeSettingsPanel()
 		elif modalLayer.visible:
@@ -64,16 +74,24 @@ func _unhandled_input(event: InputEvent) -> void:
 		_handleSpeedHotkey(event)
 
 
-func configure(newGameManager: GameManager, newEventBus: EventBus, newSettingsManager = null) -> void:
+func configure(
+	newGameManager: GameManager,
+	newEventBus: EventBus,
+	newSettingsManager = null,
+	newSaveManager: SaveManager = null
+) -> void:
 	_disconnectEventBus()
 	_disconnectSettingsManager()
 	gameManager = newGameManager
 	eventBus = newEventBus
 	settingsManager = newSettingsManager
+	saveManager = newSaveManager
 	bottomBar.configure(eventBus)
 	rightPanel.configure(eventBus)
 	miniGoalPanel.configure(eventBus)
 	upgradeModal.configure(eventBus)
+	if mainMenu != null:
+		mainMenu.call("configure", gameManager, eventBus, settingsManager, saveManager)
 	_connectEventBus()
 	_connectSettingsManager()
 	_refreshSettingsPanel()
@@ -97,8 +115,8 @@ func _refreshAll() -> void:
 	miniGoalPanel.setData(RUN_STATE_VIEW.createMiniGoalPanelData(runState))
 	rightPanel.setData(RUN_STATE_VIEW.createCountryPanelData(runState, gameManager.getSelectedCountryId()))
 	bottomBar.setCurrentSpeed(int(runState.speed))
-	if shopPanel != null and shopPanel.visible:
-		shopPanel.call("setData", gameManager.getShopPanelData())
+	if mainMenu != null and mainMenu.visible:
+		mainMenu.call("refreshSaveStatus")
 	_refreshSettingsPanel()
 
 
@@ -114,6 +132,8 @@ func _onGameEventRaised(eventName: StringName, payload: Dictionary) -> void:
 
 
 func _openEscMenu() -> void:
+	if not gameplayVisible:
+		return
 	if upgradeModal.visible:
 		return
 
@@ -131,8 +151,6 @@ func _openEscMenu() -> void:
 
 func _resumeFromEscMenu() -> void:
 	escMenu.visible = false
-	if shopPanel != null:
-		shopPanel.visible = false
 	if settingsPanel != null:
 		settingsPanel.visible = false
 	modalLayer.visible = false
@@ -161,8 +179,12 @@ func _loadFromEscMenu() -> void:
 	_refreshAll()
 
 
-func _handleQuitToMenuStub() -> void:
-	push_warning("Quit to menu is not implemented yet.")
+func _handleReturnToMainMenuRequested() -> void:
+	returnToMainMenuRequested.emit()
+
+
+func _handleQuitGameRequested() -> void:
+	quitGameRequested.emit()
 
 
 func setUiScale(uiScale: float) -> void:
@@ -173,40 +195,68 @@ func setUiScale(uiScale: float) -> void:
 	rootControl.scale = Vector2(clampedScale, clampedScale)
 
 
-func _openShopPanel() -> void:
-	_ensureShopPanel()
+func showMainMenu() -> void:
+	_ensureMainMenu()
 	escMenu.visible = false
+	upgradeModal.visible = false
 	if settingsPanel != null:
 		settingsPanel.visible = false
-	shopPanel.visible = true
-	modalLayer.visible = true
-	if gameManager != null:
-		shopPanel.call("setData", gameManager.getShopPanelData())
+	modalLayer.visible = false
+	mainMenu.visible = true
+	mainMenu.call("refreshSaveStatus")
+	_setGameplayVisible(false)
 
 
-func _closeShopPanel() -> void:
-	if shopPanel == null:
+func showGameplay() -> void:
+	if mainMenu != null:
+		mainMenu.visible = false
+	_setGameplayVisible(true)
+	_refreshAll()
+
+
+func isMainMenuVisible() -> bool:
+	return mainMenu != null and mainMenu.visible
+
+
+func _setGameplayVisible(isVisible: bool) -> void:
+	if gameplayVisible == isVisible:
 		return
 
-	shopPanel.visible = false
-	if not escMenu.visible and not upgradeModal.visible and (settingsPanel == null or not settingsPanel.visible):
+	gameplayVisible = isVisible
+	topBar.visible = isVisible
+	leftPanel.visible = isVisible
+	miniGoalPanel.visible = isVisible
+	rightPanel.visible = isVisible
+	bottomBar.visible = isVisible
+	if not isVisible:
 		modalLayer.visible = false
+	gameplayVisibilityChanged.emit(isVisible)
 
 
-func _purchaseMetaUpgrade(upgradeId: StringName) -> void:
-	if eventBus != null:
-		eventBus.requestCommand(CommandType.PURCHASE_META_UPGRADE, {
-			"upgradeId": str(upgradeId),
-		})
-	if gameManager != null and shopPanel != null:
-		shopPanel.call("setData", gameManager.getShopPanelData())
+func _ensureMainMenu() -> void:
+	if mainMenu != null:
+		return
+
+	mainMenu = MAIN_MENU_SCENE.instantiate() as Control
+	mainMenu.name = "MainMenu"
+	rootControl.add_child(mainMenu)
+	mainMenu.call("configure", gameManager, eventBus, settingsManager, saveManager)
+	mainMenu.connect("newRunRequested", Callable(self, "_handleMainMenuNewRunRequested"))
+	mainMenu.connect("loadGameRequested", Callable(self, "_handleMainMenuLoadGameRequested"))
+	mainMenu.connect("quitGameRequested", Callable(self, "_handleQuitGameRequested"))
+
+
+func _handleMainMenuNewRunRequested(startCountryId: String) -> void:
+	newRunRequested.emit(startCountryId)
+
+
+func _handleMainMenuLoadGameRequested(slotId: String) -> void:
+	loadGameRequested.emit(slotId)
 
 
 func _openSettingsPanel() -> void:
 	_ensureSettingsPanel()
 	escMenu.visible = false
-	if shopPanel != null:
-		shopPanel.visible = false
 	settingsPanel.visible = true
 	modalLayer.visible = true
 	_refreshSettingsPanel()
@@ -217,7 +267,7 @@ func _closeSettingsPanel() -> void:
 		return
 
 	settingsPanel.visible = false
-	if not escMenu.visible and not upgradeModal.visible and (shopPanel == null or not shopPanel.visible):
+	if not escMenu.visible and not upgradeModal.visible:
 		modalLayer.visible = false
 
 
@@ -231,8 +281,6 @@ func _changeSetting(settingKey: StringName, value: Variant) -> void:
 
 func _openUpgradeModal(data: Dictionary) -> void:
 	escMenu.visible = false
-	if shopPanel != null:
-		shopPanel.visible = false
 	if settingsPanel != null:
 		settingsPanel.visible = false
 	upgradeModal.visible = true
@@ -243,32 +291,8 @@ func _openUpgradeModal(data: Dictionary) -> void:
 
 func _closeUpgradeModal() -> void:
 	upgradeModal.visible = false
-	if not escMenu.visible and (shopPanel == null or not shopPanel.visible) and (settingsPanel == null or not settingsPanel.visible):
+	if not escMenu.visible and (settingsPanel == null or not settingsPanel.visible):
 		modalLayer.visible = false
-
-
-func _ensureShopPanel() -> void:
-	if shopPanel != null:
-		return
-
-	shopPanel = SHOP_PANEL_SCRIPT.new() as PanelContainer
-	shopPanel.name = "ShopPanel"
-	shopPanel.visible = false
-	modalLayer.add_child(shopPanel)
-	_positionShopPanel()
-	shopPanel.connect("purchaseRequested", Callable(self, "_purchaseMetaUpgrade"))
-	shopPanel.connect("closeRequested", Callable(self, "_closeShopPanel"))
-
-
-func _positionShopPanel() -> void:
-	if shopPanel == null:
-		return
-
-	shopPanel.set_anchors_preset(Control.PRESET_CENTER)
-	shopPanel.offset_left = -260.0
-	shopPanel.offset_top = -230.0
-	shopPanel.offset_right = 260.0
-	shopPanel.offset_bottom = 230.0
 
 
 func _ensureSettingsPanel() -> void:
@@ -452,10 +476,10 @@ func _applyLayout() -> void:
 	modalLayer.mouse_filter = Control.MOUSE_FILTER_STOP
 
 	escMenu.set_anchors_preset(Control.PRESET_CENTER)
-	escMenu.offset_left = -140.0
-	escMenu.offset_top = -130.0
-	escMenu.offset_right = 140.0
-	escMenu.offset_bottom = 130.0
+	escMenu.offset_left = -170.0
+	escMenu.offset_top = -210.0
+	escMenu.offset_right = 170.0
+	escMenu.offset_bottom = 210.0
 
 	upgradeModal.set_anchors_preset(Control.PRESET_CENTER)
 	upgradeModal.offset_left = -260.0

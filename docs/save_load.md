@@ -26,7 +26,7 @@ The meta save uses the reserved `meta` slot through `SaveManager.saveMetaProgres
 
 Phase 20 adds `data/metaUpgrades.json`, crown rewards on run end, shop row projection, upgrade purchase commands, and NewRun starting bonuses.
 
-The UI shop only displays `GameManager.getShopPanelData()` and sends `purchase_meta_upgrade`; costs, level caps, crown balances, and start bonuses remain in `res://src/core/simulation/meta_progress_simulation.gd`.
+The UI shop is opened from the Main Menu. It only displays `GameManager.getShopPanelData()` and sends `purchase_meta_upgrade`; costs, level caps, crown balances, and start bonuses remain in `res://src/core/simulation/meta_progress_simulation.gd`.
 
 ## Run Serialization
 

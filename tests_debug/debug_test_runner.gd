@@ -78,6 +78,7 @@ func runAll() -> void:
 	_runTest("MapCamera clamps pan and zoom", _testMapCameraClampsPanAndZoom)
 	_runTest("Input actions register desktop controls", _testInputActionsRegisterDesktopControls)
 	_runTest("RunStateView creates UI summaries", _testRunStateViewCreatesSummaries)
+	_runTest("Main menu first boot and actions", _testMainMenuFirstBootAndActions)
 	_runTest("Main UI layout binds state and commands", _testMainUiLayoutBindsStateAndCommands)
 	_runTest("EffectsLayer reacts to event feedback", _testEffectsLayerReactsToEventFeedback)
 	_runTest("AudioManager creates buses and sound stubs", _testAudioManagerCreatesBusesAndSoundStubs)
@@ -788,6 +789,7 @@ func _testUpgradeModalAppliesSelectedUpgrade() -> ValidationResult:
 
 	var main = scene.instantiate()
 	add_child(main)
+	_startMainRunForTest(main)
 	var gameManager := main.get_node("GameRoot/Managers/GameManager") as GameManager
 	var eventBus := main.get_node("GameRoot/Managers/EventBus") as EventBus
 	var uiRoot = main.get_node("GameRoot/UIRoot")
@@ -968,6 +970,7 @@ func _testMiniGoalPanelClaimsReward() -> ValidationResult:
 
 	var main = scene.instantiate()
 	add_child(main)
+	_startMainRunForTest(main)
 	var gameManager := main.get_node("GameRoot/Managers/GameManager") as GameManager
 	var eventBus := main.get_node("GameRoot/Managers/EventBus") as EventBus
 	var goalButton := main.get_node("GameRoot/UIRoot/Root/MiniGoalPanel/MarginContainer/VBoxContainer/GoalButton1") as Button
@@ -1137,6 +1140,70 @@ func _testRunStateViewCreatesSummaries() -> ValidationResult:
 	return result
 
 
+func _testMainMenuFirstBootAndActions() -> ValidationResult:
+	var result := ValidationResult.new()
+	var scene := load("res://scenes/main/Main.tscn") as PackedScene
+	if scene == null:
+		result.addError("Main.tscn could not be loaded for main menu test.")
+		return result
+
+	var main = scene.instantiate()
+	add_child(main)
+	var uiRoot = main.get_node("GameRoot/UIRoot")
+	var worldRoot = main.get_node("GameRoot/WorldRoot")
+	var gameManager := main.get_node("GameRoot/Managers/GameManager") as GameManager
+	var saveManager := main.get_node("GameRoot/Managers/SaveManager") as SaveManager
+	var mainMenu = main.get_node("GameRoot/UIRoot/Root/MainMenu")
+	if uiRoot == null or mainMenu == null or worldRoot == null or saveManager == null:
+		result.addError("Main menu boot nodes are missing.")
+		_cleanupMainForTest(main)
+		return result
+
+	saveManager.deleteSave("manual_1")
+	mainMenu.call("refreshSaveStatus")
+	var continueButton := main.get_node("GameRoot/UIRoot/Root/MainMenu/SafeArea/MainMenuPanel/MarginContainer/ButtonList/ContinueRunButton") as Button
+	var loadButton := main.get_node("GameRoot/UIRoot/Root/MainMenu/SafeArea/MainMenuPanel/MarginContainer/ButtonList/LoadGameButton") as Button
+	var shopButton := main.get_node("GameRoot/UIRoot/Root/MainMenu/SafeArea/MainMenuPanel/MarginContainer/ButtonList/ShopButton") as Button
+	var ageRunButton := main.get_node("GameRoot/UIRoot/Root/MainMenu/SafeArea/MainMenuPanel/MarginContainer/ButtonList/StartAgeRunHiddenButton") as Button
+	var saveStatusLabel := main.get_node("GameRoot/UIRoot/Root/MainMenu/SafeArea/InfoPanel/MarginContainer/InfoContent/SaveStatusLabel") as Label
+	if not bool(uiRoot.call("isMainMenuVisible")):
+		result.addError("Main menu was not visible on first boot.")
+	if bool(worldRoot.visible):
+		result.addError("Gameplay world was visible behind first boot menu.")
+	if gameManager.getCurrentRunState() != null:
+		result.addError("Main boot created a run before menu action.")
+	if continueButton == null or loadButton == null or shopButton == null or ageRunButton == null:
+		result.addError("Main menu is missing required buttons.")
+	else:
+		if not continueButton.disabled or not loadButton.disabled:
+			result.addError("Missing-save buttons were not disabled.")
+		if ageRunButton.visible:
+			result.addError("Age Run debug button was visible by default.")
+	if saveStatusLabel == null or saveStatusLabel.text != "No save found":
+		result.addError("Main menu did not show missing save status.")
+
+	if shopButton != null:
+		shopButton.emit_signal("pressed")
+		var menuShopPanel = main.get_node_or_null("GameRoot/UIRoot/Root/MainMenu/SafeArea/ModalLayer/MainMenuShopPanel")
+		if menuShopPanel == null or not bool(menuShopPanel.visible):
+			result.addError("Main menu Shop button did not open the shop panel.")
+		mainMenu.call("closeOpenPanel")
+
+	var newRunButton := main.get_node("GameRoot/UIRoot/Root/MainMenu/SafeArea/MainMenuPanel/MarginContainer/ButtonList/NewRunButton") as Button
+	var primaryModalButton := main.get_node("GameRoot/UIRoot/Root/MainMenu/SafeArea/ModalLayer/ModalPanel/MarginContainer/ModalContent/ModalButtons/PrimaryModalButton") as Button
+	newRunButton.emit_signal("pressed")
+	primaryModalButton.emit_signal("pressed")
+	if gameManager.getCurrentRunState() == null:
+		result.addError("New Run placeholder did not start the current prototype run.")
+	if bool(uiRoot.call("isMainMenuVisible")):
+		result.addError("Main menu stayed visible after starting a run.")
+	if not bool(worldRoot.visible):
+		result.addError("Gameplay world did not become visible after starting a run.")
+
+	_cleanupMainForTest(main)
+	return result
+
+
 func _testMainUiLayoutBindsStateAndCommands() -> ValidationResult:
 	var result := ValidationResult.new()
 	var scene := load("res://scenes/main/Main.tscn") as PackedScene
@@ -1146,6 +1213,7 @@ func _testMainUiLayoutBindsStateAndCommands() -> ValidationResult:
 
 	var main = scene.instantiate()
 	add_child(main)
+	_startMainRunForTest(main)
 	var gameManager := main.get_node("GameRoot/Managers/GameManager") as GameManager
 	var eventBus := main.get_node("GameRoot/Managers/EventBus") as EventBus
 	var simulationManager := main.get_node("GameRoot/Managers/SimulationManager") as SimulationManager
@@ -1201,29 +1269,24 @@ func _testMainUiLayoutBindsStateAndCommands() -> ValidationResult:
 	if gameManager.getCurrentRunState().speed != GameSpeed.Value.Paused:
 		result.addError("TimeControls pause button did not request pause.")
 
-	var shopButton := main.get_node("GameRoot/UIRoot/Root/ModalLayer/EscMenu/MarginContainer/VBoxContainer/ShopButton") as Button
+	var shopButton := main.get_node_or_null("GameRoot/UIRoot/Root/ModalLayer/EscMenu/MarginContainer/VBoxContainer/ShopButton") as Button
 	var settingsButton := main.get_node("GameRoot/UIRoot/Root/ModalLayer/EscMenu/MarginContainer/VBoxContainer/SettingsButton") as Button
-	var shopPanel = main.get_node("GameRoot/UIRoot/Root/ModalLayer/ShopPanel")
+	var returnToMainMenuButton := main.get_node("GameRoot/UIRoot/Root/ModalLayer/EscMenu/MarginContainer/VBoxContainer/ReturnToMainMenuButton") as Button
 	var settingsPanel = main.get_node("GameRoot/UIRoot/Root/ModalLayer/SettingsPanel")
 	var debugOverlay = main.get_node("GameRoot/UIRoot/Root/DebugErrorOverlay")
 	var settingsManager = main.get_node("GameRoot/Managers/SettingsManager")
 	if settingsManager != null:
 		settingsManager.call("setSettingsPathForDebug", "user://paper_empire/debug_main_settings_test.json")
 		settingsManager.call("deleteSettings")
-	if shopButton == null or shopPanel == null or settingsButton == null or settingsPanel == null or debugOverlay == null:
+	if shopButton != null:
+		result.addError("ESC menu still exposes Shop.")
+	if settingsButton == null or returnToMainMenuButton == null or settingsPanel == null or debugOverlay == null:
 		result.addError("Menu extension UI is missing required nodes.")
 
 	uiRoot.call("_openEscMenu")
 	if not bool(uiRoot.call("isEscMenuOpen")):
 		result.addError("ESC menu did not open.")
 
-	if shopButton != null:
-		shopButton.emit_signal("pressed")
-		if not bool(shopPanel.get("visible")):
-			result.addError("Shop button did not open shop panel.")
-		uiRoot.call("_closeShopPanel")
-
-	uiRoot.call("_openEscMenu")
 	if settingsButton != null:
 		settingsButton.emit_signal("pressed")
 		if not bool(settingsPanel.get("visible")):
@@ -1240,6 +1303,12 @@ func _testMainUiLayoutBindsStateAndCommands() -> ValidationResult:
 		result.addError("ESC menu did not close on resume.")
 	if gameManager.getCurrentRunState().speed == GameSpeed.Value.Paused:
 		result.addError("ESC menu resume did not restore speed.")
+
+	uiRoot.call("_openEscMenu")
+	if returnToMainMenuButton != null:
+		returnToMainMenuButton.emit_signal("pressed")
+		if not bool(uiRoot.call("isMainMenuVisible")):
+			result.addError("Return to Main Menu did not show the main menu.")
 
 	if settingsManager != null:
 		settingsManager.call("deleteSettings")
@@ -1471,6 +1540,7 @@ func _testManualSaveLoadUiRestoresRunState() -> ValidationResult:
 
 	var main = scene.instantiate()
 	add_child(main)
+	_startMainRunForTest(main)
 	var gameManager := main.get_node("GameRoot/Managers/GameManager") as GameManager
 	var saveManager := main.get_node("GameRoot/Managers/SaveManager") as SaveManager
 	var uiRoot = main.get_node("GameRoot/UIRoot")
@@ -2147,3 +2217,8 @@ func _cleanupMainForTest(main: Node) -> void:
 	if main.get_parent() == self:
 		remove_child(main)
 	main.free()
+
+
+func _startMainRunForTest(main: Node) -> void:
+	if main.has_method("_startNewRunFromMenu"):
+		main.call("_startNewRunFromMenu", "paperland")

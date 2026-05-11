@@ -1,276 +1,280 @@
-[gd_scene load_steps=15 format=3]
+[gd_scene format=3 uid="uid://hk25w5saij8x"]
 
-[ext_resource type="Script" path="res://scenes/main/main.gd" id="1_main"]
-[ext_resource type="Script" path="res://src/core/event_bus.gd" id="2_event_bus"]
-[ext_resource type="Script" path="res://src/core/game_manager.gd" id="3_game_manager"]
-[ext_resource type="Script" path="res://src/core/simulation_manager.gd" id="4_simulation"]
+[ext_resource type="Script" uid="uid://b6v4k1qf0qatd" path="res://scenes/main/main.gd" id="1_main"]
+[ext_resource type="Script" uid="uid://trwoqp7322dy" path="res://src/core/event_bus.gd" id="2_event_bus"]
+[ext_resource type="Script" uid="uid://dpjcn7rhu2t74" path="res://src/core/game_manager.gd" id="3_game_manager"]
+[ext_resource type="Script" uid="uid://ljin0yptpsdd" path="res://src/core/simulation_manager.gd" id="4_simulation"]
 [ext_resource type="PackedScene" path="res://scenes/world/WorldMap.tscn" id="5_world_map"]
-[ext_resource type="Script" path="res://scenes/ui/ui_root.gd" id="6_ui_root"]
-[ext_resource type="Script" path="res://scenes/ui/top_bar.gd" id="7_top_bar"]
-[ext_resource type="Script" path="res://scenes/ui/country_panel.gd" id="8_country_panel"]
-[ext_resource type="Script" path="res://scenes/ui/time_controls.gd" id="9_time_controls"]
-[ext_resource type="Script" path="res://scenes/ui/esc_menu.gd" id="10_esc_menu"]
-[ext_resource type="Script" path="res://scenes/ui/army_panel.gd" id="11_army_panel"]
-[ext_resource type="Script" path="res://scenes/ui/upgrade_modal.gd" id="12_upgrade_modal"]
-[ext_resource type="Script" path="res://scenes/ui/mini_goal_panel.gd" id="13_mini_goal_panel"]
-[ext_resource type="Script" path="res://src/core/audio_manager.gd" id="14_audio_manager"]
+[ext_resource type="Script" uid="uid://j342pjackrl8" path="res://scenes/ui/ui_root.gd" id="6_ui_root"]
+[ext_resource type="Script" uid="uid://bimqdn7pvyxiu" path="res://scenes/ui/top_bar.gd" id="7_top_bar"]
+[ext_resource type="Script" uid="uid://dg2eivwj6orfl" path="res://scenes/ui/country_panel.gd" id="8_country_panel"]
+[ext_resource type="Script" uid="uid://cqjm0g3yvgmkr" path="res://scenes/ui/time_controls.gd" id="9_time_controls"]
+[ext_resource type="Script" uid="uid://c471it4w7evju" path="res://scenes/ui/esc_menu.gd" id="10_esc_menu"]
+[ext_resource type="Script" uid="uid://bxfbbq3hkxqvq" path="res://scenes/ui/army_panel.gd" id="11_army_panel"]
+[ext_resource type="Script" uid="uid://cls8aqo57kmj0" path="res://scenes/ui/upgrade_modal.gd" id="12_upgrade_modal"]
+[ext_resource type="Script" uid="uid://bliytajcoxawc" path="res://scenes/ui/mini_goal_panel.gd" id="13_mini_goal_panel"]
+[ext_resource type="Script" uid="uid://bfxr3ho10jpnh" path="res://src/core/audio_manager.gd" id="14_audio_manager"]
 
-[node name="Main" type="Node"]
+[node name="Main" type="Node" unique_id=478396137]
 script = ExtResource("1_main")
 
-[node name="GameRoot" type="Node" parent="."]
+[node name="GameRoot" type="Node" parent="." unique_id=1229063621]
 
-[node name="Managers" type="Node" parent="GameRoot"]
+[node name="Managers" type="Node" parent="GameRoot" unique_id=2080671230]
 
-[node name="EventBus" type="Node" parent="GameRoot/Managers"]
+[node name="EventBus" type="Node" parent="GameRoot/Managers" unique_id=2072932991]
 script = ExtResource("2_event_bus")
 
-[node name="GameManager" type="Node" parent="GameRoot/Managers"]
+[node name="GameManager" type="Node" parent="GameRoot/Managers" unique_id=142158547]
 script = ExtResource("3_game_manager")
 
-[node name="SimulationManager" type="Node" parent="GameRoot/Managers"]
+[node name="SimulationManager" type="Node" parent="GameRoot/Managers" unique_id=2116962629]
 script = ExtResource("4_simulation")
 
-[node name="AudioManager" type="Node" parent="GameRoot/Managers"]
+[node name="AudioManager" type="Node" parent="GameRoot/Managers" unique_id=227434302]
 script = ExtResource("14_audio_manager")
 
-[node name="WorldRoot" type="Node2D" parent="GameRoot"]
+[node name="WorldRoot" type="Node2D" parent="GameRoot" unique_id=1885129772]
 
-[node name="WorldMap" parent="GameRoot/WorldRoot" instance=ExtResource("5_world_map")]
+[node name="WorldMap" parent="GameRoot/WorldRoot" unique_id=2012628507 instance=ExtResource("5_world_map")]
 
-[node name="UIRoot" type="CanvasLayer" parent="GameRoot"]
+[node name="UIRoot" type="CanvasLayer" parent="GameRoot" unique_id=1143631221]
 script = ExtResource("6_ui_root")
 
-[node name="Root" type="Control" parent="GameRoot/UIRoot"]
+[node name="Root" type="Control" parent="GameRoot/UIRoot" unique_id=2093356501]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = 231.0
+offset_top = 201.0
+offset_right = 231.0
+offset_bottom = 201.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="TopBar" type="PanelContainer" parent="GameRoot/UIRoot/Root"]
+[node name="TopBar" type="PanelContainer" parent="GameRoot/UIRoot/Root" unique_id=294230678]
 layout_mode = 1
 script = ExtResource("7_top_bar")
 
-[node name="MarginContainer" type="MarginContainer" parent="GameRoot/UIRoot/Root/TopBar"]
+[node name="MarginContainer" type="MarginContainer" parent="GameRoot/UIRoot/Root/TopBar" unique_id=1110450029]
 layout_mode = 2
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 10
 
-[node name="HBoxContainer" type="HBoxContainer" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer" unique_id=954557581]
 layout_mode = 2
 theme_override_constants/separation = 28
 
-[node name="GoldLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer"]
+[node name="GoldLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer" unique_id=98728415]
 layout_mode = 2
 text = "Gold: 0"
 
-[node name="FoodLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer"]
+[node name="FoodLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer" unique_id=1815225628]
 layout_mode = 2
 text = "Food: 0"
 
-[node name="ArmyLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer"]
+[node name="ArmyLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer" unique_id=781415729]
 layout_mode = 2
 text = "Army: 0"
 
-[node name="ThreatLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer"]
+[node name="ThreatLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer" unique_id=490760524]
 layout_mode = 2
 text = "Threat: 0"
 
-[node name="ShortageLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer"]
+[node name="ShortageLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer" unique_id=1147714683]
 layout_mode = 2
 
-[node name="Spacer" type="Control" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer"]
+[node name="Spacer" type="Control" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer" unique_id=725268248]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="DateLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer"]
+[node name="DateLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer" unique_id=963383276]
 layout_mode = 2
 text = "Y1 M1 W1"
 
-[node name="LeftPanel" type="PanelContainer" parent="GameRoot/UIRoot/Root"]
+[node name="LeftPanel" type="PanelContainer" parent="GameRoot/UIRoot/Root" unique_id=1133158399]
 layout_mode = 1
 script = ExtResource("11_army_panel")
 
-[node name="MarginContainer" type="MarginContainer" parent="GameRoot/UIRoot/Root/LeftPanel"]
+[node name="MarginContainer" type="MarginContainer" parent="GameRoot/UIRoot/Root/LeftPanel" unique_id=808984723]
 layout_mode = 2
 theme_override_constants/margin_left = 14
 theme_override_constants/margin_top = 14
 theme_override_constants/margin_right = 14
 theme_override_constants/margin_bottom = 14
 
-[node name="VBoxContainer" type="VBoxContainer" parent="GameRoot/UIRoot/Root/LeftPanel/MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="GameRoot/UIRoot/Root/LeftPanel/MarginContainer" unique_id=1333415986]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="TitleLabel" type="Label" parent="GameRoot/UIRoot/Root/LeftPanel/MarginContainer/VBoxContainer"]
+[node name="TitleLabel" type="Label" parent="GameRoot/UIRoot/Root/LeftPanel/MarginContainer/VBoxContainer" unique_id=1423499375]
 layout_mode = 2
 text = "Paper Empire"
 
-[node name="RunLabel" type="Label" parent="GameRoot/UIRoot/Root/LeftPanel/MarginContainer/VBoxContainer"]
+[node name="RunLabel" type="Label" parent="GameRoot/UIRoot/Root/LeftPanel/MarginContainer/VBoxContainer" unique_id=1951059697]
 layout_mode = 2
 text = "Status: -"
 
-[node name="LocationLabel" type="Label" parent="GameRoot/UIRoot/Root/LeftPanel/MarginContainer/VBoxContainer"]
+[node name="LocationLabel" type="Label" parent="GameRoot/UIRoot/Root/LeftPanel/MarginContainer/VBoxContainer" unique_id=1394818814]
 layout_mode = 2
 text = "Location: -"
 
-[node name="TargetLabel" type="Label" parent="GameRoot/UIRoot/Root/LeftPanel/MarginContainer/VBoxContainer"]
+[node name="TargetLabel" type="Label" parent="GameRoot/UIRoot/Root/LeftPanel/MarginContainer/VBoxContainer" unique_id=433737741]
 layout_mode = 2
 text = "Target: -"
 
-[node name="UnitsLabel" type="Label" parent="GameRoot/UIRoot/Root/LeftPanel/MarginContainer/VBoxContainer"]
+[node name="UnitsLabel" type="Label" parent="GameRoot/UIRoot/Root/LeftPanel/MarginContainer/VBoxContainer" unique_id=891287509]
 layout_mode = 2
 text = "Units: -"
 
-[node name="MiniGoalPanel" type="PanelContainer" parent="GameRoot/UIRoot/Root"]
+[node name="MiniGoalPanel" type="PanelContainer" parent="GameRoot/UIRoot/Root" unique_id=242685210]
 layout_mode = 1
 script = ExtResource("13_mini_goal_panel")
 
-[node name="MarginContainer" type="MarginContainer" parent="GameRoot/UIRoot/Root/MiniGoalPanel"]
+[node name="MarginContainer" type="MarginContainer" parent="GameRoot/UIRoot/Root/MiniGoalPanel" unique_id=1145703022]
 layout_mode = 2
 theme_override_constants/margin_left = 10
 theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="VBoxContainer" type="VBoxContainer" parent="GameRoot/UIRoot/Root/MiniGoalPanel/MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="GameRoot/UIRoot/Root/MiniGoalPanel/MarginContainer" unique_id=1542820702]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="GoalButton1" type="Button" parent="GameRoot/UIRoot/Root/MiniGoalPanel/MarginContainer/VBoxContainer"]
+[node name="GoalButton1" type="Button" parent="GameRoot/UIRoot/Root/MiniGoalPanel/MarginContainer/VBoxContainer" unique_id=482617893]
 layout_mode = 2
 text = "-"
 
-[node name="GoalButton2" type="Button" parent="GameRoot/UIRoot/Root/MiniGoalPanel/MarginContainer/VBoxContainer"]
+[node name="GoalButton2" type="Button" parent="GameRoot/UIRoot/Root/MiniGoalPanel/MarginContainer/VBoxContainer" unique_id=1190564078]
 layout_mode = 2
 text = "-"
 
-[node name="GoalButton3" type="Button" parent="GameRoot/UIRoot/Root/MiniGoalPanel/MarginContainer/VBoxContainer"]
+[node name="GoalButton3" type="Button" parent="GameRoot/UIRoot/Root/MiniGoalPanel/MarginContainer/VBoxContainer" unique_id=572560794]
 layout_mode = 2
 text = "-"
 
-[node name="GoalButton4" type="Button" parent="GameRoot/UIRoot/Root/MiniGoalPanel/MarginContainer/VBoxContainer"]
+[node name="GoalButton4" type="Button" parent="GameRoot/UIRoot/Root/MiniGoalPanel/MarginContainer/VBoxContainer" unique_id=1919934619]
 layout_mode = 2
 text = "-"
 
-[node name="GoalButton5" type="Button" parent="GameRoot/UIRoot/Root/MiniGoalPanel/MarginContainer/VBoxContainer"]
+[node name="GoalButton5" type="Button" parent="GameRoot/UIRoot/Root/MiniGoalPanel/MarginContainer/VBoxContainer" unique_id=2073718850]
 layout_mode = 2
 text = "-"
 
-[node name="GoalButton6" type="Button" parent="GameRoot/UIRoot/Root/MiniGoalPanel/MarginContainer/VBoxContainer"]
+[node name="GoalButton6" type="Button" parent="GameRoot/UIRoot/Root/MiniGoalPanel/MarginContainer/VBoxContainer" unique_id=430906880]
 layout_mode = 2
 text = "-"
 
-[node name="RightPanel" type="PanelContainer" parent="GameRoot/UIRoot/Root"]
+[node name="RightPanel" type="PanelContainer" parent="GameRoot/UIRoot/Root" unique_id=2083197114]
 layout_mode = 1
 script = ExtResource("8_country_panel")
 
-[node name="MarginContainer" type="MarginContainer" parent="GameRoot/UIRoot/Root/RightPanel"]
+[node name="MarginContainer" type="MarginContainer" parent="GameRoot/UIRoot/Root/RightPanel" unique_id=815296607]
 layout_mode = 2
 theme_override_constants/margin_left = 14
 theme_override_constants/margin_top = 14
 theme_override_constants/margin_right = 14
 theme_override_constants/margin_bottom = 14
 
-[node name="VBoxContainer" type="VBoxContainer" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer" unique_id=825397648]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="TitleLabel" type="Label" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer"]
+[node name="TitleLabel" type="Label" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer" unique_id=1337508465]
 layout_mode = 2
 text = "No country selected"
 
-[node name="OwnerLabel" type="Label" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer"]
+[node name="OwnerLabel" type="Label" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer" unique_id=850924097]
 layout_mode = 2
 text = "Owner: -"
 
-[node name="GoldLabel" type="Label" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer"]
+[node name="GoldLabel" type="Label" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer" unique_id=913195595]
 layout_mode = 2
 text = "Gold/month: -"
 
-[node name="FoodLabel" type="Label" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer"]
+[node name="FoodLabel" type="Label" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer" unique_id=247871974]
 layout_mode = 2
 text = "Food/month: -"
 
-[node name="DefenseLabel" type="Label" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer"]
+[node name="DefenseLabel" type="Label" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer" unique_id=2044015090]
 layout_mode = 2
 text = "Defense: -"
 
-[node name="ArmiesLabel" type="Label" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer"]
+[node name="ArmiesLabel" type="Label" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer" unique_id=1466968773]
 layout_mode = 2
 text = "Armies: -"
 
-[node name="RecruitLabel" type="Label" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer"]
+[node name="RecruitLabel" type="Label" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer" unique_id=1220746462]
 layout_mode = 2
 text = "Recruitment: -"
 
-[node name="RecruitButtons" type="HBoxContainer" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer"]
+[node name="RecruitButtons" type="HBoxContainer" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer" unique_id=746934037]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="InfantryButton" type="Button" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer/RecruitButtons"]
+[node name="InfantryButton" type="Button" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer/RecruitButtons" unique_id=623104045]
 layout_mode = 2
 text = "+Inf"
 
-[node name="CavalryButton" type="Button" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer/RecruitButtons"]
+[node name="CavalryButton" type="Button" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer/RecruitButtons" unique_id=733108627]
 layout_mode = 2
 text = "+Cav"
 
-[node name="ArtilleryButton" type="Button" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer/RecruitButtons"]
+[node name="ArtilleryButton" type="Button" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer/RecruitButtons" unique_id=2072816172]
 layout_mode = 2
 text = "+Art"
 
-[node name="CreateArmyButton" type="Button" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer"]
+[node name="CreateArmyButton" type="Button" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer" unique_id=1831348692]
 layout_mode = 2
 text = "Create Army"
 
-[node name="BottomBar" type="PanelContainer" parent="GameRoot/UIRoot/Root"]
+[node name="BottomBar" type="PanelContainer" parent="GameRoot/UIRoot/Root" unique_id=2047406337]
 layout_mode = 1
 script = ExtResource("9_time_controls")
 
-[node name="MarginContainer" type="MarginContainer" parent="GameRoot/UIRoot/Root/BottomBar"]
+[node name="MarginContainer" type="MarginContainer" parent="GameRoot/UIRoot/Root/BottomBar" unique_id=1558517506]
 layout_mode = 2
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 12
 
-[node name="HBoxContainer" type="HBoxContainer" parent="GameRoot/UIRoot/Root/BottomBar/MarginContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="GameRoot/UIRoot/Root/BottomBar/MarginContainer" unique_id=1690530535]
 layout_mode = 2
 theme_override_constants/separation = 8
 alignment = 1
 
-[node name="PauseButton" type="Button" parent="GameRoot/UIRoot/Root/BottomBar/MarginContainer/HBoxContainer"]
+[node name="PauseButton" type="Button" parent="GameRoot/UIRoot/Root/BottomBar/MarginContainer/HBoxContainer" unique_id=739992239]
 layout_mode = 2
 toggle_mode = true
 text = "Pause"
 
-[node name="NormalButton" type="Button" parent="GameRoot/UIRoot/Root/BottomBar/MarginContainer/HBoxContainer"]
+[node name="NormalButton" type="Button" parent="GameRoot/UIRoot/Root/BottomBar/MarginContainer/HBoxContainer" unique_id=322518244]
 layout_mode = 2
 toggle_mode = true
 text = "1x"
 
-[node name="FastButton" type="Button" parent="GameRoot/UIRoot/Root/BottomBar/MarginContainer/HBoxContainer"]
+[node name="FastButton" type="Button" parent="GameRoot/UIRoot/Root/BottomBar/MarginContainer/HBoxContainer" unique_id=98142416]
 layout_mode = 2
 toggle_mode = true
 text = "2x"
 
-[node name="VeryFastButton" type="Button" parent="GameRoot/UIRoot/Root/BottomBar/MarginContainer/HBoxContainer"]
+[node name="VeryFastButton" type="Button" parent="GameRoot/UIRoot/Root/BottomBar/MarginContainer/HBoxContainer" unique_id=1371562057]
 layout_mode = 2
 toggle_mode = true
 text = "4x"
 
-[node name="ModalLayer" type="Control" parent="GameRoot/UIRoot/Root"]
+[node name="ModalLayer" type="Control" parent="GameRoot/UIRoot/Root" unique_id=1733245386]
 visible = false
 layout_mode = 1
-mouse_filter = 0
+anchors_preset = 0
 
-[node name="Dim" type="ColorRect" parent="GameRoot/UIRoot/Root/ModalLayer"]
+[node name="Dim" type="ColorRect" parent="GameRoot/UIRoot/Root/ModalLayer" unique_id=906046848]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -279,63 +283,63 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0, 0, 0, 0.35)
 
-[node name="EscMenu" type="PanelContainer" parent="GameRoot/UIRoot/Root/ModalLayer"]
+[node name="EscMenu" type="PanelContainer" parent="GameRoot/UIRoot/Root/ModalLayer" unique_id=1252850028]
 layout_mode = 1
 script = ExtResource("10_esc_menu")
 
-[node name="MarginContainer" type="MarginContainer" parent="GameRoot/UIRoot/Root/ModalLayer/EscMenu"]
+[node name="MarginContainer" type="MarginContainer" parent="GameRoot/UIRoot/Root/ModalLayer/EscMenu" unique_id=1353375933]
 layout_mode = 2
 theme_override_constants/margin_left = 18
 theme_override_constants/margin_top = 18
 theme_override_constants/margin_right = 18
 theme_override_constants/margin_bottom = 18
 
-[node name="VBoxContainer" type="VBoxContainer" parent="GameRoot/UIRoot/Root/ModalLayer/EscMenu/MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="GameRoot/UIRoot/Root/ModalLayer/EscMenu/MarginContainer" unique_id=1207636588]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="TitleLabel" type="Label" parent="GameRoot/UIRoot/Root/ModalLayer/EscMenu/MarginContainer/VBoxContainer"]
+[node name="TitleLabel" type="Label" parent="GameRoot/UIRoot/Root/ModalLayer/EscMenu/MarginContainer/VBoxContainer" unique_id=1713874210]
 layout_mode = 2
 text = "Pause"
 horizontal_alignment = 1
 
-[node name="ResumeButton" type="Button" parent="GameRoot/UIRoot/Root/ModalLayer/EscMenu/MarginContainer/VBoxContainer"]
+[node name="ResumeButton" type="Button" parent="GameRoot/UIRoot/Root/ModalLayer/EscMenu/MarginContainer/VBoxContainer" unique_id=1008684651]
 layout_mode = 2
 text = "Resume"
 
-[node name="QuitButton" type="Button" parent="GameRoot/UIRoot/Root/ModalLayer/EscMenu/MarginContainer/VBoxContainer"]
+[node name="QuitButton" type="Button" parent="GameRoot/UIRoot/Root/ModalLayer/EscMenu/MarginContainer/VBoxContainer" unique_id=552745363]
 layout_mode = 2
-text = "Quit to Menu"
+text = "Quit Game"
 
-[node name="UpgradeModal" type="PanelContainer" parent="GameRoot/UIRoot/Root/ModalLayer"]
+[node name="UpgradeModal" type="PanelContainer" parent="GameRoot/UIRoot/Root/ModalLayer" unique_id=1074423962]
 visible = false
 layout_mode = 1
 script = ExtResource("12_upgrade_modal")
 
-[node name="MarginContainer" type="MarginContainer" parent="GameRoot/UIRoot/Root/ModalLayer/UpgradeModal"]
+[node name="MarginContainer" type="MarginContainer" parent="GameRoot/UIRoot/Root/ModalLayer/UpgradeModal" unique_id=1585427295]
 layout_mode = 2
 theme_override_constants/margin_left = 18
 theme_override_constants/margin_top = 18
 theme_override_constants/margin_right = 18
 theme_override_constants/margin_bottom = 18
 
-[node name="VBoxContainer" type="VBoxContainer" parent="GameRoot/UIRoot/Root/ModalLayer/UpgradeModal/MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="GameRoot/UIRoot/Root/ModalLayer/UpgradeModal/MarginContainer" unique_id=1666080714]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="TitleLabel" type="Label" parent="GameRoot/UIRoot/Root/ModalLayer/UpgradeModal/MarginContainer/VBoxContainer"]
+[node name="TitleLabel" type="Label" parent="GameRoot/UIRoot/Root/ModalLayer/UpgradeModal/MarginContainer/VBoxContainer" unique_id=1112078791]
 layout_mode = 2
 text = "Choose Upgrade"
 horizontal_alignment = 1
 
-[node name="ChoiceButton1" type="Button" parent="GameRoot/UIRoot/Root/ModalLayer/UpgradeModal/MarginContainer/VBoxContainer"]
+[node name="ChoiceButton1" type="Button" parent="GameRoot/UIRoot/Root/ModalLayer/UpgradeModal/MarginContainer/VBoxContainer" unique_id=1218538738]
 layout_mode = 2
 text = "-"
 
-[node name="ChoiceButton2" type="Button" parent="GameRoot/UIRoot/Root/ModalLayer/UpgradeModal/MarginContainer/VBoxContainer"]
+[node name="ChoiceButton2" type="Button" parent="GameRoot/UIRoot/Root/ModalLayer/UpgradeModal/MarginContainer/VBoxContainer" unique_id=1188015330]
 layout_mode = 2
 text = "-"
 
-[node name="ChoiceButton3" type="Button" parent="GameRoot/UIRoot/Root/ModalLayer/UpgradeModal/MarginContainer/VBoxContainer"]
+[node name="ChoiceButton3" type="Button" parent="GameRoot/UIRoot/Root/ModalLayer/UpgradeModal/MarginContainer/VBoxContainer" unique_id=1695169428]
 layout_mode = 2
 text = "-"

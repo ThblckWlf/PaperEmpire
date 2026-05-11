@@ -1,0 +1,220 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/main_menu.gd" id="1_main_menu"]
+
+[node name="MainMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+script = ExtResource("1_main_menu")
+
+[node name="Background" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="SafeArea" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TitlePanel" type="PanelContainer" parent="SafeArea"]
+layout_mode = 1
+
+[node name="MarginContainer" type="MarginContainer" parent="SafeArea/TitlePanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 18
+
+[node name="TitleContent" type="VBoxContainer" parent="SafeArea/TitlePanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="GameTitleLabel" type="Label" parent="SafeArea/TitlePanel/MarginContainer/TitleContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.160784, 0.12549, 1)
+theme_override_font_sizes/font_size = 58
+text = "Paper Empire"
+
+[node name="SubtitleLabel" type="Label" parent="SafeArea/TitlePanel/MarginContainer/TitleContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.352941, 0.286275, 0.192157, 1)
+theme_override_font_sizes/font_size = 20
+text = "Strategy roguelike prototype"
+
+[node name="MainMenuPanel" type="PanelContainer" parent="SafeArea"]
+layout_mode = 1
+
+[node name="MarginContainer" type="MarginContainer" parent="SafeArea/MainMenuPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 30
+theme_override_constants/margin_top = 28
+theme_override_constants/margin_right = 30
+theme_override_constants/margin_bottom = 28
+
+[node name="ButtonList" type="VBoxContainer" parent="SafeArea/MainMenuPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 11
+
+[node name="ContinueRunButton" type="Button" parent="SafeArea/MainMenuPanel/MarginContainer/ButtonList"]
+layout_mode = 2
+text = "Continue Run"
+
+[node name="NewRunButton" type="Button" parent="SafeArea/MainMenuPanel/MarginContainer/ButtonList"]
+layout_mode = 2
+text = "New Run"
+
+[node name="ShopButton" type="Button" parent="SafeArea/MainMenuPanel/MarginContainer/ButtonList"]
+layout_mode = 2
+text = "Shop"
+
+[node name="HowToPlayButton" type="Button" parent="SafeArea/MainMenuPanel/MarginContainer/ButtonList"]
+layout_mode = 2
+text = "How To Play"
+
+[node name="SettingsButton" type="Button" parent="SafeArea/MainMenuPanel/MarginContainer/ButtonList"]
+layout_mode = 2
+text = "Settings"
+
+[node name="LoadGameButton" type="Button" parent="SafeArea/MainMenuPanel/MarginContainer/ButtonList"]
+layout_mode = 2
+text = "Load Game"
+
+[node name="CreditsButton" type="Button" parent="SafeArea/MainMenuPanel/MarginContainer/ButtonList"]
+layout_mode = 2
+text = "Credits"
+
+[node name="QuitButton" type="Button" parent="SafeArea/MainMenuPanel/MarginContainer/ButtonList"]
+layout_mode = 2
+text = "Quit Game"
+
+[node name="StartAgeRunHiddenButton" type="Button" parent="SafeArea/MainMenuPanel/MarginContainer/ButtonList"]
+visible = false
+layout_mode = 2
+text = "Start Age Run"
+
+[node name="InfoPanel" type="PanelContainer" parent="SafeArea"]
+layout_mode = 1
+
+[node name="MarginContainer" type="MarginContainer" parent="SafeArea/InfoPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 18
+
+[node name="InfoContent" type="VBoxContainer" parent="SafeArea/InfoPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="VersionLabel" type="Label" parent="SafeArea/InfoPanel/MarginContainer/InfoContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.160784, 0.12549, 1)
+theme_override_font_sizes/font_size = 18
+text = "Version 0.1.0"
+
+[node name="Divider" type="TextureRect" parent="SafeArea/InfoPanel/MarginContainer/InfoContent"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 18)
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SaveStatusLabel" type="Label" parent="SafeArea/InfoPanel/MarginContainer/InfoContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.160784, 0.12549, 1)
+theme_override_font_sizes/font_size = 22
+text = "No save found"
+
+[node name="HintLabel" type="Label" parent="SafeArea/InfoPanel/MarginContainer/InfoContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.352941, 0.286275, 0.192157, 1)
+theme_override_font_sizes/font_size = 17
+autowrap_mode = 3
+text = "New Run uses the current Paperland placeholder."
+
+[node name="CornerTopLeft" type="TextureRect" parent="SafeArea"]
+layout_mode = 1
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CornerBottomRight" type="TextureRect" parent="SafeArea"]
+layout_mode = 1
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ModalLayer" type="Control" parent="SafeArea"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+
+[node name="Dim" type="ColorRect" parent="SafeArea/ModalLayer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.08, 0.07, 0.05, 0.45)
+
+[node name="ModalPanel" type="PanelContainer" parent="SafeArea/ModalLayer"]
+layout_mode = 1
+
+[node name="MarginContainer" type="MarginContainer" parent="SafeArea/ModalLayer/ModalPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 34
+theme_override_constants/margin_top = 30
+theme_override_constants/margin_right = 34
+theme_override_constants/margin_bottom = 30
+
+[node name="ModalContent" type="VBoxContainer" parent="SafeArea/ModalLayer/ModalPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="ModalTitleLabel" type="Label" parent="SafeArea/ModalLayer/ModalPanel/MarginContainer/ModalContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.180392, 0.160784, 0.12549, 1)
+theme_override_font_sizes/font_size = 34
+text = "Modal"
+horizontal_alignment = 1
+
+[node name="ModalBodyLabel" type="Label" parent="SafeArea/ModalLayer/ModalPanel/MarginContainer/ModalContent"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.180392, 0.160784, 0.12549, 1)
+theme_override_font_sizes/font_size = 22
+text = "Placeholder"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="ModalButtons" type="HBoxContainer" parent="SafeArea/ModalLayer/ModalPanel/MarginContainer/ModalContent"]
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="PrimaryModalButton" type="Button" parent="SafeArea/ModalLayer/ModalPanel/MarginContainer/ModalContent/ModalButtons"]
+layout_mode = 2
+custom_minimum_size = Vector2(220, 56)
+text = "Confirm"
+
+[node name="CloseModalButton" type="Button" parent="SafeArea/ModalLayer/ModalPanel/MarginContainer/ModalContent/ModalButtons"]
+layout_mode = 2
+custom_minimum_size = Vector2(180, 56)
+text = "Back"

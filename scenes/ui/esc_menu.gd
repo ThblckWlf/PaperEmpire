@@ -4,9 +4,9 @@ extends PanelContainer
 signal resumeRequested
 signal saveRequested
 signal loadRequested
-signal shopRequested
 signal settingsRequested
-signal quitToMenuRequested
+signal returnToMainMenuRequested
+signal quitGameRequested
 
 @onready var buttonContainer: VBoxContainer = $MarginContainer/VBoxContainer as VBoxContainer
 @onready var resumeButton: Button = $MarginContainer/VBoxContainer/ResumeButton as Button
@@ -14,17 +14,17 @@ signal quitToMenuRequested
 
 var saveButton: Button
 var loadButton: Button
-var shopButton: Button
 var settingsButton: Button
+var returnToMainMenuButton: Button
 
 
 func _ready() -> void:
-	_ensureManualSaveButtons()
+	_ensurePauseButtons()
 	resumeButton.pressed.connect(_onResumePressed)
 	saveButton.pressed.connect(_onSavePressed)
 	loadButton.pressed.connect(_onLoadPressed)
-	shopButton.pressed.connect(_onShopPressed)
 	settingsButton.pressed.connect(_onSettingsPressed)
+	returnToMainMenuButton.pressed.connect(_onReturnToMainMenuPressed)
 	quitButton.pressed.connect(_onQuitPressed)
 
 
@@ -40,19 +40,19 @@ func _onLoadPressed() -> void:
 	loadRequested.emit()
 
 
-func _onShopPressed() -> void:
-	shopRequested.emit()
-
-
 func _onSettingsPressed() -> void:
 	settingsRequested.emit()
 
 
+func _onReturnToMainMenuPressed() -> void:
+	returnToMainMenuRequested.emit()
+
+
 func _onQuitPressed() -> void:
-	quitToMenuRequested.emit()
+	quitGameRequested.emit()
 
 
-func _ensureManualSaveButtons() -> void:
+func _ensurePauseButtons() -> void:
 	saveButton = buttonContainer.get_node_or_null("SaveButton") as Button
 	if saveButton == null:
 		saveButton = Button.new()
@@ -69,18 +69,20 @@ func _ensureManualSaveButtons() -> void:
 		buttonContainer.add_child(loadButton)
 		buttonContainer.move_child(loadButton, saveButton.get_index() + 1)
 
-	shopButton = buttonContainer.get_node_or_null("ShopButton") as Button
-	if shopButton == null:
-		shopButton = Button.new()
-		shopButton.name = "ShopButton"
-		shopButton.text = "Shop"
-		buttonContainer.add_child(shopButton)
-		buttonContainer.move_child(shopButton, loadButton.get_index() + 1)
-
 	settingsButton = buttonContainer.get_node_or_null("SettingsButton") as Button
 	if settingsButton == null:
 		settingsButton = Button.new()
 		settingsButton.name = "SettingsButton"
 		settingsButton.text = "Settings"
 		buttonContainer.add_child(settingsButton)
-		buttonContainer.move_child(settingsButton, shopButton.get_index() + 1)
+		buttonContainer.move_child(settingsButton, loadButton.get_index() + 1)
+
+	returnToMainMenuButton = buttonContainer.get_node_or_null("ReturnToMainMenuButton") as Button
+	if returnToMainMenuButton == null:
+		returnToMainMenuButton = Button.new()
+		returnToMainMenuButton.name = "ReturnToMainMenuButton"
+		returnToMainMenuButton.text = "Return to Main Menu"
+		buttonContainer.add_child(returnToMainMenuButton)
+		buttonContainer.move_child(returnToMainMenuButton, settingsButton.get_index() + 1)
+
+	quitButton.text = "Quit Game"

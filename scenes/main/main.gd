@@ -11,6 +11,7 @@ const PLATFORM_EVENT_BRIDGE_SCRIPT := preload("res://src/platform/platform_event
 @onready var gameManager: GameManager = $GameRoot/Managers/GameManager as GameManager
 @onready var simulationManager: SimulationManager = $GameRoot/Managers/SimulationManager as SimulationManager
 @onready var audioManager: AudioManager = $GameRoot/Managers/AudioManager as AudioManager
+@onready var worldRoot: Node2D = $GameRoot/WorldRoot as Node2D
 @onready var worldMap = $GameRoot/WorldRoot/WorldMap
 @onready var uiRoot = $GameRoot/UIRoot
 
@@ -27,17 +28,19 @@ func _ready() -> void:
 	gameManager.setEventBus(eventBus)
 	gameManager.setSimulationManager(simulationManager)
 	gameManager.setSaveManager(saveManager)
-	gameManager.startNewRun(str(NewRunFactory.DEFAULT_START_COUNTRY_ID))
 	worldMap.configure(gameManager, eventBus, audioManager)
 	audioManager.configure(eventBus)
 	settingsManager.loadSettings()
-	uiRoot.configure(gameManager, eventBus, settingsManager)
+	uiRoot.configure(gameManager, eventBus, settingsManager, saveManager)
+	uiRoot.newRunRequested.connect(_startNewRunFromMenu)
+	uiRoot.loadGameRequested.connect(_loadRunFromMenu)
+	uiRoot.returnToMainMenuRequested.connect(_returnToMainMenu)
+	uiRoot.quitGameRequested.connect(_quitGame)
+	uiRoot.gameplayVisibilityChanged.connect(_setGameplayVisible)
 	settingsManager.configure(audioManager, uiRoot)
-
-	if OS.is_debug_build():
-		eventBus.requestCommand(CommandType.SET_GAME_SPEED, {
-			"speed": GameSpeed.Value.VeryFast,
-		})
+	simulationManager.processTicks = false
+	_setGameplayVisible(false)
+	uiRoot.showMainMenu()
 
 
 func _createSaveManager() -> SaveManager:
@@ -82,3 +85,42 @@ func _createPlatformEventBridge() -> Node:
 	bridge.name = "PlatformEventBridge"
 	managersNode.add_child(bridge)
 	return bridge
+
+
+func _startNewRunFromMenu(startCountryId: String) -> void:
+	gameManager.startNewRun(startCountryId)
+	_showGameplay()
+
+
+func _loadRunFromMenu(slotId: String) -> void:
+	eventBus.requestCommand(CommandType.LOAD_GAME, {
+		"slotId": slotId,
+	})
+	if gameManager.getCurrentRunState() != null:
+		_showGameplay()
+
+
+func _returnToMainMenu() -> void:
+	if gameManager.getCurrentRunState() != null:
+		eventBus.requestCommand(CommandType.PAUSE_GAME)
+	simulationManager.processTicks = false
+	uiRoot.showMainMenu()
+
+
+func _showGameplay() -> void:
+	worldMap.refreshFromRunState()
+	simulationManager.processTicks = true
+	uiRoot.showGameplay()
+	_setGameplayVisible(true)
+	if OS.is_debug_build() and gameManager.getCurrentRunState() != null:
+		eventBus.requestCommand(CommandType.SET_GAME_SPEED, {
+			"speed": GameSpeed.Value.VeryFast,
+		})
+
+
+func _setGameplayVisible(isVisible: bool) -> void:
+	worldRoot.visible = isVisible
+
+
+func _quitGame() -> void:
+	get_tree().quit()

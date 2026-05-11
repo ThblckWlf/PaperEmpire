@@ -6,6 +6,7 @@ Phase 10 adds the first gameplay HUD. It displays state and emits commands; it d
 
 `res://scenes/main/Main.tscn` now has these `UIRoot` children:
 
+- `MainMenu` (created at runtime under `Root`)
 - `TopBar`
 - `LeftPanel`
 - `RightPanel`
@@ -13,6 +14,22 @@ Phase 10 adds the first gameplay HUD. It displays state and emits commands; it d
 - `ModalLayer`
 
 `UIRoot` is a `CanvasLayer`; the listed children are `Control` nodes under `Root`.
+
+## Main Menu
+
+File: `res://scenes/ui/MainMenu.tscn`
+
+The game boots to the Main Menu before creating a run. It uses the Paper Empire parchment UI kit under
+`res://assets/` for the menu background, panels, button states, dividers, and icons.
+
+The menu exposes Continue Run, New Run, Shop, How To Play, Settings, Load Game, Credits, and Quit Game.
+`Start Age Run` exists as a hidden debug placeholder and is not connected to gameplay.
+
+Continue and Load use the current manual slot, `manual_1`. If no valid run save exists, both actions are
+disabled and the info panel reports `No save found`.
+
+Country selection and save-slot browsing are placeholders in this step. New Run starts the current Paperland
+prototype only after the placeholder modal is confirmed.
 
 ## TopBar
 
@@ -79,11 +96,12 @@ File: `res://scenes/ui/time_controls.gd`
 - `pause_game`
 - `set_game_speed`
 
-## ESC Menu Stub
+## ESC Menu
 
 File: `res://scenes/ui/esc_menu.gd`
 
-ESC opens `ModalLayer`, pauses the run, and shows Resume plus a Quit-to-Menu stub. Resume restores the previous speed. Save/load is intentionally not present in Phase 10.
+ESC opens `ModalLayer`, pauses the run, and shows Resume, Save, Load, Settings, Return to Main Menu, and Quit Game.
+Resume restores the previous speed. Shop/meta-progression is intentionally not available from the ESC menu.
 
 ## UpgradeModal
 
