@@ -148,6 +148,7 @@ func openShopPlaceholder() -> void:
 	_ensureShopPanel()
 	_hideTextModalPanel()
 	if settingsPanel != null:
+		_discardSettingsPanelChanges()
 		settingsPanel.visible = false
 	shopPanel.visible = true
 	modalLayer.visible = true
@@ -239,6 +240,7 @@ func _showTextModal(titleText: String, bodyText: String, primaryText: String, pr
 	if shopPanel != null:
 		shopPanel.visible = false
 	if settingsPanel != null:
+		_discardSettingsPanelChanges()
 		settingsPanel.visible = false
 
 	modalTitleLabel.text = titleText
@@ -265,10 +267,16 @@ func _closeModal() -> void:
 	if shopPanel != null:
 		shopPanel.visible = false
 	if settingsPanel != null:
+		_discardSettingsPanelChanges()
 		settingsPanel.visible = false
 	modalLayer.visible = false
 	refreshSaveStatus()
 	_focusFirstMenuButton()
+
+
+func _discardSettingsPanelChanges() -> void:
+	if settingsPanel != null and settingsPanel.has_method("discardPendingChanges"):
+		settingsPanel.call("discardPendingChanges")
 
 
 func _ensureShopPanel() -> void:
@@ -314,6 +322,7 @@ func _refreshShopPanel() -> void:
 		return
 
 	shopPanel.call("setData", gameManager.getShopPanelData())
+	_applyPaperControlTheme(shopPanel)
 
 
 func _refreshSettingsPanel() -> void:
@@ -447,10 +456,10 @@ func _applyTheme() -> void:
 	_applyPanelStyle(modalPanel, PANEL_MODAL_PATH)
 
 	for button in _menuButtons():
-		_applyButtonStyle(button, false)
-	_applyButtonStyle(quitButton, true)
-	_applyButtonStyle(primaryModalButton, false)
-	_applyButtonStyle(closeModalButton, false)
+		_applyButtonStyle(button, false, false)
+	_applyButtonStyle(quitButton, true, false)
+	_applyButtonStyle(primaryModalButton, false, false)
+	_applyButtonStyle(closeModalButton, false, false)
 
 	_applyPaperControlTheme(self)
 	_applyTitleLabelStyle($SafeArea/TitlePanel/MarginContainer/TitleContent/GameTitleLabel as Label)
@@ -479,11 +488,14 @@ func _applyPaperControlTheme(root: Node) -> void:
 			checkBox.add_theme_color_override("font_color", INK_COLOR)
 			checkBox.add_theme_color_override("font_hover_color", INK_COLOR)
 			checkBox.add_theme_color_override("font_pressed_color", INK_COLOR)
+			checkBox.add_theme_color_override("font_hover_pressed_color", INK_COLOR)
+			checkBox.add_theme_color_override("font_disabled_color", DISABLED_INK_COLOR)
+			checkBox.add_theme_color_override("font_focus_color", INK_COLOR)
 			checkBox.add_theme_font_size_override("font_size", 18)
 		else:
 			var button := child as Button
 			if button != null:
-				_applyButtonStyle(button, button == quitButton)
+				_applyButtonStyle(button, button == quitButton, not _isLargeButton(button))
 
 		var slider := child as HSlider
 		if slider != null:
@@ -549,34 +561,47 @@ func _applyPanelStyle(panel: PanelContainer, texturePath: String) -> void:
 	panel.add_theme_stylebox_override("panel", style)
 
 
-func _applyButtonStyle(button: Button, danger: bool) -> void:
+func _applyButtonStyle(button: Button, danger: bool, compact: bool = false) -> void:
 	var normalTexture: String = BUTTON_DANGER_PATH if danger else BUTTON_DEFAULT_PATH
 	var hoverTexture: String = BUTTON_DANGER_HOVER_PATH if danger else BUTTON_DEFAULT_HOVER_PATH
 	var pressedTexture: String = BUTTON_DANGER_PRESSED_PATH if danger else BUTTON_DEFAULT_PRESSED_PATH
 	var disabledTexture: String = BUTTON_DANGER_DISABLED_PATH if danger else BUTTON_DEFAULT_DISABLED_PATH
-	button.add_theme_stylebox_override("normal", _buttonStyle(normalTexture))
-	button.add_theme_stylebox_override("hover", _buttonStyle(hoverTexture))
-	button.add_theme_stylebox_override("pressed", _buttonStyle(pressedTexture))
-	button.add_theme_stylebox_override("disabled", _buttonStyle(disabledTexture))
+	button.add_theme_stylebox_override("normal", _buttonStyle(normalTexture, compact))
+	button.add_theme_stylebox_override("hover", _buttonStyle(hoverTexture, compact))
+	button.add_theme_stylebox_override("pressed", _buttonStyle(pressedTexture, compact))
+	button.add_theme_stylebox_override("disabled", _buttonStyle(disabledTexture, compact))
 	button.add_theme_stylebox_override("focus", _focusStyle())
 	button.add_theme_color_override("font_color", Color("#2e2920"))
 	button.add_theme_color_override("font_hover_color", Color("#2e2920"))
 	button.add_theme_color_override("font_pressed_color", Color("#2e2920"))
+	button.add_theme_color_override("font_hover_pressed_color", Color("#2e2920"))
 	button.add_theme_color_override("font_disabled_color", Color("#5c5548"))
-	button.add_theme_font_size_override("font_size", 23)
+	button.add_theme_color_override("font_focus_color", Color("#2e2920"))
+	button.add_theme_font_size_override("font_size", 18 if compact else 23)
+	button.clip_text = true
 
 
-func _buttonStyle(texturePath: String) -> StyleBoxTexture:
+func _buttonStyle(texturePath: String, compact: bool = false) -> StyleBoxTexture:
 	var style := StyleBoxTexture.new()
 	style.texture = _loadTexture(texturePath)
-	style.texture_margin_left = 32.0
-	style.texture_margin_top = 24.0
-	style.texture_margin_right = 32.0
-	style.texture_margin_bottom = 24.0
-	style.content_margin_left = 20.0
-	style.content_margin_right = 20.0
-	style.content_margin_top = 8.0
-	style.content_margin_bottom = 8.0
+	if compact:
+		style.texture_margin_left = 24.0
+		style.texture_margin_top = 18.0
+		style.texture_margin_right = 24.0
+		style.texture_margin_bottom = 18.0
+		style.content_margin_left = 10.0
+		style.content_margin_right = 10.0
+		style.content_margin_top = 5.0
+		style.content_margin_bottom = 5.0
+	else:
+		style.texture_margin_left = 32.0
+		style.texture_margin_top = 24.0
+		style.texture_margin_right = 32.0
+		style.texture_margin_bottom = 24.0
+		style.content_margin_left = 20.0
+		style.content_margin_right = 20.0
+		style.content_margin_top = 8.0
+		style.content_margin_bottom = 8.0
 	return style
 
 
@@ -657,3 +682,17 @@ func _menuButtons() -> Array[Button]:
 		quitButton,
 		startAgeRunHiddenButton,
 	]
+
+
+func _isLargeButton(button: Button) -> bool:
+	return button == continueRunButton \
+		or button == newRunButton \
+		or button == shopButton \
+		or button == howToPlayButton \
+		or button == settingsButton \
+		or button == loadGameButton \
+		or button == creditsButton \
+		or button == quitButton \
+		or button == startAgeRunHiddenButton \
+		or button == primaryModalButton \
+		or button == closeModalButton

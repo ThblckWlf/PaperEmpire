@@ -1784,6 +1784,22 @@ func _testSettingsPanelSendsSettingChanges() -> ValidationResult:
 		if lastSettingKey != &"sfxVolume" or not is_equal_approx(float(lastSettingValue), 0.35):
 			result.addError("SettingsPanel did not emit SFX volume change.")
 
+	var uiScaleSlider := panel.get("uiScaleSlider") as HSlider
+	var acceptButton := panel.get("acceptButton") as Button
+	if uiScaleSlider == null or acceptButton == null:
+		result.addError("SettingsPanel did not create UI Scale accept controls.")
+	else:
+		lastSettingKey = GameIds.EMPTY_ID
+		lastSettingValue = null
+		uiScaleSlider.value = 1.2
+		if lastSettingKey == &"uiScale":
+			result.addError("SettingsPanel emitted UI Scale before Accept.")
+		if acceptButton.disabled:
+			result.addError("SettingsPanel did not enable Accept for pending UI Scale.")
+		acceptButton.emit_signal("pressed")
+		if lastSettingKey != &"uiScale" or not is_equal_approx(float(lastSettingValue), 1.2):
+			result.addError("SettingsPanel did not emit UI Scale on Accept.")
+
 	var fullscreenCheck := panel.get("fullscreenCheck") as CheckBox
 	if fullscreenCheck == null:
 		result.addError("SettingsPanel did not create fullscreen checkbox.")

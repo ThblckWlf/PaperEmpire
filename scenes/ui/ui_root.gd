@@ -152,6 +152,7 @@ func _openEscMenu() -> void:
 func _resumeFromEscMenu() -> void:
 	escMenu.visible = false
 	if settingsPanel != null:
+		_discardSettingsPanelChanges()
 		settingsPanel.visible = false
 	modalLayer.visible = false
 	if eventBus != null:
@@ -200,6 +201,7 @@ func showMainMenu() -> void:
 	escMenu.visible = false
 	upgradeModal.visible = false
 	if settingsPanel != null:
+		_discardSettingsPanelChanges()
 		settingsPanel.visible = false
 	modalLayer.visible = false
 	mainMenu.visible = true
@@ -266,6 +268,7 @@ func _closeSettingsPanel() -> void:
 	if settingsPanel == null:
 		return
 
+	_discardSettingsPanelChanges()
 	settingsPanel.visible = false
 	if not escMenu.visible and not upgradeModal.visible:
 		modalLayer.visible = false
@@ -282,6 +285,7 @@ func _changeSetting(settingKey: StringName, value: Variant) -> void:
 func _openUpgradeModal(data: Dictionary) -> void:
 	escMenu.visible = false
 	if settingsPanel != null:
+		_discardSettingsPanelChanges()
 		settingsPanel.visible = false
 	upgradeModal.visible = true
 	upgradeModal.setData(data)
@@ -293,6 +297,11 @@ func _closeUpgradeModal() -> void:
 	upgradeModal.visible = false
 	if not escMenu.visible and (settingsPanel == null or not settingsPanel.visible):
 		modalLayer.visible = false
+
+
+func _discardSettingsPanelChanges() -> void:
+	if settingsPanel != null and settingsPanel.has_method("discardPendingChanges"):
+		settingsPanel.call("discardPendingChanges")
 
 
 func _ensureSettingsPanel() -> void:
