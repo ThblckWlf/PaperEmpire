@@ -135,6 +135,9 @@ func _applyVisualState() -> void:
 
 
 func _ownerColor(currentOwnerId: StringName) -> Color:
+	if GameIds.isNpcOwnerId(currentOwnerId):
+		return UNKNOWN_COLOR
+
 	match currentOwnerId:
 		GameIds.PLAYER_OWNER_ID:
 			return PLAYER_COLOR

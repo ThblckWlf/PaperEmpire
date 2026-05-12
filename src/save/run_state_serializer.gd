@@ -90,6 +90,11 @@ static func _serializeCountries(countries: Dictionary) -> Dictionary:
 			"defense": country.defense,
 			"center": _serializeVector2(country.center),
 			"neighbors": _serializeValue(country.neighbors),
+			"aiCooldownMonths": int(country.aiCooldownMonths),
+			"isUnderAttack": bool(country.isUnderAttack),
+			"aiAggression": float(country.aiAggression),
+			"aiExpansionDesire": float(country.aiExpansionDesire),
+			"aiAttackCooldownMonths": int(country.aiAttackCooldownMonths),
 		}
 	return serialized
 
@@ -127,6 +132,9 @@ static func _serializeBattles(battles: Dictionary) -> Dictionary:
 		serialized[str(battleId)] = {
 			"id": str(battle.get("id")),
 			"attackerArmyId": str(battle.get("attackerArmyId")),
+			"attackerOwnerId": str(battle.get("attackerOwnerId")),
+			"defenderOwnerId": str(battle.get("defenderOwnerId")),
+			"attackerArmyIds": _serializeValue(battle.get("attackerArmyIds")),
 			"defenderArmyIds": _serializeValue(battle.get("defenderArmyIds")),
 			"sourceCountryId": str(battle.get("sourceCountryId")),
 			"targetCountryId": str(battle.get("targetCountryId")),
@@ -157,6 +165,11 @@ static func _deserializeCountries(data: Dictionary) -> Dictionary:
 		country.defense = int(row.get("defense", 0))
 		country.center = _deserializeVector2(_dictionaryValue(row.get("center", {})))
 		country.neighbors = _deserializeStringNameArray(row.get("neighbors", []))
+		country.aiCooldownMonths = int(row.get("aiCooldownMonths", 0))
+		country.isUnderAttack = bool(row.get("isUnderAttack", false))
+		country.aiAggression = float(row.get("aiAggression", country.aiAggression))
+		country.aiExpansionDesire = float(row.get("aiExpansionDesire", country.aiExpansionDesire))
+		country.aiAttackCooldownMonths = int(row.get("aiAttackCooldownMonths", country.aiAttackCooldownMonths))
 		countries[country.id] = country
 	return countries
 
@@ -188,6 +201,11 @@ static func _deserializeBattles(data: Dictionary) -> Dictionary:
 		var battle := BattleData.new()
 		battle.id = StringName(str(row.get("id", battleId)))
 		battle.attackerArmyId = StringName(str(row.get("attackerArmyId", GameIds.EMPTY_ID)))
+		battle.attackerOwnerId = StringName(str(row.get("attackerOwnerId", GameIds.EMPTY_ID)))
+		battle.defenderOwnerId = StringName(str(row.get("defenderOwnerId", GameIds.EMPTY_ID)))
+		battle.attackerArmyIds = _deserializeStringNameArray(row.get("attackerArmyIds", []))
+		if battle.attackerArmyIds.is_empty() and battle.attackerArmyId != GameIds.EMPTY_ID:
+			battle.attackerArmyIds.append(battle.attackerArmyId)
 		battle.defenderArmyIds = _deserializeStringNameArray(row.get("defenderArmyIds", []))
 		battle.sourceCountryId = StringName(str(row.get("sourceCountryId", GameIds.EMPTY_ID)))
 		battle.targetCountryId = StringName(str(row.get("targetCountryId", GameIds.EMPTY_ID)))

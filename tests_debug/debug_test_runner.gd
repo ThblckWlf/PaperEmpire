@@ -10,6 +10,7 @@ const ECONOMY_SIMULATION := preload("res://src/core/simulation/economy_simulatio
 const ARMY_MOVEMENT_SIMULATION := preload("res://src/core/simulation/army_movement_simulation.gd")
 const RECRUITMENT_SIMULATION := preload("res://src/core/simulation/recruitment_simulation.gd")
 const COMBAT_SIMULATION := preload("res://src/core/simulation/combat_simulation.gd")
+const AI_WAR_SIMULATION := preload("res://src/core/simulation/ai_war_simulation.gd")
 const UPGRADE_SIMULATION := preload("res://src/core/simulation/upgrade_simulation.gd")
 const THREAT_SIMULATION := preload("res://src/core/simulation/threat_simulation.gd")
 const MINI_GOAL_SIMULATION := preload("res://src/core/simulation/mini_goal_simulation.gd")
@@ -68,6 +69,9 @@ func runAll() -> void:
 	_runTest("CombatSimulation calculates combat power", _testCombatCalculatesPower)
 	_runTest("CombatSimulation starts valid attacks only", _testCombatStartsValidAttacks)
 	_runTest("SimulationManager completes battle and conquest", _testSimulationCompletesBattleAndConquest)
+	_runTest("AiWarSimulation starts adjacent NPC attacks", _testAiWarStartsAdjacentNpcAttack)
+	_runTest("AiWarSimulation can attack threatened player border", _testAiWarCanAttackThreatenedPlayerBorder)
+	_runTest("NPC conquest does not open upgrade choice", _testNpcConquestDoesNotOpenUpgradeChoice)
 	_runTest("UpgradeSimulation rolls choices and applies effects", _testUpgradeRollsChoicesAndAppliesEffects)
 	_runTest("Upgrade modal applies one selected upgrade", _testUpgradeModalAppliesSelectedUpgrade)
 	_runTest("ThreatSimulation applies passive and action threat", _testThreatAppliesPassiveAndActionThreat)
@@ -735,6 +739,99 @@ func _testSimulationCompletesBattleAndConquest() -> ValidationResult:
 			result.addError("Battle completion produced invalid RunState: %s" % error)
 
 	manager.free()
+	simulation.free()
+	bus.free()
+	return result
+
+
+func _testAiWarStartsAdjacentNpcAttack() -> ValidationResult:
+	var result := ValidationResult.new()
+	var runState := _createAiWarTestRunState()
+	var events: Array[Dictionary] = AI_WAR_SIMULATION.applyMonthTick(runState, PrototypeContentLoader.loadUnits())
+	var sourceCountry := runState.countries[&"aiSource"] as CountryData
+	var targetCountry := runState.countries[&"aiTarget"] as CountryData
+	var sourceArmy := runState.armies[&"army_ai_source"] as ArmyData
+
+	if not _eventRowsContain(events, EventType.AI_ATTACK_STARTED):
+		result.addError("AiWarSimulation did not emit aiAttackStarted.")
+	if not _eventRowsContain(events, EventType.ARMY_MOVE_STARTED):
+		result.addError("AiWarSimulation did not reuse armyMoveStarted for movement visuals.")
+	if sourceArmy.status != ArmyStatus.Value.Attacking:
+		result.addError("AI army did not enter attacking status.")
+	if sourceArmy.targetCountryId != targetCountry.id:
+		result.addError("AI army did not choose the adjacent target.")
+	if sourceCountry.aiCooldownMonths < AI_WAR_SIMULATION.NPC_ATTACK_COOLDOWN_MONTHS:
+		result.addError("AI attack did not apply source cooldown.")
+	if not targetCountry.isUnderAttack:
+		result.addError("AI attack did not mark target as under attack.")
+
+	var validation := RunStateValidator.validate(runState)
+	if not validation.isValid():
+		for error in validation.errors:
+			result.addError("AI attack produced invalid RunState: %s" % error)
+	return result
+
+
+func _testAiWarCanAttackThreatenedPlayerBorder() -> ValidationResult:
+	var result := ValidationResult.new()
+	var runState := _createAiVsPlayerWarTestRunState()
+	var events: Array[Dictionary] = AI_WAR_SIMULATION.applyMonthTick(runState, PrototypeContentLoader.loadUnits())
+	var sourceCountry := runState.countries[&"aiSource"] as CountryData
+	var playerCountry := runState.countries[&"playerBorder"] as CountryData
+	var sourceArmy := runState.armies[&"army_ai_source"] as ArmyData
+
+	if not _eventRowsContain(events, EventType.PLAYER_ATTACKED):
+		result.addError("AiWarSimulation did not emit playerAttacked.")
+	if not _eventRowsContain(events, EventType.AI_ATTACK_STARTED):
+		result.addError("AiWarSimulation did not emit aiAttackStarted for player attack.")
+	if sourceArmy.status != ArmyStatus.Value.Attacking:
+		result.addError("AI army did not attack the player border.")
+	if sourceArmy.targetCountryId != playerCountry.id:
+		result.addError("AI army targeted the wrong player country.")
+	if sourceCountry.aiCooldownMonths < AI_WAR_SIMULATION.PLAYER_ATTACK_COOLDOWN_MONTHS:
+		result.addError("AI player attack did not apply the longer cooldown.")
+
+	var validation := RunStateValidator.validate(runState)
+	if not validation.isValid():
+		for error in validation.errors:
+			result.addError("AI player attack produced invalid RunState: %s" % error)
+	return result
+
+
+func _testNpcConquestDoesNotOpenUpgradeChoice() -> ValidationResult:
+	var result := ValidationResult.new()
+	var runState := _createAiWarTestRunState()
+	var simulation := SimulationManager.new()
+	var bus := EventBus.new()
+	capturedEvents.clear()
+	bus.gameEventRaised.connect(_recordGameEvent)
+	simulation.configure(runState, bus)
+
+	var attackResult: Dictionary = COMBAT_SIMULATION.startAttack(
+		runState,
+		&"army_ai_source",
+		&"aiTarget",
+		PrototypeContentLoader.loadUnits()
+	)
+	if not bool(attackResult.get("accepted", false)):
+		result.addError("NPC test attack was rejected: %s." % str(attackResult.get("reason", "unknown_reason")))
+
+	simulation.stepSimulation(ARMY_MOVEMENT_SIMULATION.MOVEMENT_SECONDS_PER_EDGE * 1.5 + COMBAT_SIMULATION.BATTLE_DURATION_SECONDS)
+	var targetCountry := runState.countries[&"aiTarget"] as CountryData
+	if targetCountry.ownerId != GameIds.npcOwnerIdForCountry(&"aiSource"):
+		result.addError("NPC conquest did not assign the attacker owner.")
+	if bool(runState.activeUpgradeChoice.get("isOpen", false)):
+		result.addError("NPC conquest opened a player upgrade choice.")
+	if _capturedEvent(EventType.UPGRADE_CHOICE_OPENED):
+		result.addError("NPC conquest emitted upgradeChoiceOpened.")
+	if not _capturedEvent(EventType.AI_COUNTRY_CONQUERED):
+		result.addError("NPC conquest did not emit aiCountryConquered.")
+
+	var validation := RunStateValidator.validate(runState)
+	if not validation.isValid():
+		for error in validation.errors:
+			result.addError("NPC conquest produced invalid RunState: %s" % error)
+
 	simulation.free()
 	bus.free()
 	return result
@@ -2118,6 +2215,13 @@ func _capturedEvent(eventName: StringName) -> bool:
 	return false
 
 
+func _eventRowsContain(events: Array[Dictionary], eventName: StringName) -> bool:
+	for event in events:
+		if StringName(str(event.get("eventType", ""))) == eventName:
+			return true
+	return false
+
+
 func _hasDuplicateUpgradeIds(choices: Array) -> bool:
 	var seen := {}
 	for choice in choices:
@@ -2161,6 +2265,88 @@ func _createValidRunState() -> RunState:
 		"gold": 100,
 		"food": 80,
 		"threat": 0,
+	}
+	runState.speed = GameSpeed.Value.Normal
+	runState.runStatus = RunState.RUN_STATUS_ACTIVE
+	return runState
+
+
+func _createAiWarTestRunState() -> RunState:
+	var runState := RunState.new()
+	var sourceOwnerId := GameIds.npcOwnerIdForCountry(&"aiSource")
+	var targetOwnerId := GameIds.npcOwnerIdForCountry(&"aiTarget")
+	var sourceNeighbors: Array[StringName] = [&"aiTarget"]
+	var targetNeighbors: Array[StringName] = [&"aiSource"]
+	var sourceCountry := _createCountry(&"aiSource", "AI Source", sourceOwnerId, Vector2(100.0, 100.0), sourceNeighbors)
+	var targetCountry := _createCountry(&"aiTarget", "AI Target", targetOwnerId, Vector2(180.0, 100.0), targetNeighbors)
+	sourceCountry.defense = 10
+	sourceCountry.aiAggression = 1.0
+	sourceCountry.aiExpansionDesire = 1.0
+	sourceCountry.aiAttackCooldownMonths = AI_WAR_SIMULATION.NPC_ATTACK_COOLDOWN_MONTHS
+	targetCountry.defense = 1
+	runState.countries[sourceCountry.id] = sourceCountry
+	runState.countries[targetCountry.id] = targetCountry
+
+	var sourceArmy := ArmyData.new()
+	sourceArmy.id = &"army_ai_source"
+	sourceArmy.ownerId = sourceOwnerId
+	sourceArmy.locationCountryId = sourceCountry.id
+	sourceArmy.units = {
+		GameIds.INFANTRY_UNIT_ID: 90,
+		GameIds.CAVALRY_UNIT_ID: 12,
+		GameIds.ARTILLERY_UNIT_ID: 4,
+	}
+	runState.armies[sourceArmy.id] = sourceArmy
+
+	var targetArmy := ArmyData.new()
+	targetArmy.id = &"army_ai_target"
+	targetArmy.ownerId = targetOwnerId
+	targetArmy.locationCountryId = targetCountry.id
+	targetArmy.units = {
+		GameIds.INFANTRY_UNIT_ID: 1,
+	}
+	runState.armies[targetArmy.id] = targetArmy
+
+	runState.resources = {
+		"gold": 0,
+		"food": 0,
+		"threat": 0,
+	}
+	runState.speed = GameSpeed.Value.Normal
+	runState.runStatus = RunState.RUN_STATUS_ACTIVE
+	return runState
+
+
+func _createAiVsPlayerWarTestRunState() -> RunState:
+	var runState := RunState.new()
+	var sourceOwnerId := GameIds.npcOwnerIdForCountry(&"aiSource")
+	var sourceNeighbors: Array[StringName] = [&"playerBorder"]
+	var playerNeighbors: Array[StringName] = [&"aiSource"]
+	var sourceCountry := _createCountry(&"aiSource", "AI Source", sourceOwnerId, Vector2(100.0, 100.0), sourceNeighbors)
+	var playerCountry := _createCountry(&"playerBorder", "Player Border", GameIds.PLAYER_OWNER_ID, Vector2(180.0, 100.0), playerNeighbors)
+	sourceCountry.defense = 10
+	sourceCountry.aiAggression = 1.0
+	sourceCountry.aiExpansionDesire = 1.0
+	sourceCountry.aiAttackCooldownMonths = AI_WAR_SIMULATION.NPC_ATTACK_COOLDOWN_MONTHS
+	playerCountry.defense = 1
+	runState.countries[sourceCountry.id] = sourceCountry
+	runState.countries[playerCountry.id] = playerCountry
+
+	var sourceArmy := ArmyData.new()
+	sourceArmy.id = &"army_ai_source"
+	sourceArmy.ownerId = sourceOwnerId
+	sourceArmy.locationCountryId = sourceCountry.id
+	sourceArmy.units = {
+		GameIds.INFANTRY_UNIT_ID: 40,
+		GameIds.CAVALRY_UNIT_ID: 8,
+		GameIds.ARTILLERY_UNIT_ID: 2,
+	}
+	runState.armies[sourceArmy.id] = sourceArmy
+
+	runState.resources = {
+		"gold": 0,
+		"food": 0,
+		"threat": AI_WAR_SIMULATION.HIGH_PLAYER_THREAT,
 	}
 	runState.speed = GameSpeed.Value.Normal
 	runState.runStatus = RunState.RUN_STATUS_ACTIVE

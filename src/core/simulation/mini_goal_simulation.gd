@@ -103,20 +103,20 @@ static func _updateGoal(
 ) -> void:
 	match str(goal.get("goalType", "")):
 		"conquerCountries":
-			if eventType == EventType.COUNTRY_CONQUERED:
+			if eventType == EventType.COUNTRY_CONQUERED and _isPlayerConquestPayload(payload):
 				_incrementProgress(goal, 1.0)
 		"reachGold":
 			goal["progress"] = maxf(float(goal.get("progress", 0.0)), float(runState.resources.get("gold", 0)))
 		"reachArmyPower":
 			goal["progress"] = maxf(float(goal.get("progress", 0.0)), _totalArmyPower(runState, units))
 		"defeatStrongerCountry":
-			if eventType == EventType.BATTLE_ENDED and bool(payload.get("attackerWon", false)) and float(payload.get("defenderPower", 0.0)) > float(payload.get("attackerPower", 0.0)):
+			if eventType == EventType.BATTLE_ENDED and _isPlayerBattlePayload(payload) and bool(payload.get("attackerWon", false)) and float(payload.get("defenderPower", 0.0)) > float(payload.get("attackerPower", 0.0)):
 				_incrementProgress(goal, 1.0)
 		"holdThreatenedCountryMonths":
 			if eventType == EventType.MONTH_TICK and _hasThreatenedOwnedCountry(runState):
 				_incrementProgress(goal, 1.0)
 		"conquerWithThreatBelow":
-			if eventType == EventType.COUNTRY_CONQUERED and int(runState.resources.get("threat", 0)) < int(goal.get("limit", 999999)):
+			if eventType == EventType.COUNTRY_CONQUERED and _isPlayerConquestPayload(payload) and int(runState.resources.get("threat", 0)) < int(goal.get("limit", 999999)):
 				_incrementProgress(goal, 1.0)
 
 
@@ -132,6 +132,18 @@ static func _applyReward(runState: RunState, rewardType: String, rewardValue: in
 
 static func _incrementProgress(goal: Dictionary, amount: float) -> void:
 	goal["progress"] = float(goal.get("progress", 0.0)) + amount
+
+
+static func _isPlayerConquestPayload(payload: Dictionary) -> bool:
+	if not payload.has("newOwnerId"):
+		return true
+	return StringName(str(payload.get("newOwnerId", GameIds.EMPTY_ID))) == GameIds.PLAYER_OWNER_ID
+
+
+static func _isPlayerBattlePayload(payload: Dictionary) -> bool:
+	if not payload.has("attackerOwnerId"):
+		return true
+	return StringName(str(payload.get("attackerOwnerId", GameIds.EMPTY_ID))) == GameIds.PLAYER_OWNER_ID
 
 
 static func _totalArmyPower(runState: RunState, units: Array[UnitData]) -> float:

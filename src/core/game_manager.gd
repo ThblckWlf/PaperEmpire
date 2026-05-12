@@ -184,6 +184,22 @@ func _moveArmy(armyId: StringName, targetCountryId: StringName) -> void:
 
 
 func _startAttack(armyId: StringName, targetCountryId: StringName) -> void:
+	if currentRunState == null:
+		_reportWarning("Cannot start attack without an active run.")
+		return
+
+	var army := currentRunState.armies.get(armyId, null) as ArmyData
+	if army == null or army.ownerId != GameIds.PLAYER_OWNER_ID:
+		var invalidResult := {
+			"accepted": false,
+			"armyId": armyId,
+			"targetCountryId": targetCountryId,
+			"reason": "army_not_owned",
+		}
+		_raiseEvent(EventType.INVALID_ATTACK, invalidResult)
+		_reportWarning("Cannot start attack: army_not_owned")
+		return
+
 	var attackResult: Dictionary = COMBAT_SIMULATION.startAttack(
 		currentRunState,
 		armyId,

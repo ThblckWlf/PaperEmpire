@@ -22,6 +22,14 @@ const LARGE_DEFENSE_INFANTRY: int = 70
 const LARGE_DEFENSE_CAVALRY: int = 15
 const LARGE_DEFENSE_ARTILLERY: int = 8
 
+const SMALL_AI_AGGRESSION: float = 0.25
+const MEDIUM_AI_AGGRESSION: float = 0.35
+const LARGE_AI_AGGRESSION: float = 0.45
+const SMALL_AI_EXPANSION_DESIRE: float = 0.25
+const MEDIUM_AI_EXPANSION_DESIRE: float = 0.35
+const LARGE_AI_EXPANSION_DESIRE: float = 0.45
+const DEFAULT_AI_ATTACK_COOLDOWN_MONTHS: int = 2
+
 
 static func createNewRun(
 	startCountryId: StringName = DEFAULT_START_COUNTRY_ID,
@@ -39,7 +47,10 @@ static func createNewRun(
 			country.ownerId = GameIds.PLAYER_OWNER_ID
 			hasStartCountry = true
 		elif country.ownerId == GameIds.PLAYER_OWNER_ID:
-			country.ownerId = GameIds.NEUTRAL_OWNER_ID
+			country.ownerId = GameIds.npcOwnerIdForCountry(country.id)
+		elif country.ownerId == GameIds.NEUTRAL_OWNER_ID:
+			country.ownerId = GameIds.npcOwnerIdForCountry(country.id)
+		_configureAiCountryDefaults(country)
 
 		runState.countries[country.id] = country
 
@@ -75,6 +86,11 @@ static func _copyCountry(source: CountryData) -> CountryData:
 	country.neighbors = []
 	for neighborId in source.neighbors:
 		country.neighbors.append(neighborId)
+	country.aiCooldownMonths = source.aiCooldownMonths
+	country.isUnderAttack = source.isUnderAttack
+	country.aiAggression = source.aiAggression
+	country.aiExpansionDesire = source.aiExpansionDesire
+	country.aiAttackCooldownMonths = source.aiAttackCooldownMonths
 	return country
 
 
@@ -134,3 +150,23 @@ static func _defenseUnitsForCountry(country: CountryData) -> Dictionary:
 		GameIds.CAVALRY_UNIT_ID: SMALL_DEFENSE_CAVALRY,
 		GameIds.ARTILLERY_UNIT_ID: SMALL_DEFENSE_ARTILLERY,
 	}
+
+
+static func _configureAiCountryDefaults(country: CountryData) -> void:
+	if country.ownerId == GameIds.PLAYER_OWNER_ID:
+		country.aiCooldownMonths = 0
+		country.isUnderAttack = false
+		return
+
+	country.aiCooldownMonths = 0
+	country.isUnderAttack = false
+	country.aiAttackCooldownMonths = DEFAULT_AI_ATTACK_COOLDOWN_MONTHS
+	if country.defense >= 34 or country.ownerId == GameIds.WORLD_OWNER_ID:
+		country.aiAggression = LARGE_AI_AGGRESSION
+		country.aiExpansionDesire = LARGE_AI_EXPANSION_DESIRE
+	elif country.defense >= 30:
+		country.aiAggression = MEDIUM_AI_AGGRESSION
+		country.aiExpansionDesire = MEDIUM_AI_EXPANSION_DESIRE
+	else:
+		country.aiAggression = SMALL_AI_AGGRESSION
+		country.aiExpansionDesire = SMALL_AI_EXPANSION_DESIRE

@@ -47,6 +47,11 @@ static func loadCountries() -> Array[CountryData]:
 		data.defense = int(rowData.get("defense", 0))
 		data.center = _vector2Value(_dictionaryValue(rowData.get("center", {})))
 		data.neighbors = _stringNameArray(rowData.get("neighbors", []))
+		data.aiCooldownMonths = int(rowData.get("aiCooldownMonths", data.aiCooldownMonths))
+		data.isUnderAttack = bool(rowData.get("isUnderAttack", data.isUnderAttack))
+		data.aiAggression = float(rowData.get("aiAggression", data.aiAggression))
+		data.aiExpansionDesire = float(rowData.get("aiExpansionDesire", data.aiExpansionDesire))
+		data.aiAttackCooldownMonths = int(rowData.get("aiAttackCooldownMonths", data.aiAttackCooldownMonths))
 		countries.append(data)
 	return countries
 

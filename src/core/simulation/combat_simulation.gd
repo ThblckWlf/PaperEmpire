@@ -77,6 +77,8 @@ static func startAttack(
 	army.movementProgress = 0.0
 
 	result["sourceCountryId"] = army.locationCountryId
+	result["attackerOwnerId"] = army.ownerId
+	result["targetOwnerId"] = (runState.countries[targetCountryId] as CountryData).ownerId
 	result["isAttack"] = true
 	return result
 
@@ -98,6 +100,10 @@ static func beginBattleAfterArrival(
 	var battle = BATTLE_DATA.new()
 	battle.id = _nextBattleId(runState)
 	battle.attackerArmyId = army.id
+	battle.attackerOwnerId = army.ownerId
+	battle.defenderOwnerId = targetCountry.ownerId
+	battle.attackerArmyIds.clear()
+	battle.attackerArmyIds.append(army.id)
 	battle.defenderArmyIds = defenderArmyIds
 	battle.sourceCountryId = sourceCountryId
 	battle.targetCountryId = targetCountryId
@@ -106,6 +112,7 @@ static func beginBattleAfterArrival(
 	battle.attackerPower = _calculateAttackerBattlePower(runState, battle, units)
 	battle.defenderPower = _calculateDefenderBattlePower(runState, battle, units)
 	runState.battles[battle.id] = battle
+	targetCountry.isUnderAttack = true
 
 	army.status = ArmyStatus.Value.Fighting
 	army.targetCountryId = targetCountryId
@@ -118,6 +125,9 @@ static func beginBattleAfterArrival(
 
 	result["battleId"] = battle.id
 	result["sourceCountryId"] = battle.sourceCountryId
+	result["attackerOwnerId"] = battle.attackerOwnerId
+	result["defenderOwnerId"] = battle.defenderOwnerId
+	result["attackerArmyIds"] = battle.attackerArmyIds.duplicate()
 	result["attackerPower"] = battle.attackerPower
 	result["defenderPower"] = battle.defenderPower
 	result["defenderArmyIds"] = battle.defenderArmyIds.duplicate()
@@ -153,18 +163,24 @@ static func _finishBattle(runState: RunState, battle: Variant, units: Array[Unit
 		battle.status = BattleStatus.Value.Ended
 		return events
 
+	var attackerOwnerId := army.ownerId
 	battle.attackerPower = _calculateAttackerBattlePower(runState, battle, units)
 	battle.defenderPower = _calculateDefenderBattlePower(runState, battle, units)
 	battle.attackerWon = battle.attackerPower >= battle.defenderPower
-	battle.winnerOwnerId = GameIds.PLAYER_OWNER_ID if battle.attackerWon else targetCountry.ownerId
 	var previousOwnerId := targetCountry.ownerId
+	if battle.attackerOwnerId == GameIds.EMPTY_ID:
+		battle.attackerOwnerId = attackerOwnerId
+	if battle.defenderOwnerId == GameIds.EMPTY_ID:
+		battle.defenderOwnerId = previousOwnerId
+	battle.winnerOwnerId = attackerOwnerId if battle.attackerWon else previousOwnerId
 
 	if battle.attackerWon:
 		var attackerCasualtyRate := _winnerCasualtyRate(battle.attackerPower, battle.defenderPower)
 		var attackerCasualties := _applyCasualties(army, attackerCasualtyRate)
 		var defenderCasualties := _applyDefenderCasualties(runState, battle.defenderArmyIds, MAX_LOSS_CASUALTY_RATE)
 		_removeDefenderArmies(runState, battle.defenderArmyIds)
-		targetCountry.ownerId = GameIds.PLAYER_OWNER_ID
+		targetCountry.ownerId = attackerOwnerId
+		targetCountry.isUnderAttack = false
 		army.locationCountryId = battle.targetCountryId
 		army.status = ArmyStatus.Value.Stationed
 		army.targetCountryId = GameIds.EMPTY_ID
@@ -189,6 +205,7 @@ static func _finishBattle(runState: RunState, battle: Variant, units: Array[Unit
 			"attacker": attackerCasualties,
 			"defenders": defenderCasualties,
 		}
+		targetCountry.isUnderAttack = false
 
 	battle.status = BattleStatus.Value.Ended
 	battle.elapsedSeconds = battle.durationSeconds
@@ -205,8 +222,10 @@ static func _finishBattle(runState: RunState, battle: Variant, units: Array[Unit
 				"battleId": battle.id,
 				"armyId": battle.attackerArmyId,
 				"countryId": battle.targetCountryId,
-				"newOwnerId": GameIds.PLAYER_OWNER_ID,
+				"newOwnerId": attackerOwnerId,
 				"previousOwnerId": previousOwnerId,
+				"attackerOwnerId": attackerOwnerId,
+				"defenderOwnerId": battle.defenderOwnerId,
 			},
 		})
 	return events
@@ -236,10 +255,6 @@ static func _validateAttack(runState: RunState, armyId: StringName, targetCountr
 		result["reason"] = "invalid_army"
 		return result
 
-	if army.ownerId != GameIds.PLAYER_OWNER_ID:
-		result["reason"] = "army_not_owned"
-		return result
-
 	if army.status != ArmyStatus.Value.Stationed:
 		result["reason"] = "army_not_stationed"
 		return result
@@ -253,6 +268,10 @@ static func _validateAttack(runState: RunState, armyId: StringName, targetCountr
 		result["reason"] = "unknown_source_country"
 		return result
 
+	if sourceCountry.ownerId != army.ownerId:
+		result["reason"] = "source_not_owned"
+		return result
+
 	if not sourceCountry.neighbors.has(targetCountryId):
 		result["reason"] = "target_not_neighbor"
 		return result
@@ -262,7 +281,7 @@ static func _validateAttack(runState: RunState, armyId: StringName, targetCountr
 		result["reason"] = "invalid_target_country"
 		return result
 
-	if targetCountry.ownerId == GameIds.PLAYER_OWNER_ID:
+	if targetCountry.ownerId == army.ownerId:
 		result["reason"] = "target_already_owned"
 		return result
 
@@ -304,16 +323,12 @@ static func _validateBattleStart(
 		result["reason"] = "invalid_army"
 		return result
 
-	if army.ownerId != GameIds.PLAYER_OWNER_ID:
-		result["reason"] = "army_not_owned"
-		return result
-
 	if army.locationCountryId != targetCountryId:
 		result["reason"] = "army_not_at_target"
 		return result
 
 	var targetCountry := runState.countries[targetCountryId] as CountryData
-	if targetCountry == null or targetCountry.ownerId == GameIds.PLAYER_OWNER_ID:
+	if targetCountry == null or targetCountry.ownerId == army.ownerId:
 		result["reason"] = "invalid_target_country"
 		return result
 
@@ -324,7 +339,8 @@ static func _validateBattleStart(
 static func _calculateAttackerBattlePower(runState: RunState, battle: Variant, units: Array[UnitData]) -> float:
 	var army := runState.armies.get(battle.attackerArmyId, null) as ArmyData
 	var targetCountry := runState.countries.get(battle.targetCountryId, null) as CountryData
-	return calculateArmyCombatPower(army, units, runState.economy, {
+	var economy := runState.economy if army != null and army.ownerId == GameIds.PLAYER_OWNER_ID else {}
+	return calculateArmyCombatPower(army, units, economy, {
 		"targetDefense": targetCountry.defense if targetCountry != null else 0,
 		"opposingUnits": _combinedUnits(runState, battle.defenderArmyIds),
 	})
@@ -478,9 +494,15 @@ static func _hasActiveBattleFor(runState: RunState, armyId: StringName, targetCo
 
 
 static func _battlePayload(battle: Variant) -> Dictionary:
+	var attackerArmyIds: Array[StringName] = battle.attackerArmyIds.duplicate()
+	if attackerArmyIds.is_empty() and battle.attackerArmyId != GameIds.EMPTY_ID:
+		attackerArmyIds.append(battle.attackerArmyId)
 	return {
 		"battleId": battle.id,
 		"armyId": battle.attackerArmyId,
+		"attackerArmyIds": attackerArmyIds,
+		"attackerOwnerId": battle.attackerOwnerId,
+		"defenderOwnerId": battle.defenderOwnerId,
 		"defenderArmyIds": battle.defenderArmyIds.duplicate(),
 		"sourceCountryId": battle.sourceCountryId,
 		"targetCountryId": battle.targetCountryId,
