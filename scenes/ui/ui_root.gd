@@ -225,11 +225,14 @@ func _handleQuitGameRequested() -> void:
 	quitGameRequested.emit()
 
 
+const BASE_UI_SCALE: float = 1.4
+
+
 func setUiScale(uiScale: float) -> void:
 	var clampedScale := clampf(uiScale, 0.8, 1.6)
 	var window := get_window()
 	if window != null:
-		window.content_scale_factor = clampedScale
+		window.content_scale_factor = clampedScale * BASE_UI_SCALE
 	if rootControl != null:
 		rootControl.scale = Vector2.ONE
 
