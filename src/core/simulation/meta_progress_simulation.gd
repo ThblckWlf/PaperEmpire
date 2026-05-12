@@ -10,7 +10,6 @@ const BASE_CROWNS_FOR_RUN_END: int = 10
 const CROWNS_PER_CONQUERED_COUNTRY: int = 12
 const CROWNS_PER_MAX_COUNTRY_OWNED: int = 5
 const MAX_MONTH_CROWNS: int = 180
-const CROWNS_PER_COMPLETED_MINI_GOAL: int = 25
 const CROWNS_PER_BATTLE_WON: int = 5
 const CROWN_MULTIPLIER_EFFECT: String = "crownRewardMultiplier"
 
@@ -25,7 +24,6 @@ static func calculateCrownsForRun(runState: RunState) -> int:
 	crowns += maxi(0, int(stats.get("countriesConquered", 0))) * CROWNS_PER_CONQUERED_COUNTRY
 	crowns += maxi(0, int(stats.get("maxCountriesOwned", 0))) * CROWNS_PER_MAX_COUNTRY_OWNED
 	crowns += mini(monthsSurvived, MAX_MONTH_CROWNS)
-	crowns += maxi(0, int(stats.get("miniGoalsCompleted", 0))) * CROWNS_PER_COMPLETED_MINI_GOAL
 	crowns += maxi(0, int(stats.get("battlesWon", 0))) * CROWNS_PER_BATTLE_WON
 
 	var highestThreatReached := float(stats.get("highestThreatReached", 0.0))

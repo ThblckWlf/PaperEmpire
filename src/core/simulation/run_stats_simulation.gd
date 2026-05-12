@@ -7,7 +7,6 @@ static func defaultStats() -> Dictionary:
 		"countriesConquered": 0,
 		"maxCountriesOwned": 0,
 		"monthsSurvived": 0,
-		"miniGoalsCompleted": 0,
 		"battlesWon": 0,
 		"battlesLost": 0,
 		"highestThreatReached": 0.0,
@@ -39,8 +38,7 @@ static func initializeForRun(runState: RunState) -> void:
 static func updateForEvent(
 	runState: RunState,
 	eventType: StringName,
-	payload: Dictionary = {},
-	miniGoalResult: Dictionary = {}
+	payload: Dictionary = {}
 ) -> void:
 	if runState == null:
 		return
@@ -54,10 +52,6 @@ static func updateForEvent(
 			stats["monthsSurvived"] = int(stats.get("monthsSurvived", 0)) + 1
 		EventType.BATTLE_ENDED:
 			_updateBattleStats(stats, payload)
-
-	var completedGoalIds: Array = miniGoalResult.get("completedGoalIds", [])
-	if not completedGoalIds.is_empty():
-		stats["miniGoalsCompleted"] = int(stats.get("miniGoalsCompleted", 0)) + completedGoalIds.size()
 
 	_updateMaxCountriesOwned(runState)
 	_updateHighestThreatReached(runState)

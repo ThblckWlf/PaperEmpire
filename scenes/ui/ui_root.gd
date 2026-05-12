@@ -17,7 +17,6 @@ const MAIN_MENU_SCENE: PackedScene = preload("res://scenes/ui/MainMenu.tscn")
 @onready var rootControl: Control = $Root as Control
 @onready var topBar = $Root/TopBar
 @onready var leftPanel = $Root/LeftPanel
-@onready var miniGoalPanel = $Root/MiniGoalPanel
 @onready var rightPanel = $Root/RightPanel
 @onready var bottomBar = $Root/BottomBar
 @onready var modalLayer: Control = $Root/ModalLayer as Control
@@ -95,7 +94,6 @@ func configure(
 	bottomBar.configure(eventBus)
 	leftPanel.configure(eventBus)
 	rightPanel.configure(eventBus)
-	miniGoalPanel.configure(eventBus)
 	upgradeModal.configure(eventBus)
 	if mainMenu != null:
 		mainMenu.call("configure", gameManager, eventBus, settingsManager, saveManager)
@@ -119,7 +117,6 @@ func _refreshAll() -> void:
 
 	topBar.setData(RUN_STATE_VIEW.createTopBarData(runState))
 	leftPanel.setData(RUN_STATE_VIEW.createArmyPanelData(runState, gameManager.getSelectedArmyId(), gameManager.getSelectedCountryId()))
-	miniGoalPanel.setData(RUN_STATE_VIEW.createMiniGoalPanelData(runState))
 	rightPanel.setData(RUN_STATE_VIEW.createCountryPanelData(runState, gameManager.getSelectedCountryId(), gameManager.getSelectedArmyId()))
 	bottomBar.setCurrentSpeed(int(runState.speed))
 	if mainMenu != null and mainMenu.visible:
@@ -139,7 +136,7 @@ func _onGameEventRaised(eventName: StringName, payload: Dictionary) -> void:
 		EventType.RUN_STARTED, EventType.RUN_RESET:
 			_closeGameOverModal()
 			_refreshAll()
-		EventType.RUN_WON, EventType.RUN_LOST, EventType.COUNTRY_SELECTED, EventType.ARMY_SELECTED, EventType.ARMY_MOVE_STARTED, EventType.ARMY_MOVED, EventType.UNITS_RECRUITED, EventType.ARMY_UPDATED, EventType.ARMY_CREATED, EventType.BATTLE_STARTED, EventType.BATTLE_ENDED, EventType.COUNTRY_CONQUERED, EventType.MINI_GOAL_REWARD_CLAIMED, EventType.META_PROGRESS_CHANGED, EventType.META_UPGRADE_PURCHASED, EventType.CROWNS_AWARDED, EventType.CROWNS_REWARDED, EventType.THREAT_CHANGED, EventType.WORLD_REACTION_UPDATED, EventType.GAME_SPEED_CHANGED, EventType.MONTH_TICK, EventType.NOT_ENOUGH_GOLD, EventType.INVALID_ATTACK:
+		EventType.RUN_WON, EventType.RUN_LOST, EventType.COUNTRY_SELECTED, EventType.ARMY_SELECTED, EventType.ARMY_MOVE_STARTED, EventType.ARMY_MOVED, EventType.UNITS_RECRUITED, EventType.ARMY_UPDATED, EventType.ARMY_CREATED, EventType.BATTLE_STARTED, EventType.BATTLE_ENDED, EventType.COUNTRY_CONQUERED, EventType.META_PROGRESS_CHANGED, EventType.META_UPGRADE_PURCHASED, EventType.CROWNS_AWARDED, EventType.CROWNS_REWARDED, EventType.THREAT_CHANGED, EventType.WORLD_REACTION_UPDATED, EventType.GAME_SPEED_CHANGED, EventType.MONTH_TICK, EventType.NOT_ENOUGH_GOLD, EventType.INVALID_ATTACK:
 			_refreshAll()
 
 
@@ -244,7 +241,6 @@ func _setGameplayVisible(isVisible: bool) -> void:
 	gameplayVisible = isVisible
 	topBar.visible = isVisible
 	leftPanel.visible = isVisible
-	miniGoalPanel.visible = isVisible
 	rightPanel.visible = isVisible
 	bottomBar.visible = isVisible
 	if not isVisible:
@@ -530,12 +526,6 @@ func _applyLayout() -> void:
 	leftPanel.offset_top = 106.0
 	leftPanel.offset_right = 274.0
 	leftPanel.offset_bottom = 466.0
-
-	miniGoalPanel.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	miniGoalPanel.offset_left = 14.0
-	miniGoalPanel.offset_top = -150.0
-	miniGoalPanel.offset_right = 360.0
-	miniGoalPanel.offset_bottom = -16.0
 
 	rightPanel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	rightPanel.offset_left = -336.0

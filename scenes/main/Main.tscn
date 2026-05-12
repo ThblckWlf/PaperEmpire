@@ -12,7 +12,6 @@
 [ext_resource type="Script" uid="uid://c471it4w7evju" path="res://scenes/ui/esc_menu.gd" id="10_esc_menu"]
 [ext_resource type="Script" uid="uid://bxfbbq3hkxqvq" path="res://scenes/ui/army_panel.gd" id="11_army_panel"]
 [ext_resource type="Script" uid="uid://cls8aqo57kmj0" path="res://scenes/ui/upgrade_modal.gd" id="12_upgrade_modal"]
-[ext_resource type="Script" uid="uid://bliytajcoxawc" path="res://scenes/ui/mini_goal_panel.gd" id="13_mini_goal_panel"]
 [ext_resource type="Script" uid="uid://bfxr3ho10jpnh" path="res://src/core/audio_manager.gd" id="14_audio_manager"]
 
 [node name="Main" type="Node" unique_id=478396137]
@@ -157,45 +156,6 @@ text = ""
 [node name="UnitsLabel" type="Label" parent="GameRoot/UIRoot/Root/LeftPanel/MarginContainer/VBoxContainer" unique_id=891287509]
 layout_mode = 2
 text = ""
-
-[node name="MiniGoalPanel" type="PanelContainer" parent="GameRoot/UIRoot/Root" unique_id=242685210]
-layout_mode = 1
-script = ExtResource("13_mini_goal_panel")
-
-[node name="MarginContainer" type="MarginContainer" parent="GameRoot/UIRoot/Root/MiniGoalPanel" unique_id=1145703022]
-layout_mode = 2
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
-
-[node name="VBoxContainer" type="VBoxContainer" parent="GameRoot/UIRoot/Root/MiniGoalPanel/MarginContainer" unique_id=1542820702]
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="GoalButton1" type="Button" parent="GameRoot/UIRoot/Root/MiniGoalPanel/MarginContainer/VBoxContainer" unique_id=482617893]
-layout_mode = 2
-text = "-"
-
-[node name="GoalButton2" type="Button" parent="GameRoot/UIRoot/Root/MiniGoalPanel/MarginContainer/VBoxContainer" unique_id=1190564078]
-layout_mode = 2
-text = "-"
-
-[node name="GoalButton3" type="Button" parent="GameRoot/UIRoot/Root/MiniGoalPanel/MarginContainer/VBoxContainer" unique_id=572560794]
-layout_mode = 2
-text = "-"
-
-[node name="GoalButton4" type="Button" parent="GameRoot/UIRoot/Root/MiniGoalPanel/MarginContainer/VBoxContainer" unique_id=1919934619]
-layout_mode = 2
-text = "-"
-
-[node name="GoalButton5" type="Button" parent="GameRoot/UIRoot/Root/MiniGoalPanel/MarginContainer/VBoxContainer" unique_id=2073718850]
-layout_mode = 2
-text = "-"
-
-[node name="GoalButton6" type="Button" parent="GameRoot/UIRoot/Root/MiniGoalPanel/MarginContainer/VBoxContainer" unique_id=430906880]
-layout_mode = 2
-text = "-"
 
 [node name="RightPanel" type="PanelContainer" parent="GameRoot/UIRoot/Root" unique_id=2083197114]
 layout_mode = 1

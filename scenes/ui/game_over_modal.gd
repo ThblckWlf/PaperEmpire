@@ -35,7 +35,6 @@ func setData(data: Dictionary) -> void:
 	lines.append("Überlebt: %d Jahre, %d Monate" % [years, months])
 	lines.append("Länder erobert: %d" % int(runStats.get("countriesConquered", 0)))
 	lines.append("Max. Länderbesitz: %d" % int(runStats.get("maxCountriesOwned", 0)))
-	lines.append("Mini-Ziele abgeschlossen: %d" % int(runStats.get("miniGoalsCompleted", 0)))
 	lines.append("Kämpfe gewonnen: %d" % int(runStats.get("battlesWon", 0)))
 	lines.append("Höchste Bedrohung: %.0f%%" % float(runStats.get("highestThreatReached", 0.0)))
 	var summaryText := ""

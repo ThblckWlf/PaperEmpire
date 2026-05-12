@@ -2,7 +2,6 @@ extends RefCounted
 class_name NewRunFactory
 
 
-const MINI_GOAL_SIMULATION := preload("res://src/core/simulation/mini_goal_simulation.gd")
 const META_PROGRESS_SIMULATION := preload("res://src/core/simulation/meta_progress_simulation.gd")
 const RUN_STATS_SIMULATION := preload("res://src/core/simulation/run_stats_simulation.gd")
 
@@ -61,7 +60,7 @@ static func createNewRun(
 		"threat": 0,
 	}
 	runState.speed = GameSpeed.Value.Normal
-	runState.miniGoals = MINI_GOAL_SIMULATION.initializeGoals(PrototypeContentLoader.loadMiniGoals())
+	runState.miniGoals = []
 
 	if hasStartCountry:
 		runState.runStatus = RunState.RUN_STATUS_ACTIVE

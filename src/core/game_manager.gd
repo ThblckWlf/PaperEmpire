@@ -7,7 +7,6 @@ const RECRUITMENT_SIMULATION := preload("res://src/core/simulation/recruitment_s
 const COMBAT_SIMULATION := preload("res://src/core/simulation/combat_simulation.gd")
 const UPGRADE_SIMULATION := preload("res://src/core/simulation/upgrade_simulation.gd")
 const THREAT_SIMULATION := preload("res://src/core/simulation/threat_simulation.gd")
-const MINI_GOAL_SIMULATION := preload("res://src/core/simulation/mini_goal_simulation.gd")
 const META_PROGRESS_SIMULATION := preload("res://src/core/simulation/meta_progress_simulation.gd")
 const RUN_STATS_SIMULATION := preload("res://src/core/simulation/run_stats_simulation.gd")
 const RUN_END_SIMULATION := preload("res://src/core/simulation/run_end_simulation.gd")
@@ -91,8 +90,6 @@ func submitCommand(commandName: StringName, payload: Dictionary = {}) -> void:
 			)
 		CommandType.CHOOSE_UPGRADE:
 			_chooseUpgrade(StringName(str(payload.get("upgradeId", ""))))
-		CommandType.CLAIM_MINI_GOAL_REWARD:
-			_claimMiniGoalReward(StringName(str(payload.get("goalId", ""))))
 		CommandType.SAVE_GAME:
 			_saveGame(str(payload.get("slotId", "manual_1")))
 		CommandType.LOAD_GAME:
@@ -243,15 +240,6 @@ func _chooseUpgrade(upgradeId: StringName) -> void:
 
 	_raiseEvent(EventType.UPGRADE_CHOSEN, chooseResult)
 	_setGameSpeed(GameSpeed.Value.Normal)
-
-
-func _claimMiniGoalReward(goalId: StringName) -> void:
-	var rewardResult: Dictionary = MINI_GOAL_SIMULATION.claimReward(currentRunState, goalId)
-	if not bool(rewardResult.get("accepted", false)):
-		_reportWarning("Cannot claim mini goal reward: %s" % str(rewardResult.get("reason", "unknown_reason")))
-		return
-
-	_raiseEvent(EventType.MINI_GOAL_REWARD_CLAIMED, rewardResult)
 
 
 func _saveGame(slotId: String) -> void:
@@ -436,16 +424,13 @@ func _setGameSpeed(speed: int) -> void:
 
 
 func _raiseEvent(eventType: StringName, payload: Dictionary = {}) -> void:
-	var miniGoalResult := {}
 	if eventBus == null:
 		if currentRunState != null:
-			miniGoalResult = MINI_GOAL_SIMULATION.updateProgress(currentRunState, eventType, payload, PrototypeContentLoader.loadUnits())
-			RUN_STATS_SIMULATION.updateForEvent(currentRunState, eventType, payload, miniGoalResult)
+			RUN_STATS_SIMULATION.updateForEvent(currentRunState, eventType, payload)
 		return
 
 	if currentRunState != null:
-		miniGoalResult = MINI_GOAL_SIMULATION.updateProgress(currentRunState, eventType, payload, PrototypeContentLoader.loadUnits())
-		RUN_STATS_SIMULATION.updateForEvent(currentRunState, eventType, payload, miniGoalResult)
+		RUN_STATS_SIMULATION.updateForEvent(currentRunState, eventType, payload)
 
 	var gameEvent := GameEvent.new()
 	gameEvent.type = eventType
@@ -523,7 +508,6 @@ func _isCommandBlockedAfterGameOver(commandName: StringName, payload: Dictionary
 		CommandType.CREATE_ARMY,
 		CommandType.UPDATE_ARMY_COMPOSITION,
 		CommandType.CHOOSE_UPGRADE,
-		CommandType.CLAIM_MINI_GOAL_REWARD,
 		CommandType.RESUME_GAME,
 	].has(commandName):
 		_reportWarning("Cannot use gameplay command after game over: %s" % str(commandName))

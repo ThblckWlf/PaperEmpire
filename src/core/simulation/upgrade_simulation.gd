@@ -47,13 +47,6 @@ static func rollUpgradeChoices(runState: RunState, upgrades: Array[Dictionary]) 
 	var rng := RandomNumberGenerator.new()
 	rng.seed = _choiceSeed(runState)
 	var choices: Array[Dictionary] = []
-	var rarityBoost := int(runState.miniGoalState.get("upgradeRarityBoost", 0))
-	if rarityBoost > 0 and not candidates.is_empty():
-		candidates.sort_custom(_sortRarerFirst)
-		choices.append(candidates[0])
-		candidates.remove_at(0)
-		runState.miniGoalState["upgradeRarityBoost"] = maxi(0, rarityBoost - 1)
-
 	while choices.size() < CHOICE_COUNT and not candidates.is_empty():
 		var index := rng.randi_range(0, candidates.size() - 1)
 		choices.append(candidates[index])
@@ -172,19 +165,3 @@ static func _choiceSeed(runState: RunState) -> int:
 			ownedCountries += 1
 
 	return int(GameTime.getElapsedSeconds(runState.time) * 1000.0) + ownedCountries * 7919 + runState.upgrades.size() * 104729
-
-
-static func _sortRarerFirst(left: Dictionary, right: Dictionary) -> bool:
-	return _rarityScore(str(left.get("rarity", ""))) > _rarityScore(str(right.get("rarity", "")))
-
-
-static func _rarityScore(rarity: String) -> int:
-	match rarity:
-		"rare":
-			return 3
-		"uncommon":
-			return 2
-		"common":
-			return 1
-		_:
-			return 0

@@ -239,7 +239,7 @@ static func _validateMiniGoalState(runState: RunState, result: ValidationResult)
 
 
 static func _validateRunStats(runStats: Dictionary, result: ValidationResult) -> void:
-	for key in ["countriesConquered", "maxCountriesOwned", "monthsSurvived", "miniGoalsCompleted", "battlesWon", "battlesLost"]:
+	for key in ["countriesConquered", "maxCountriesOwned", "monthsSurvived", "battlesWon", "battlesLost"]:
 		if not runStats.has(key):
 			result.addError("RunStats missing key: %s." % key)
 			continue

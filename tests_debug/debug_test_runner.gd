@@ -13,7 +13,6 @@ const COMBAT_SIMULATION := preload("res://src/core/simulation/combat_simulation.
 const AI_WAR_SIMULATION := preload("res://src/core/simulation/ai_war_simulation.gd")
 const UPGRADE_SIMULATION := preload("res://src/core/simulation/upgrade_simulation.gd")
 const THREAT_SIMULATION := preload("res://src/core/simulation/threat_simulation.gd")
-const MINI_GOAL_SIMULATION := preload("res://src/core/simulation/mini_goal_simulation.gd")
 const META_PROGRESS_SIMULATION := preload("res://src/core/simulation/meta_progress_simulation.gd")
 const SHOP_STATE_VIEW := preload("res://src/core/view/shop_state_view.gd")
 const SHOP_PANEL_SCRIPT := preload("res://scenes/ui/shop_panel.gd")
@@ -52,8 +51,6 @@ func runAll() -> void:
 	_runTest("Prototype countries fixture loads and validates", _testPrototypeCountriesFixture)
 	_runTest("Prototype upgrades fixture loads and validates", _testPrototypeUpgradesFixture)
 	_runTest("UpgradeData invalid fixture fails", _testInvalidUpgrades)
-	_runTest("Prototype mini goals fixture loads and validates", _testPrototypeMiniGoalsFixture)
-	_runTest("MiniGoalData invalid fixture fails", _testInvalidMiniGoals)
 	_runTest("Prototype meta upgrades fixture loads and validates", _testPrototypeMetaUpgradesFixture)
 	_runTest("Prototype map shapes fixture loads and validates", _testPrototypeMapShapesFixture)
 	_runTest("NewRunFactory creates valid prototype run", _testNewRunFactory)
@@ -77,8 +74,6 @@ func runAll() -> void:
 	_runTest("Upgrade modal applies one selected upgrade", _testUpgradeModalAppliesSelectedUpgrade)
 	_runTest("ThreatSimulation applies passive and action threat", _testThreatAppliesPassiveAndActionThreat)
 	_runTest("Threat UI summaries expose warning states", _testThreatUiSummariesExposeWarningStates)
-	_runTest("MiniGoalSimulation tracks progress and rewards", _testMiniGoalsTrackProgressAndRewards)
-	_runTest("MiniGoal panel claims completed reward", _testMiniGoalPanelClaimsReward)
 	_runTest("WorldMap creates country and army nodes", _testWorldMapCreatesCountryAndArmyNodes)
 	_runTest("MapCamera clamps pan and zoom", _testMapCameraClampsPanAndZoom)
 	_runTest("Input actions register desktop controls", _testInputActionsRegisterDesktopControls)
@@ -195,25 +190,6 @@ func _testInvalidUpgrades() -> ValidationResult:
 	return _expectFailure(UpgradeDataValidator.validate(invalidUpgrades))
 
 
-func _testPrototypeMiniGoalsFixture() -> ValidationResult:
-	return MiniGoalDataValidator.validate(PrototypeContentLoader.loadMiniGoals())
-
-
-func _testInvalidMiniGoals() -> ValidationResult:
-	var invalidGoals := PrototypeContentLoader.loadMiniGoals()
-	invalidGoals.append({
-		"id": "",
-		"name": "",
-		"description": "",
-		"goalType": "unknown",
-		"progressRule": "",
-		"target": 0,
-		"rewardType": "permanentUnlock",
-		"rewardValue": 0,
-	})
-	return _expectFailure(MiniGoalDataValidator.validate(invalidGoals))
-
-
 func _testPrototypeMetaUpgradesFixture() -> ValidationResult:
 	return META_UPGRADE_DATA_VALIDATOR.validate(PrototypeContentLoader.loadMetaUpgrades(), PrototypeContentLoader.loadCountries())
 
@@ -286,8 +262,8 @@ func _testNewRunFactory() -> ValidationResult:
 	if int(runState.resources.get("food", 0)) != NewRunFactory.START_FOOD:
 		result.addError("New run has wrong starting food.")
 
-	if runState.miniGoals.is_empty():
-		result.addError("New run has no mini goals.")
+	if not runState.miniGoals.is_empty():
+		result.addError("New run should not contain mini goals for the MVP.")
 
 	return result
 
@@ -876,7 +852,7 @@ func _testGameOverAwardsCrownsAndBlocksCommands() -> ValidationResult:
 	if not _capturedEvent(EventType.CROWNS_AWARDED):
 		result.addError("Game over did not emit crownsAwarded.")
 
-	var expectedCrowns := 43
+	var expectedCrowns := 18
 	var metaData := manager.getMetaProgressData()
 	if int(metaData.get("crowns", 0)) != expectedCrowns:
 		result.addError("Game over awarded wrong crowns: %d." % int(metaData.get("crowns", 0)))
@@ -1073,110 +1049,6 @@ func _testThreatUiSummariesExposeWarningStates() -> ValidationResult:
 	topBarData = RUN_STATE_VIEW.createTopBarData(runState)
 	if str(topBarData.get("threatState", "")) != "critical":
 		result.addError("RunStateView did not expose critical threat state.")
-	return result
-
-
-func _testMiniGoalsTrackProgressAndRewards() -> ValidationResult:
-	var result := ValidationResult.new()
-	var runState := NewRunFactory.createNewRun(&"usa")
-	var units := PrototypeContentLoader.loadUnits()
-
-	MINI_GOAL_SIMULATION.updateProgress(runState, EventType.COUNTRY_CONQUERED, {"countryId": "can"}, units)
-	var conquerGoal := _miniGoalById(runState, &"conquerThreeCountries")
-	if int(conquerGoal.get("progress", 0)) != 1:
-		result.addError("MiniGoal conquerCountries did not advance on conquest.")
-	var lowThreatGoal := _miniGoalById(runState, &"lowThreatWin")
-	if int(lowThreatGoal.get("progress", 0)) != 1:
-		result.addError("MiniGoal conquerWithThreatBelow did not advance below threat limit.")
-
-	runState.resources["gold"] = 550
-	MINI_GOAL_SIMULATION.updateProgress(runState, EventType.MONTH_TICK, {}, units)
-	var goldGoal := _miniGoalById(runState, &"reachGold")
-	if not bool(goldGoal.get("isCompleted", false)):
-		result.addError("MiniGoal reachGold did not complete from resources.")
-
-	var armyGoal := _miniGoalById(runState, &"fieldArmy")
-	if not bool(armyGoal.get("isCompleted", false)):
-		result.addError("MiniGoal reachArmyPower did not complete from army power.")
-
-	MINI_GOAL_SIMULATION.updateProgress(runState, EventType.BATTLE_ENDED, {
-		"attackerWon": true,
-		"attackerPower": 20.0,
-		"defenderPower": 40.0,
-	}, units)
-	var hardTargetGoal := _miniGoalById(runState, &"hardTarget")
-	if not bool(hardTargetGoal.get("isCompleted", false)):
-		result.addError("MiniGoal defeatStrongerCountry did not complete from battle payload.")
-
-	runState.resources["threat"] = THREAT_SIMULATION.CAUTION_THRESHOLD
-	for _index in range(3):
-		MINI_GOAL_SIMULATION.updateProgress(runState, EventType.MONTH_TICK, {}, units)
-	var holdGoal := _miniGoalById(runState, &"holdBorder")
-	if not bool(holdGoal.get("isCompleted", false)):
-		result.addError("MiniGoal holdThreatenedCountryMonths did not complete after threatened months.")
-
-	MINI_GOAL_SIMULATION.updateProgress(runState, EventType.COUNTRY_CONQUERED, {"countryId": "mex"}, units)
-	MINI_GOAL_SIMULATION.updateProgress(runState, EventType.COUNTRY_CONQUERED, {"countryId": "gtm"}, units)
-	conquerGoal = _miniGoalById(runState, &"conquerThreeCountries")
-	if not bool(conquerGoal.get("isCompleted", false)):
-		result.addError("MiniGoal conquerCountries did not complete at target.")
-
-	var previousGold := int(runState.resources.get("gold", 0))
-	var reward: Dictionary = MINI_GOAL_SIMULATION.claimReward(runState, &"conquerThreeCountries")
-	if not bool(reward.get("accepted", false)):
-		result.addError("MiniGoal reward claim rejected completed goal.")
-	if int(runState.resources.get("gold", 0)) != previousGold + 150:
-		result.addError("MiniGoal gold reward was not applied.")
-	var secondClaim: Dictionary = MINI_GOAL_SIMULATION.claimReward(runState, &"conquerThreeCountries")
-	if bool(secondClaim.get("accepted", false)):
-		result.addError("MiniGoal reward could be claimed twice.")
-
-	var boostReward: Dictionary = MINI_GOAL_SIMULATION.claimReward(runState, &"hardTarget")
-	if not bool(boostReward.get("accepted", false)):
-		result.addError("MiniGoal upgrade rarity reward was rejected.")
-	if int(runState.miniGoalState.get("upgradeRarityBoost", 0)) != 1:
-		result.addError("MiniGoal upgrade rarity reward did not update state.")
-
-	var choices: Dictionary = UPGRADE_SIMULATION.rollUpgradeChoices(runState, PrototypeContentLoader.loadUpgrades())
-	var choiceRows: Array = choices.get("choices", [])
-	if choiceRows.is_empty() or str((choiceRows[0] as Dictionary).get("rarity", "")) != "rare":
-		result.addError("MiniGoal rarity boost did not affect next upgrade choice.")
-
-	var validation := RunStateValidator.validate(runState)
-	if not validation.isValid():
-		for error in validation.errors:
-			result.addError("MiniGoal progress produced invalid RunState: %s" % error)
-	return result
-
-
-func _testMiniGoalPanelClaimsReward() -> ValidationResult:
-	var result := ValidationResult.new()
-	var scene := load("res://scenes/main/Main.tscn") as PackedScene
-	if scene == null:
-		result.addError("Main.tscn could not be loaded for mini goal panel test.")
-		return result
-
-	var main = scene.instantiate()
-	add_child(main)
-	_startMainRunForTest(main)
-	var gameManager := main.get_node("GameRoot/Managers/GameManager") as GameManager
-	var eventBus := main.get_node("GameRoot/Managers/EventBus") as EventBus
-	var goalButton := main.get_node("GameRoot/UIRoot/Root/MiniGoalPanel/MarginContainer/VBoxContainer/GoalButton1") as Button
-	var runState := gameManager.getCurrentRunState()
-	runState.miniGoals[0]["progress"] = float(runState.miniGoals[0].get("target", 1))
-	runState.miniGoals[0]["isCompleted"] = true
-	eventBus.raiseGameEvent(EventType.THREAT_CHANGED, {})
-	if goalButton.disabled:
-		result.addError("MiniGoal panel did not enable claim button for completed goal.")
-
-	var previousGold := int(runState.resources.get("gold", 0))
-	goalButton.emit_signal("pressed")
-	if int(runState.resources.get("gold", 0)) != previousGold + int(runState.miniGoals[0].get("rewardValue", 0)):
-		result.addError("MiniGoal panel claim did not apply reward.")
-	if not bool(runState.miniGoals[0].get("isRewardClaimed", false)):
-		result.addError("MiniGoal panel claim did not mark reward claimed.")
-
-	_cleanupMainForTest(main)
 	return result
 
 
@@ -2495,13 +2367,6 @@ func _upgradeById(upgradeId: StringName) -> Dictionary:
 	for upgrade in PrototypeContentLoader.loadUpgrades():
 		if StringName(str(upgrade.get("id", ""))) == upgradeId:
 			return upgrade
-	return {}
-
-
-func _miniGoalById(runState: RunState, goalId: StringName) -> Dictionary:
-	for goal in runState.miniGoals:
-		if StringName(str(goal.get("id", ""))) == goalId:
-			return goal
 	return {}
 
 

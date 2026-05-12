@@ -13,7 +13,6 @@ const AI_RECRUITMENT_SIMULATION := preload("res://src/core/simulation/ai_recruit
 const AI_WAR_SIMULATION := preload("res://src/core/simulation/ai_war_simulation.gd")
 const UPGRADE_SIMULATION := preload("res://src/core/simulation/upgrade_simulation.gd")
 const THREAT_SIMULATION := preload("res://src/core/simulation/threat_simulation.gd")
-const MINI_GOAL_SIMULATION := preload("res://src/core/simulation/mini_goal_simulation.gd")
 const RUN_STATS_SIMULATION := preload("res://src/core/simulation/run_stats_simulation.gd")
 const RUN_END_SIMULATION := preload("res://src/core/simulation/run_end_simulation.gd")
 
@@ -215,10 +214,8 @@ func _handleBattleEvent(battleEvent: Dictionary) -> void:
 
 
 func _raiseEvent(eventType: StringName, payload: Dictionary = {}) -> void:
-	var miniGoalResult := {}
 	if runState != null:
-		miniGoalResult = MINI_GOAL_SIMULATION.updateProgress(runState, eventType, payload, PrototypeContentLoader.loadUnits())
-		RUN_STATS_SIMULATION.updateForEvent(runState, eventType, payload, miniGoalResult)
+		RUN_STATS_SIMULATION.updateForEvent(runState, eventType, payload)
 
 	var gameEvent := GameEvent.new()
 	gameEvent.type = eventType
