@@ -19,7 +19,7 @@ static func serializeRunState(runState: RunState) -> Dictionary:
 		"countries": _serializeCountries(runState.countries),
 		"armies": _serializeArmies(runState.armies),
 		"battles": _serializeBattles(runState.battles),
-		"aiGoldByCountry": _serializeValue(runState.aiGoldByCountry),
+		"aiGoldByOwner": _serializeValue(runState.aiGoldByOwner),
 		"activeUpgradeChoice": _serializeValue(runState.activeUpgradeChoice),
 		"upgrades": _serializeValue(runState.upgrades),
 		"upgradeEffects": _serializeValue(runState.upgradeEffects),
@@ -42,6 +42,9 @@ static func deserializeRunState(data: Dictionary) -> RunState:
 	runState.armies = _deserializeArmies(_dictionaryValue(data.get("armies", {})))
 	runState.battles = _deserializeBattles(_dictionaryValue(data.get("battles", {})))
 	runState.aiGoldByCountry = _dictionaryValue(data.get("aiGoldByCountry", {})).duplicate(true)
+	runState.aiGoldByOwner = _deserializeAiGoldByOwner(_dictionaryValue(data.get("aiGoldByOwner", {})))
+	if runState.aiGoldByOwner.is_empty() and not runState.aiGoldByCountry.is_empty():
+		runState.aiGoldByOwner = _migrateAiGoldByCountryToOwner(runState)
 	runState.activeUpgradeChoice = _dictionaryValue(data.get("activeUpgradeChoice", {})).duplicate(true)
 	runState.upgrades = _deserializeStringNameArray(data.get("upgrades", []))
 	runState.upgradeEffects = _dictionaryValue(data.get("upgradeEffects", runState.upgradeEffects)).duplicate(true)
@@ -221,6 +224,30 @@ static func _deserializeBattles(data: Dictionary) -> Dictionary:
 		battle.casualties = _dictionaryValue(row.get("casualties", {})).duplicate(true)
 		battles[battle.id] = battle
 	return battles
+
+
+static func _migrateAiGoldByCountryToOwner(runState: RunState) -> Dictionary:
+	var aiGoldByOwner := {}
+	for countryIdValue in runState.aiGoldByCountry.keys():
+		var countryId := StringName(str(countryIdValue))
+		var country := runState.countries.get(countryId, null) as CountryData
+		if country == null or country.ownerId == GameIds.PLAYER_OWNER_ID:
+			continue
+
+		var gold := maxi(0, int(runState.aiGoldByCountry.get(countryIdValue, 0)))
+		aiGoldByOwner[country.ownerId] = int(aiGoldByOwner.get(country.ownerId, 0)) + gold
+	return aiGoldByOwner
+
+
+static func _deserializeAiGoldByOwner(data: Dictionary) -> Dictionary:
+	var aiGoldByOwner := {}
+	for ownerIdValue in data.keys():
+		var ownerId := StringName(str(ownerIdValue))
+		if ownerId == GameIds.EMPTY_ID:
+			continue
+
+		aiGoldByOwner[ownerId] = maxi(0, int(data.get(ownerIdValue, 0)))
+	return aiGoldByOwner
 
 
 static func _serializeValue(value: Variant) -> Variant:

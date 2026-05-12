@@ -10,6 +10,7 @@ const ECONOMY_SIMULATION := preload("res://src/core/simulation/economy_simulatio
 const ARMY_MOVEMENT_SIMULATION := preload("res://src/core/simulation/army_movement_simulation.gd")
 const RECRUITMENT_SIMULATION := preload("res://src/core/simulation/recruitment_simulation.gd")
 const COMBAT_SIMULATION := preload("res://src/core/simulation/combat_simulation.gd")
+const AI_RECRUITMENT_SIMULATION := preload("res://src/core/simulation/ai_recruitment_simulation.gd")
 const AI_WAR_SIMULATION := preload("res://src/core/simulation/ai_war_simulation.gd")
 const UPGRADE_SIMULATION := preload("res://src/core/simulation/upgrade_simulation.gd")
 const THREAT_SIMULATION := preload("res://src/core/simulation/threat_simulation.gd")
@@ -66,6 +67,12 @@ func runAll() -> void:
 	_runTest("CombatSimulation calculates combat power", _testCombatCalculatesPower)
 	_runTest("CombatSimulation starts valid attacks only", _testCombatStartsValidAttacks)
 	_runTest("SimulationManager completes battle and conquest", _testSimulationCompletesBattleAndConquest)
+	_runTest("AiRecruitmentSimulation requires owner gold", _testAiRecruitmentRequiresOwnerGold)
+	_runTest("AiRecruitmentSimulation shares owner gold", _testAiRecruitmentSharesOwnerGold)
+	_runTest("AiRecruitmentSimulation respects food net below critical threat", _testAiRecruitmentRespectsFoodNet)
+	_runTest("AiRecruitmentSimulation can ignore food in emergencies", _testAiRecruitmentIgnoresFoodInEmergencies)
+	_runTest("AiRecruitmentSimulation enforces monthly limits", _testAiRecruitmentEnforcesMonthlyLimits)
+	_runTest("AiRecruitmentSimulation stops at local power target", _testAiRecruitmentStopsAtLocalPowerTarget)
 	_runTest("AiWarSimulation stays peaceful below coalition threshold", _testAiWarStaysPeacefulBelowCoalition)
 	_runTest("AiWarSimulation attacks player at coalition threat", _testAiWarAttacksPlayerAtCoalition)
 	_runTest("NPC conquest does not open upgrade choice", _testNpcConquestDoesNotOpenUpgradeChoice)
@@ -84,6 +91,7 @@ func runAll() -> void:
 	_runTest("AudioManager creates buses and sound stubs", _testAudioManagerCreatesBusesAndSoundStubs)
 	_runTest("SaveFormat defines versioned save schema", _testSaveFormatDefinesVersionedSchema)
 	_runTest("RunStateSerializer writes pure data", _testRunStateSerializerWritesPureData)
+	_runTest("RunStateSerializer migrates legacy AI gold", _testRunStateSerializerMigratesLegacyAiGold)
 	_runTest("SaveManager writes and loads user saves", _testSaveManagerWritesAndLoadsUserSaves)
 	_runTest("Manual save load UI restores run state", _testManualSaveLoadUiRestoresRunState)
 	_runTest("MetaProgress stores upgrade state", _testMetaProgressStoresUpgradeState)
@@ -780,6 +788,207 @@ func _testSimulationCompletesBattleAndConquest() -> ValidationResult:
 	manager.free()
 	simulation.free()
 	bus.free()
+	return result
+
+
+func _testAiRecruitmentRequiresOwnerGold() -> ValidationResult:
+	var result := ValidationResult.new()
+	var units := PrototypeContentLoader.loadUnits()
+	var ownerId := GameIds.npcOwnerIdForCountry(&"aiBudget")
+	var runState := _createAiRecruitmentRunState(ownerId)
+	var country := runState.countries[&"aiBudget"] as CountryData
+	country.goldPerMonth = 0
+	country.foodPerMonth = 100
+	var army := runState.armies[&"army_aiBudget"] as ArmyData
+	var beforeUnits := _unitCount(army.units)
+
+	AI_RECRUITMENT_SIMULATION.applyMonthTick(runState, units)
+
+	if _unitCount(army.units) != beforeUnits:
+		result.addError("AI recruited units without owner gold.")
+	if int(runState.aiGoldByOwner.get(ownerId, -1)) != 0:
+		result.addError("AI owner gold changed unexpectedly without income.")
+	return result
+
+
+func _testAiRecruitmentSharesOwnerGold() -> ValidationResult:
+	var result := ValidationResult.new()
+	var units := PrototypeContentLoader.loadUnits()
+	var ownerId := GameIds.npcOwnerIdForCountry(&"shared")
+	var runState := RunState.new()
+	var firstNeighbors: Array[StringName] = []
+	var secondNeighbors: Array[StringName] = []
+	var firstCountry := _createCountry(&"aiA", "AI A", ownerId, Vector2(100.0, 100.0), firstNeighbors)
+	var secondCountry := _createCountry(&"aiB", "AI B", ownerId, Vector2(180.0, 100.0), secondNeighbors)
+	firstCountry.goldPerMonth = 0
+	firstCountry.foodPerMonth = 100
+	firstCountry.defense = 10
+	secondCountry.goldPerMonth = 20
+	secondCountry.foodPerMonth = 100
+	secondCountry.defense = 1
+	runState.countries[firstCountry.id] = firstCountry
+	runState.countries[secondCountry.id] = secondCountry
+	runState.armies[&"army_aiA"] = _createTestArmy(&"army_aiA", ownerId, firstCountry.id, {
+		GameIds.INFANTRY_UNIT_ID: 1,
+	})
+	runState.armies[&"army_aiB"] = _createTestArmy(&"army_aiB", ownerId, secondCountry.id, {
+		GameIds.INFANTRY_UNIT_ID: 10,
+	})
+	runState.aiGoldByOwner[ownerId] = 0
+	var firstArmy := runState.armies[&"army_aiA"] as ArmyData
+	var beforeUnits := _unitCount(firstArmy.units)
+
+	AI_RECRUITMENT_SIMULATION.applyMonthTick(runState, units)
+
+	if _unitCount(firstArmy.units) != beforeUnits + 2:
+		result.addError("AI did not spend shared owner gold on the weaker owned country.")
+	if int(runState.aiGoldByOwner.get(ownerId, -1)) != 0:
+		result.addError("AI owner gold was not spent from the shared owner budget.")
+	return result
+
+
+func _testAiRecruitmentRespectsFoodNet() -> ValidationResult:
+	var result := ValidationResult.new()
+	var units := PrototypeContentLoader.loadUnits()
+	var ownerId := GameIds.npcOwnerIdForCountry(&"aiFood")
+	var runState := _createAiRecruitmentRunState(ownerId)
+	var country := runState.countries[&"aiBudget"] as CountryData
+	country.goldPerMonth = 0
+	country.foodPerMonth = 1
+	var army := runState.armies[&"army_aiBudget"] as ArmyData
+	army.units = {
+		GameIds.INFANTRY_UNIT_ID: 1,
+	}
+	runState.aiGoldByOwner[ownerId] = 100
+	runState.resources["threat"] = THREAT_SIMULATION.CRITICAL_THRESHOLD - 1
+	var beforeUnits := _unitCount(army.units)
+
+	AI_RECRUITMENT_SIMULATION.applyMonthTick(runState, units)
+
+	if _unitCount(army.units) != beforeUnits:
+		result.addError("AI recruited despite negative projected food net below critical threat.")
+	if int(runState.aiGoldByOwner.get(ownerId, 0)) != 100:
+		result.addError("AI spent gold while food net should block recruitment.")
+	return result
+
+
+func _testAiRecruitmentIgnoresFoodInEmergencies() -> ValidationResult:
+	var result := ValidationResult.new()
+	var units := PrototypeContentLoader.loadUnits()
+	var criticalOwnerId := GameIds.npcOwnerIdForCountry(&"aiCritical")
+	var criticalRunState := _createAiRecruitmentRunState(criticalOwnerId)
+	var criticalCountry := criticalRunState.countries[&"aiBudget"] as CountryData
+	var criticalArmy := criticalRunState.armies[&"army_aiBudget"] as ArmyData
+	criticalCountry.goldPerMonth = 0
+	criticalCountry.foodPerMonth = 1
+	criticalArmy.units = {
+		GameIds.INFANTRY_UNIT_ID: 1,
+	}
+	criticalRunState.aiGoldByOwner[criticalOwnerId] = 100
+	criticalRunState.resources["threat"] = THREAT_SIMULATION.CRITICAL_THRESHOLD
+	var criticalBefore := _unitCount(criticalArmy.units)
+
+	AI_RECRUITMENT_SIMULATION.applyMonthTick(criticalRunState, units)
+
+	if _unitCount(criticalArmy.units) <= criticalBefore:
+		result.addError("AI did not recruit during critical threat food exception.")
+	if _unitCount(criticalArmy.units) > criticalBefore + AI_RECRUITMENT_SIMULATION.MAX_UNITS_PER_COUNTRY_PER_MONTH:
+		result.addError("AI exceeded the per-country limit during critical threat.")
+
+	var dangerOwnerId := GameIds.npcOwnerIdForCountry(&"aiDanger")
+	var dangerRunState := _createAiRecruitmentRunState(dangerOwnerId)
+	var dangerCountry := dangerRunState.countries[&"aiBudget"] as CountryData
+	dangerCountry.goldPerMonth = 0
+	dangerCountry.foodPerMonth = 1
+	var dangerNeighbors: Array[StringName] = [&"playerBorder"]
+	dangerCountry.neighbors = dangerNeighbors
+	var playerNeighbors: Array[StringName] = [&"aiBudget"]
+	var playerCountry := _createCountry(&"playerBorder", "Player Border", GameIds.PLAYER_OWNER_ID, Vector2(180.0, 100.0), playerNeighbors)
+	dangerRunState.countries[playerCountry.id] = playerCountry
+	dangerRunState.armies[&"army_player_border"] = _createTestArmy(&"army_player_border", GameIds.PLAYER_OWNER_ID, playerCountry.id, {
+		GameIds.INFANTRY_UNIT_ID: 8,
+	})
+	var dangerArmy := dangerRunState.armies[&"army_aiBudget"] as ArmyData
+	dangerArmy.units = {
+		GameIds.INFANTRY_UNIT_ID: 1,
+	}
+	dangerRunState.aiGoldByOwner[dangerOwnerId] = 100
+	dangerRunState.resources["threat"] = 0
+	var dangerBefore := _unitCount(dangerArmy.units)
+
+	AI_RECRUITMENT_SIMULATION.applyMonthTick(dangerRunState, units)
+
+	if _unitCount(dangerArmy.units) <= dangerBefore:
+		result.addError("AI did not recruit during acute neighboring player threat.")
+	if int(dangerRunState.aiGoldByOwner.get(dangerOwnerId, 100)) >= 100:
+		result.addError("AI did not spend gold during acute neighboring player threat.")
+	return result
+
+
+func _testAiRecruitmentEnforcesMonthlyLimits() -> ValidationResult:
+	var result := ValidationResult.new()
+	var units := PrototypeContentLoader.loadUnits()
+	var ownerId := GameIds.npcOwnerIdForCountry(&"aiLimit")
+	var runState := RunState.new()
+	var beforeUnitsByCountry := {}
+	for index in range(4):
+		var countryId := StringName("aiLimit%d" % index)
+		var neighbors: Array[StringName] = []
+		var country := _createCountry(countryId, "AI Limit %d" % index, ownerId, Vector2(100.0 + float(index) * 20.0, 100.0), neighbors)
+		country.goldPerMonth = 0
+		country.foodPerMonth = 100
+		country.defense = 10
+		runState.countries[country.id] = country
+		var armyId := StringName("army_%s" % str(country.id))
+		var army := _createTestArmy(armyId, ownerId, country.id, {
+			GameIds.INFANTRY_UNIT_ID: 1,
+		})
+		runState.armies[army.id] = army
+		beforeUnitsByCountry[country.id] = _unitCount(army.units)
+
+	runState.aiGoldByOwner[ownerId] = 1000
+	AI_RECRUITMENT_SIMULATION.applyMonthTick(runState, units)
+
+	var totalBought := 0
+	for countryId in beforeUnitsByCountry.keys():
+		var armyId := StringName("army_%s" % str(countryId))
+		var army := runState.armies[armyId] as ArmyData
+		var bought := _unitCount(army.units) - int(beforeUnitsByCountry.get(countryId, 0))
+		totalBought += bought
+		if bought > AI_RECRUITMENT_SIMULATION.MAX_UNITS_PER_COUNTRY_PER_MONTH:
+			result.addError("AI exceeded per-country monthly recruitment limit for %s." % str(countryId))
+
+	if totalBought > AI_RECRUITMENT_SIMULATION.MAX_UNITS_PER_OWNER_PER_MONTH:
+		result.addError("AI exceeded per-owner monthly recruitment limit.")
+	if totalBought <= 0:
+		result.addError("AI limit test did not recruit any units.")
+	return result
+
+
+func _testAiRecruitmentStopsAtLocalPowerTarget() -> ValidationResult:
+	var result := ValidationResult.new()
+	var units := PrototypeContentLoader.loadUnits()
+	var ownerId := GameIds.npcOwnerIdForCountry(&"aiTargetCap")
+	var runState := _createAiRecruitmentRunState(ownerId)
+	var country := runState.countries[&"aiBudget"] as CountryData
+	var army := runState.armies[&"army_aiBudget"] as ArmyData
+	country.goldPerMonth = 200
+	country.foodPerMonth = 200
+	country.defense = 10
+	runState.aiGoldByOwner[ownerId] = 10000
+
+	for monthIndex in range(20):
+		AI_RECRUITMENT_SIMULATION.applyMonthTick(runState, units)
+
+	var armyPower := COMBAT_SIMULATION.calculateArmyCombatPower(army, units, {}, {})
+	var newTarget := float(country.defense) * AI_RECRUITMENT_SIMULATION.AI_POWER_CAP_MULTIPLIER
+	var oldTarget := float(country.defense) * 40.0
+	if armyPower < newTarget:
+		result.addError("AI did not recruit up to the local power target.")
+	if armyPower >= oldTarget:
+		result.addError("AI kept recruiting up to the old high power cap.")
+	if int(runState.aiGoldByOwner.get(ownerId, 0)) <= 0:
+		result.addError("AI target-cap test consumed all gold instead of stopping by power target.")
 	return result
 
 
@@ -1669,6 +1878,10 @@ func _testRunStateSerializerWritesPureData() -> ValidationResult:
 	var serialized: Dictionary = RUN_STATE_SERIALIZER.serializeRunState(runState)
 	if int(serialized.get("schemaVersion", 0)) != SAVE_FORMAT.SCHEMA_VERSION:
 		result.addError("Serialized RunState schemaVersion is missing.")
+	if not serialized.has("aiGoldByOwner"):
+		result.addError("Serialized RunState is missing owner-based AI gold.")
+	if serialized.has("aiGoldByCountry"):
+		result.addError("Serialized RunState still writes legacy country-based AI gold.")
 	if not RUN_STATE_SERIALIZER.containsOnlyJsonValues(serialized):
 		result.addError("Serialized RunState contains non-JSON values.")
 
@@ -1691,6 +1904,40 @@ func _testRunStateSerializerWritesPureData() -> ValidationResult:
 	var root: Dictionary = SAVE_FORMAT.createRunSaveRoot(serialized)
 	if not SAVE_FORMAT.isValidSaveRoot(root):
 		result.addError("Serialized RunState could not be placed in a valid save root.")
+	return result
+
+
+func _testRunStateSerializerMigratesLegacyAiGold() -> ValidationResult:
+	var result := ValidationResult.new()
+	var ownerId := GameIds.npcOwnerIdForCountry(&"legacy")
+	var runState := RunState.new()
+	var firstNeighbors: Array[StringName] = []
+	var secondNeighbors: Array[StringName] = []
+	var playerNeighbors: Array[StringName] = []
+	var firstCountry := _createCountry(&"legacyA", "Legacy A", ownerId, Vector2(100.0, 100.0), firstNeighbors)
+	var secondCountry := _createCountry(&"legacyB", "Legacy B", ownerId, Vector2(180.0, 100.0), secondNeighbors)
+	var playerCountry := _createCountry(&"legacyPlayer", "Legacy Player", GameIds.PLAYER_OWNER_ID, Vector2(220.0, 100.0), playerNeighbors)
+	runState.countries[firstCountry.id] = firstCountry
+	runState.countries[secondCountry.id] = secondCountry
+	runState.countries[playerCountry.id] = playerCountry
+
+	var serialized: Dictionary = RUN_STATE_SERIALIZER.serializeRunState(runState)
+	serialized.erase("aiGoldByOwner")
+	serialized["aiGoldByCountry"] = {
+		"legacyA": 11,
+		"legacyB": 13,
+		"legacyPlayer": 99,
+	}
+	var loaded := RUN_STATE_SERIALIZER.deserializeRunState(serialized)
+
+	if int(loaded.aiGoldByOwner.get(ownerId, 0)) != 24:
+		result.addError("Legacy aiGoldByCountry was not summed into the owner budget.")
+	if loaded.aiGoldByOwner.has(GameIds.PLAYER_OWNER_ID):
+		result.addError("Legacy player country gold was migrated into AI gold.")
+	var validation := RunStateValidator.validate(loaded)
+	if not validation.isValid():
+		for error in validation.errors:
+			result.addError("Migrated legacy AI gold produced invalid RunState: %s" % error)
 	return result
 
 
@@ -2354,6 +2601,45 @@ func _expectFailure(result: ValidationResult) -> ValidationResult:
 		return wrapper
 
 	return ValidationResult.new()
+
+
+func _createAiRecruitmentRunState(ownerId: StringName) -> RunState:
+	var runState := RunState.new()
+	var neighbors: Array[StringName] = []
+	var country := _createCountry(&"aiBudget", "AI Budget", ownerId, Vector2(100.0, 100.0), neighbors)
+	country.goldPerMonth = 0
+	country.foodPerMonth = 100
+	country.defense = 10
+	runState.countries[country.id] = country
+	runState.armies[&"army_aiBudget"] = _createTestArmy(&"army_aiBudget", ownerId, country.id, {
+		GameIds.INFANTRY_UNIT_ID: 1,
+	})
+	runState.aiGoldByOwner[ownerId] = 0
+	runState.resources = {
+		"gold": 0,
+		"food": 0,
+		"threat": 0,
+	}
+	runState.speed = GameSpeed.Value.Normal
+	runState.runStatus = RunState.RUN_STATUS_ACTIVE
+	return runState
+
+
+func _createTestArmy(
+	armyId: StringName,
+	ownerId: StringName,
+	locationCountryId: StringName,
+	units: Dictionary
+) -> ArmyData:
+	var army := ArmyData.new()
+	army.id = armyId
+	army.ownerId = ownerId
+	army.locationCountryId = locationCountryId
+	army.targetCountryId = GameIds.EMPTY_ID
+	army.units = units.duplicate(true)
+	army.status = ArmyStatus.Value.Stationed
+	army.movementProgress = 0.0
+	return army
 
 
 func _createValidRunState() -> RunState:

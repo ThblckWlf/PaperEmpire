@@ -11,7 +11,8 @@ static func validate(runState: RunState) -> ValidationResult:
 	_validateResources(runState.resources, result)
 	_validateWorldReaction(runState.worldReaction, result)
 	_validateEconomy(runState.economy, result)
-	_validateAiGold(runState.aiGoldByCountry, result)
+	_validateAiGold(runState.aiGoldByOwner, "aiGoldByOwner", result)
+	_validateAiGold(runState.aiGoldByCountry, "aiGoldByCountry", result)
 	_validateUpgrades(runState, result)
 	_validateMiniGoalState(runState, result)
 	_validateRunStats(runState.runStats, result)
@@ -262,13 +263,13 @@ static func _validateRunStats(runStats: Dictionary, result: ValidationResult) ->
 		result.addError("RunStats crownsAwarded is not bool.")
 
 
-static func _validateAiGold(aiGoldByCountry: Dictionary, result: ValidationResult) -> void:
-	for countryId in aiGoldByCountry.keys():
-		var gold = aiGoldByCountry[countryId]
+static func _validateAiGold(aiGold: Dictionary, fieldName: String, result: ValidationResult) -> void:
+	for id in aiGold.keys():
+		var gold = aiGold[id]
 		if not _isNumeric(gold):
-			result.addError("RunState aiGoldByCountry %s is not numeric." % str(countryId))
+			result.addError("RunState %s %s is not numeric." % [fieldName, str(id)])
 		elif float(gold) < 0.0 or is_nan(float(gold)):
-			result.addError("RunState aiGoldByCountry %s is invalid." % str(countryId))
+			result.addError("RunState %s %s is invalid." % [fieldName, str(id)])
 
 
 static func _isNumeric(value: Variant) -> bool:

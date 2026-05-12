@@ -128,7 +128,8 @@ static func _createInitialDefendingArmies(runState: RunState) -> void:
 		army.status = ArmyStatus.Value.Stationed
 		army.movementProgress = 0.0
 		runState.armies[army.id] = army
-		runState.aiGoldByCountry[country.id] = 0
+		if not runState.aiGoldByOwner.has(country.ownerId):
+			runState.aiGoldByOwner[country.ownerId] = 0
 
 
 static func _defenseUnitsForCountry(country: CountryData) -> Dictionary:
