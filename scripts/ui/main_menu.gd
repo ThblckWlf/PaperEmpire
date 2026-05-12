@@ -445,8 +445,9 @@ func _refreshCountrySelectionPanel() -> void:
 		countryButton.text = country.name
 		countryButton.toggle_mode = true
 		countryButton.button_pressed = country.id == selectedStartCountryId
-		countryButton.custom_minimum_size = Vector2(0.0, 44.0)
+		countryButton.custom_minimum_size = Vector2(0.0, 72.0)
 		countryButton.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		countryButton.set_meta("largeButton", true)
 		countryButton.pressed.connect(Callable(self, "_selectStartCountry").bind(country.id))
 		countrySelectionList.add_child(countryButton)
 		countrySelectionButtons[country.id] = countryButton
@@ -886,6 +887,8 @@ func _menuButtons() -> Array[Button]:
 
 
 func _isLargeButton(button: Button) -> bool:
+	if button.has_meta("largeButton"):
+		return true
 	return button == continueRunButton \
 		or button == newRunButton \
 		or button == shopButton \
