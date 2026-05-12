@@ -23,6 +23,7 @@ var draftUnits: Dictionary = {}
 var unitCosts: Dictionary = {}
 var unitNames: Dictionary = {}
 var unitOrder: Array = []
+var hasArmy: bool = false
 var canEdit: bool = false
 var canCreateArmy: bool = false
 var unitEditorRows: Dictionary = {}
@@ -41,22 +42,31 @@ func configure(newEventBus: EventBus) -> void:
 
 func setData(data: Dictionary) -> void:
 	if not bool(data.get("hasArmy", false)):
+		hasArmy = false
 		currentArmyId = GameIds.EMPTY_ID
 		selectedCountryId = StringName(str(data.get("selectedCountryId", "")))
 		canEdit = false
 		canCreateArmy = bool(data.get("canCreateArmy", false))
 		currentUnits = _emptyUnits()
 		draftUnits = currentUnits.duplicate(true)
-		titleLabel.text = str(data.get("name", "No army selected"))
-		statusLabel.text = "Status: -"
-		locationLabel.text = "Location: -"
-		targetLabel.text = "Target: -"
-		unitsLabel.text = "Units: -"
+		unitCosts = {}
+		unitNames = {}
+		unitOrder = [
+			GameIds.INFANTRY_UNIT_ID,
+			GameIds.CAVALRY_UNIT_ID,
+			GameIds.ARTILLERY_UNIT_ID,
+		]
+		titleLabel.text = str(data.get("playerCountryName", "Spielerland"))
+		statusLabel.text = "Keine Armee ausgewählt"
+		locationLabel.visible = false
+		targetLabel.visible = false
+		unitsLabel.visible = false
 		_setPowerAndUpkeep(0.0, 0)
-		_setStatusIcon(UI_ASSET_THEME.ICON_ARMY_PATH)
+		_setStatusIcon(UI_ASSET_THEME.ICON_CROWN_PATH)
 		_updateEditorState()
 		return
 
+	hasArmy = true
 	currentArmyId = StringName(str(data.get("id", "")))
 	selectedCountryId = StringName(str(data.get("selectedCountryId", "")))
 	canEdit = bool(data.get("canEdit", false))
@@ -66,30 +76,30 @@ func setData(data: Dictionary) -> void:
 	unitCosts = (data.get("unitCosts", {}) as Dictionary).duplicate(true)
 	unitNames = (data.get("unitNames", {}) as Dictionary).duplicate(true)
 	unitOrder = (data.get("unitOrder", []) as Array).duplicate()
-	titleLabel.text = str(data.get("name", "Army"))
+	titleLabel.text = str(data.get("playerCountryName", "Spielerland"))
 	var statusText := str(data.get("status", "Unknown"))
-	statusLabel.text = "Status: %s" % statusText
-	locationLabel.text = "Location: %s" % str(data.get("location", "-"))
-	targetLabel.text = "Target: %s" % str(data.get("target", "-"))
-	unitsLabel.text = "Units:\n%s" % "\n".join(data.get("unitRows", []))
+	statusLabel.text = "Armee: %s (%s)" % [str(data.get("name", "Armee")), _statusText(statusText)]
+	locationLabel.visible = false
+	targetLabel.visible = false
+	unitsLabel.visible = false
 	_setPowerAndUpkeep(float(data.get("totalCombatPower", 0.0)), int(data.get("foodUpkeepPerMonth", 0)))
 	_setStatusIcon(UI_ASSET_THEME.iconForArmyStatus(statusText))
 	_updateEditorState()
 
 
 func _applyAssetTheme() -> void:
-	UI_ASSET_THEME.applyPanel(self, UI_ASSET_THEME.PANEL_LARGE_PATH, 38.0, 12.0)
-	UI_ASSET_THEME.applyTitleLabel(titleLabel, 22)
-	UI_ASSET_THEME.applyLabel(statusLabel, 17)
-	UI_ASSET_THEME.applyLabel(locationLabel, 17)
-	UI_ASSET_THEME.applyLabel(targetLabel, 17)
-	UI_ASSET_THEME.applyLabel(unitsLabel, 17)
+	UI_ASSET_THEME.applyPanel(self, UI_ASSET_THEME.PANEL_LARGE_PATH, 38.0, 10.0)
+	UI_ASSET_THEME.applyTitleLabel(titleLabel, 20)
+	UI_ASSET_THEME.applyLabel(statusLabel, 16)
+	UI_ASSET_THEME.applyLabel(locationLabel, 16)
+	UI_ASSET_THEME.applyLabel(targetLabel, 16)
+	UI_ASSET_THEME.applyLabel(unitsLabel, 16)
 	if powerLabel != null:
-		UI_ASSET_THEME.applyLabel(powerLabel, 17)
+		UI_ASSET_THEME.applyLabel(powerLabel, 16)
 	if upkeepLabel != null:
-		UI_ASSET_THEME.applyLabel(upkeepLabel, 17)
+		UI_ASSET_THEME.applyLabel(upkeepLabel, 16)
 	if costLabel != null:
-		UI_ASSET_THEME.applyLabel(costLabel, 17)
+		UI_ASSET_THEME.applyLabel(costLabel, 16)
 	for unitId in unitEditorRows.keys():
 		var row := unitEditorRows[unitId] as Dictionary
 		var label := row.get("label", null) as Label
@@ -103,8 +113,10 @@ func _applyAssetTheme() -> void:
 			UI_ASSET_THEME.applyTextButton(plusButton, false, true)
 	if updateArmyButton != null:
 		UI_ASSET_THEME.applyTextButton(updateArmyButton, false, false)
+		UI_ASSET_THEME.applyButtonIcon(updateArmyButton, UI_ASSET_THEME.ICON_MANAGE_ARMY_PATH, "Armee aktualisieren", 24)
 	if createArmyButton != null:
 		UI_ASSET_THEME.applyTextButton(createArmyButton, false, false)
+		UI_ASSET_THEME.applyButtonIcon(createArmyButton, UI_ASSET_THEME.ICON_MANAGE_ARMY_PATH, "Neue Armee im ausgewählten Land", 24)
 	statusIcon = _ensureStatusIcon()
 	_setStatusIcon(UI_ASSET_THEME.ICON_ARMY_PATH)
 
@@ -135,9 +147,9 @@ func _ensureManagementControls() -> void:
 	if column == null:
 		return
 
-	powerLabel = _ensureLabel(column, "PowerLabel", "Power: -")
-	upkeepLabel = _ensureLabel(column, "UpkeepLabel", "Food upkeep/month: -")
-	costLabel = _ensureLabel(column, "PendingCostLabel", "Pending cost: 0")
+	powerLabel = _ensureLabel(column, "PowerLabel", "Stärke: -")
+	upkeepLabel = _ensureLabel(column, "UpkeepLabel", "Nahrung/Monat: -")
+	costLabel = _ensureLabel(column, "PendingCostLabel", "Kosten: 0")
 
 	var editorBox := column.get_node_or_null("UnitEditorRows") as VBoxContainer
 	if editorBox == null:
@@ -153,16 +165,18 @@ func _ensureManagementControls() -> void:
 	if updateArmyButton == null:
 		updateArmyButton = Button.new()
 		updateArmyButton.name = "UpdateArmyButton"
-		updateArmyButton.text = "Update Army"
+		updateArmyButton.text = "Armee verwalten"
 		column.add_child(updateArmyButton)
+	updateArmyButton.text = "Armee verwalten"
 	updateArmyButton.pressed.connect(_onUpdateArmyPressed)
 
 	createArmyButton = column.get_node_or_null("CreateArmyButton") as Button
 	if createArmyButton == null:
 		createArmyButton = Button.new()
 		createArmyButton.name = "CreateArmyButton"
-		createArmyButton.text = "Create Army"
+		createArmyButton.text = "Neue Armee"
 		column.add_child(createArmyButton)
+	createArmyButton.text = "Neue Armee"
 	createArmyButton.pressed.connect(_onCreateArmyPressed)
 
 
@@ -190,6 +204,11 @@ func _ensureUnitEditorRow(parent: VBoxContainer, unitId: StringName) -> void:
 		label.name = "CountLabel"
 		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		rowNode.add_child(label)
+	if rowNode.get_node_or_null("UnitIcon") == null:
+		var icon := UI_ASSET_THEME.makeIcon(UI_ASSET_THEME.iconForUnit(unitId), Vector2(24.0, 24.0))
+		icon.name = "UnitIcon"
+		rowNode.add_child(icon)
+		rowNode.move_child(icon, 0)
 
 	var minusButton := rowNode.get_node_or_null("MinusButton") as Button
 	if minusButton == null:
@@ -256,11 +275,17 @@ func _updateEditorState() -> void:
 		var label := row.get("label", null) as Label
 		var minusButton := row.get("minusButton", null) as Button
 		var plusButton := row.get("plusButton", null) as Button
+		var rowNode: Control = null
+		if label != null:
+			rowNode = label.get_parent() as Control
 		var unitName := str(unitNames.get(unitId, str(unitId).capitalize()))
 		var count := int(draftUnits.get(unitId, 0))
 		var cost := int(unitCosts.get(unitId, 0))
+		if rowNode != null:
+			rowNode.visible = hasArmy and canEdit
 		if label != null:
-			label.text = "%s: %d (%dg)" % [unitName, count, cost]
+			label.text = "%d (%d Gold)" % [count, cost]
+			label.tooltip_text = unitName
 		if minusButton != null:
 			minusButton.disabled = not canEdit or count <= 0
 		if plusButton != null:
@@ -268,11 +293,14 @@ func _updateEditorState() -> void:
 
 	var pendingCost := _pendingGoldCost()
 	if costLabel != null:
-		costLabel.text = "Pending cost: %d gold" % pendingCost
+		costLabel.text = "Kosten: %d Gold" % pendingCost
+		costLabel.visible = hasArmy and canEdit
 	if updateArmyButton != null:
 		updateArmyButton.disabled = eventBus == null or not canEdit or not _draftChanged()
+		updateArmyButton.visible = hasArmy and canEdit
 	if createArmyButton != null:
 		createArmyButton.disabled = eventBus == null or not canCreateArmy
+		createArmyButton.visible = canCreateArmy
 
 
 func _pendingGoldCost() -> int:
@@ -294,9 +322,11 @@ func _draftChanged() -> bool:
 
 func _setPowerAndUpkeep(power: float, upkeep: int) -> void:
 	if powerLabel != null:
-		powerLabel.text = "Power: %.1f" % power
+		powerLabel.text = "Stärke: %.0f" % power
+		powerLabel.visible = hasArmy
 	if upkeepLabel != null:
-		upkeepLabel.text = "Food upkeep/month: %d" % upkeep
+		upkeepLabel.text = "Nahrung/Monat: -%d" % upkeep
+		upkeepLabel.visible = hasArmy
 
 
 func _emptyUnits() -> Dictionary:
@@ -305,3 +335,21 @@ func _emptyUnits() -> Dictionary:
 		GameIds.CAVALRY_UNIT_ID: 0,
 		GameIds.ARTILLERY_UNIT_ID: 0,
 	}
+
+
+func _statusText(statusText: String) -> String:
+	match statusText.to_lower():
+		"stationed":
+			return "bereit"
+		"moving":
+			return "unterwegs"
+		"attacking":
+			return "Angriff"
+		"defending":
+			return "Verteidigung"
+		"fighting":
+			return "Kampf"
+		"defeated":
+			return "besiegt"
+		_:
+			return statusText

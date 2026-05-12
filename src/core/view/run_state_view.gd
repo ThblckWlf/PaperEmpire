@@ -4,18 +4,25 @@ class_name RunStateView
 
 const THREAT_SIMULATION := preload("res://src/core/simulation/threat_simulation.gd")
 const COMBAT_SIMULATION := preload("res://src/core/simulation/combat_simulation.gd")
+const ECONOMY_SIMULATION := preload("res://src/core/simulation/economy_simulation.gd")
 
 
 static func createTopBarData(runState: RunState) -> Dictionary:
 	if runState == null:
 		return {}
 
+	var monthlyIncome := ECONOMY_SIMULATION.calculateMonthlyIncome(runState)
+	var foodUpkeep := ECONOMY_SIMULATION.calculateArmyFoodUpkeep(runState, PrototypeContentLoader.loadUnits())
+	var foodPerMonth := int(monthlyIncome.get("food", 0)) - foodUpkeep
 	return {
 		"gold": int(runState.resources.get("gold", 0)),
 		"food": int(runState.resources.get("food", 0)),
 		"threat": int(runState.resources.get("threat", 0)),
 		"threatState": THREAT_SIMULATION.threatState(int(runState.resources.get("threat", 0))),
 		"armyStrength": _totalArmyUnits(runState),
+		"goldPerMonth": int(monthlyIncome.get("gold", 0)),
+		"foodPerMonth": foodPerMonth,
+		"foodUpkeepPerMonth": foodUpkeep,
 		"dateText": _dateText(runState.time),
 		"speed": int(runState.speed),
 		"isFoodShortage": bool(runState.economy.get("isFoodShortage", false)),
@@ -54,13 +61,16 @@ static func createCountryPanelData(
 		stationedUnitCount += armyUnitCount
 		stationedArmyRows.append("%s: %d" % [str(army.id), armyUnitCount])
 	if stationedArmyRows.is_empty():
-		stationedArmyRows.append("None")
+		stationedArmyRows.append("Keine")
+
+	var canAttack := _canSelectedArmyAttack(runState, selectedArmyId, country.id)
 
 	return {
 		"hasCountry": true,
 		"id": country.id,
 		"name": country.name,
 		"ownerId": country.ownerId,
+		"ownerText": _ownerText(runState, country.ownerId),
 		"isPlayerOwned": country.ownerId == GameIds.PLAYER_OWNER_ID,
 		"canRecruit": country.ownerId == GameIds.PLAYER_OWNER_ID and not bool(runState.economy.get("recruitmentBlocked", false)),
 		"goldPerMonth": country.goldPerMonth,
@@ -68,9 +78,11 @@ static func createCountryPanelData(
 		"defense": country.defense,
 		"stationedArmyCount": stationedArmyCount,
 		"stationedUnitCount": stationedUnitCount,
+		"stationedArmySummary": "%d / %d" % [stationedArmyCount, stationedUnitCount],
 		"stationedArmyRows": stationedArmyRows,
 		"selectedArmyId": selectedArmyId,
-		"canAttack": _canSelectedArmyAttack(runState, selectedArmyId, country.id),
+		"canAttack": canAttack,
+		"attackBlockedReason": "" if canAttack else _attackBlockedReason(runState, selectedArmyId, country.id),
 	}
 
 
@@ -83,6 +95,8 @@ static func createArmyPanelData(
 		return {
 			"hasArmy": false,
 			"name": "No army selected",
+			"playerCountryId": _playerCountryId(runState),
+			"playerCountryName": _playerCountryName(runState),
 			"selectedCountryId": selectedCountryId,
 			"canCreateArmy": _canCreateArmyInCountry(runState, selectedCountryId),
 		}
@@ -92,6 +106,8 @@ static func createArmyPanelData(
 		return {
 			"hasArmy": false,
 			"name": "No army selected",
+			"playerCountryId": _playerCountryId(runState),
+			"playerCountryName": _playerCountryName(runState),
 		}
 
 	var locationName := _countryName(runState, army.locationCountryId)
@@ -116,6 +132,8 @@ static func createArmyPanelData(
 		"ownerId": army.ownerId,
 		"isPlayerOwned": army.ownerId == GameIds.PLAYER_OWNER_ID,
 		"canEdit": army.ownerId == GameIds.PLAYER_OWNER_ID and army.status == ArmyStatus.Value.Stationed,
+		"playerCountryId": _playerCountryId(runState),
+		"playerCountryName": _playerCountryName(runState),
 		"selectedCountryId": selectedCountryId,
 		"canCreateArmy": _canCreateArmyInCountry(runState, selectedCountryId),
 		"status": _statusText(army.status),
@@ -144,6 +162,11 @@ static func createMiniGoalPanelData(runState: RunState) -> Dictionary:
 
 	var rows: Array[Dictionary] = []
 	for goal in runState.miniGoals:
+		if rows.size() >= 3:
+			break
+		if bool(goal.get("isFailed", false)) or bool(goal.get("isRewardClaimed", false)):
+			continue
+
 		var progress := float(goal.get("progress", 0.0))
 		var target := float(goal.get("target", 1.0))
 		var isCompleted := bool(goal.get("isCompleted", false))
@@ -151,6 +174,9 @@ static func createMiniGoalPanelData(runState: RunState) -> Dictionary:
 		rows.append({
 			"id": StringName(str(goal.get("id", ""))),
 			"name": str(goal.get("name", "Goal")),
+			"goalType": str(goal.get("goalType", "")),
+			"shortText": _goalShortText(goal),
+			"description": str(goal.get("description", "")),
 			"progressText": "%d/%d" % [int(progress), int(target)],
 			"isCompleted": isCompleted,
 			"isRewardClaimed": isRewardClaimed,
@@ -185,6 +211,26 @@ static func _unitCount(units: Dictionary) -> int:
 	return total
 
 
+static func _playerCountryId(runState: RunState) -> StringName:
+	if runState == null:
+		return GameIds.EMPTY_ID
+
+	var countryIds := runState.countries.keys()
+	countryIds.sort()
+	for countryId in countryIds:
+		var country := runState.countries[countryId] as CountryData
+		if country != null and country.ownerId == GameIds.PLAYER_OWNER_ID:
+			return country.id
+	return GameIds.EMPTY_ID
+
+
+static func _playerCountryName(runState: RunState) -> String:
+	var countryId := _playerCountryId(runState)
+	if countryId == GameIds.EMPTY_ID:
+		return "Spielerland"
+	return _countryName(runState, countryId)
+
+
 static func _countryName(runState: RunState, countryId: StringName) -> String:
 	if not runState.countries.has(countryId):
 		return "-"
@@ -193,6 +239,25 @@ static func _countryName(runState: RunState, countryId: StringName) -> String:
 	if country == null:
 		return "-"
 	return country.name
+
+
+static func _ownerText(runState: RunState, ownerId: StringName) -> String:
+	match ownerId:
+		GameIds.PLAYER_OWNER_ID:
+			return "Spieler"
+		GameIds.NEUTRAL_OWNER_ID:
+			return "Neutral"
+		GameIds.WORLD_OWNER_ID:
+			return "Welt"
+
+	var ownerText := str(ownerId)
+	if GameIds.isNpcOwnerId(ownerId):
+		var countryId := StringName(ownerText.substr(GameIds.NPC_OWNER_PREFIX.length()))
+		var countryName := _countryName(runState, countryId)
+		if countryName != "-":
+			return countryName
+		return "Gegner"
+	return ownerText
 
 
 static func _statusText(status: int) -> String:
@@ -287,4 +352,64 @@ static func _canSelectedArmyAttack(runState: RunState, armyId: StringName, targe
 		return false
 
 	var sourceCountry := runState.countries.get(army.locationCountryId, null) as CountryData
-	return sourceCountry != null and sourceCountry.neighbors.has(targetCountryId)
+	return sourceCountry != null and sourceCountry.neighbors.has(targetCountryId) and not _hasActiveBattleFor(runState, armyId, targetCountryId)
+
+
+static func _attackBlockedReason(runState: RunState, armyId: StringName, targetCountryId: StringName) -> String:
+	if runState == null or not runState.countries.has(targetCountryId):
+		return "Kein Ziel"
+
+	var targetCountry := runState.countries[targetCountryId] as CountryData
+	if targetCountry == null:
+		return "Kein Ziel"
+	if targetCountry.ownerId == GameIds.PLAYER_OWNER_ID:
+		return ""
+
+	if armyId == GameIds.EMPTY_ID or not runState.armies.has(armyId):
+		return "Keine verfügbare Armee"
+
+	var army := runState.armies[armyId] as ArmyData
+	if army == null or army.ownerId != GameIds.PLAYER_OWNER_ID:
+		return "Keine verfügbare Armee"
+	if army.status != ArmyStatus.Value.Stationed:
+		return "Armee unterwegs"
+	if _unitCount(army.units) <= 0:
+		return "Keine verfügbare Armee"
+
+	var sourceCountry := runState.countries.get(army.locationCountryId, null) as CountryData
+	if sourceCountry == null or not sourceCountry.neighbors.has(targetCountryId):
+		return "Kein Nachbarland"
+	if _hasActiveBattleFor(runState, armyId, targetCountryId):
+		return "Kampf läuft"
+	return ""
+
+
+static func _hasActiveBattleFor(runState: RunState, armyId: StringName, targetCountryId: StringName) -> bool:
+	for battleId in runState.battles.keys():
+		var battle = runState.battles[battleId]
+		if battle == null:
+			continue
+		if battle.status != BattleStatus.Value.Active:
+			continue
+		if battle.attackerArmyId == armyId or battle.targetCountryId == targetCountryId:
+			return true
+	return false
+
+
+static func _goalShortText(goal: Dictionary) -> String:
+	var target := int(goal.get("target", 1))
+	match str(goal.get("goalType", "")):
+		"conquerCountries":
+			return "Erobere %d Länder" % target
+		"reachGold":
+			return "Erreiche %d Gold" % target
+		"reachArmyPower":
+			return "Besitze %d Armee" % target
+		"defeatStrongerCountry":
+			return "Besiege stärkeres Land"
+		"holdThreatenedCountryMonths":
+			return "Halte Grenze %dM" % target
+		"conquerWithThreatBelow":
+			return "Erobere bei < %d%%" % int(goal.get("limit", 0))
+		_:
+			return str(goal.get("name", "Ziel"))

@@ -69,5 +69,5 @@ func _applyAssetTheme() -> void:
 
 func _applyTimeButton(button: Button, texturePath: String, tooltipText: String) -> void:
 	UI_ASSET_THEME.applyTextButton(button, false, true)
-	UI_ASSET_THEME.applyButtonIcon(button, texturePath, tooltipText, 26)
-	button.custom_minimum_size = Vector2(108.0, 46.0)
+	UI_ASSET_THEME.applyButtonIcon(button, texturePath, tooltipText, 24)
+	button.custom_minimum_size = Vector2(88.0, 40.0)

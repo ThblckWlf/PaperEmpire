@@ -452,31 +452,31 @@ func _applyLayout() -> void:
 	topBar.offset_left = 0.0
 	topBar.offset_top = 0.0
 	topBar.offset_right = 0.0
-	topBar.offset_bottom = 56.0
+	topBar.offset_bottom = 48.0
 
-	leftPanel.set_anchors_preset(Control.PRESET_LEFT_WIDE)
-	leftPanel.offset_left = 16.0
-	leftPanel.offset_top = 72.0
-	leftPanel.offset_right = 296.0
-	leftPanel.offset_bottom = -360.0
+	leftPanel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	leftPanel.offset_left = 14.0
+	leftPanel.offset_top = 62.0
+	leftPanel.offset_right = 274.0
+	leftPanel.offset_bottom = 438.0
 
 	miniGoalPanel.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	miniGoalPanel.offset_left = 16.0
-	miniGoalPanel.offset_top = -344.0
-	miniGoalPanel.offset_right = 296.0
-	miniGoalPanel.offset_bottom = -88.0
+	miniGoalPanel.offset_left = 14.0
+	miniGoalPanel.offset_top = -150.0
+	miniGoalPanel.offset_right = 360.0
+	miniGoalPanel.offset_bottom = -16.0
 
-	rightPanel.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
-	rightPanel.offset_left = -356.0
-	rightPanel.offset_top = 72.0
-	rightPanel.offset_right = -16.0
-	rightPanel.offset_bottom = -88.0
+	rightPanel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	rightPanel.offset_left = -336.0
+	rightPanel.offset_top = 62.0
+	rightPanel.offset_right = -14.0
+	rightPanel.offset_bottom = 392.0
 
-	bottomBar.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	bottomBar.offset_left = 0.0
-	bottomBar.offset_top = -72.0
-	bottomBar.offset_right = 0.0
-	bottomBar.offset_bottom = 0.0
+	bottomBar.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	bottomBar.offset_left = -456.0
+	bottomBar.offset_top = -80.0
+	bottomBar.offset_right = -16.0
+	bottomBar.offset_bottom = -16.0
 
 	modalLayer.set_anchors_preset(Control.PRESET_FULL_RECT)
 	modalLayer.offset_left = 0.0

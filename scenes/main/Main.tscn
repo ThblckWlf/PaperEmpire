@@ -75,15 +75,15 @@ text = "Gold: 0"
 
 [node name="FoodLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer" unique_id=1815225628]
 layout_mode = 2
-text = "Food: 0"
+text = "Nahrung: 0"
 
 [node name="ArmyLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer" unique_id=781415729]
 layout_mode = 2
-text = "Army: 0"
+text = "Armee: 0"
 
 [node name="ThreatLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer" unique_id=490760524]
 layout_mode = 2
-text = "Threat: 0"
+text = "Bedrohung: 0%"
 
 [node name="ShortageLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer" unique_id=1147714683]
 layout_mode = 2
@@ -113,23 +113,23 @@ theme_override_constants/separation = 8
 
 [node name="TitleLabel" type="Label" parent="GameRoot/UIRoot/Root/LeftPanel/MarginContainer/VBoxContainer" unique_id=1423499375]
 layout_mode = 2
-text = "Paper Empire"
+text = "Spielerland"
 
 [node name="RunLabel" type="Label" parent="GameRoot/UIRoot/Root/LeftPanel/MarginContainer/VBoxContainer" unique_id=1951059697]
 layout_mode = 2
-text = "Status: -"
+text = "Keine Armee ausgewählt"
 
 [node name="LocationLabel" type="Label" parent="GameRoot/UIRoot/Root/LeftPanel/MarginContainer/VBoxContainer" unique_id=1394818814]
 layout_mode = 2
-text = "Location: -"
+text = ""
 
 [node name="TargetLabel" type="Label" parent="GameRoot/UIRoot/Root/LeftPanel/MarginContainer/VBoxContainer" unique_id=433737741]
 layout_mode = 2
-text = "Target: -"
+text = ""
 
 [node name="UnitsLabel" type="Label" parent="GameRoot/UIRoot/Root/LeftPanel/MarginContainer/VBoxContainer" unique_id=891287509]
 layout_mode = 2
-text = "Units: -"
+text = ""
 
 [node name="MiniGoalPanel" type="PanelContainer" parent="GameRoot/UIRoot/Root" unique_id=242685210]
 layout_mode = 1
@@ -187,7 +187,7 @@ theme_override_constants/separation = 8
 
 [node name="TitleLabel" type="Label" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer" unique_id=1337508465]
 layout_mode = 2
-text = "No country selected"
+text = "Land auswählen"
 
 [node name="OwnerLabel" type="Label" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer" unique_id=850924097]
 layout_mode = 2
@@ -195,23 +195,23 @@ text = "Owner: -"
 
 [node name="GoldLabel" type="Label" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer" unique_id=913195595]
 layout_mode = 2
-text = "Gold/month: -"
+text = "Gold/Monat: -"
 
 [node name="FoodLabel" type="Label" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer" unique_id=247871974]
 layout_mode = 2
-text = "Food/month: -"
+text = "Nahrung/Monat: -"
 
 [node name="DefenseLabel" type="Label" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer" unique_id=2044015090]
 layout_mode = 2
-text = "Defense: -"
+text = "Verteidigung: -"
 
 [node name="ArmiesLabel" type="Label" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer" unique_id=1466968773]
 layout_mode = 2
-text = "Armies: -"
+text = "Armeen: -"
 
 [node name="RecruitLabel" type="Label" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer" unique_id=1220746462]
 layout_mode = 2
-text = "Recruitment: -"
+text = "Rekrutieren"
 
 [node name="RecruitButtons" type="HBoxContainer" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer" unique_id=746934037]
 layout_mode = 2
@@ -219,19 +219,19 @@ theme_override_constants/separation = 6
 
 [node name="InfantryButton" type="Button" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer/RecruitButtons" unique_id=623104045]
 layout_mode = 2
-text = "+Inf"
+text = "+1"
 
 [node name="CavalryButton" type="Button" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer/RecruitButtons" unique_id=733108627]
 layout_mode = 2
-text = "+Cav"
+text = "+1"
 
 [node name="ArtilleryButton" type="Button" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer/RecruitButtons" unique_id=2072816172]
 layout_mode = 2
-text = "+Art"
+text = "+1"
 
 [node name="CreateArmyButton" type="Button" parent="GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer" unique_id=1831348692]
 layout_mode = 2
-text = "Create Army"
+text = "Neue Armee"
 
 [node name="BottomBar" type="PanelContainer" parent="GameRoot/UIRoot/Root" unique_id=2047406337]
 layout_mode = 1

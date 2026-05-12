@@ -32,24 +32,27 @@ func setData(data: Dictionary) -> void:
 	var rows: Array = data.get("goalRows", [])
 	for index in range(goalButtons.size()):
 		var button := goalButtons[index]
-		if index >= rows.size() or not (rows[index] is Dictionary):
+		if index >= 3 or index >= rows.size() or not (rows[index] is Dictionary):
 			button.text = "-"
 			button.disabled = true
 			button.icon = null
+			button.visible = false
 			continue
 
+		button.visible = true
 		var row := rows[index] as Dictionary
 		goalIds.append(StringName(str(row.get("id", ""))))
 		var suffix := ""
 		if bool(row.get("isRewardClaimed", false)):
-			suffix = " claimed"
+			suffix = " erledigt"
 		elif bool(row.get("canClaim", false)):
-			suffix = " claim"
-		button.text = "%s %s%s" % [
-			str(row.get("name", "Goal")),
+			suffix = " abholen"
+		button.text = "%s: %s%s" % [
+			str(row.get("shortText", row.get("name", "Ziel"))),
 			str(row.get("progressText", "0/1")),
 			suffix,
 		]
+		button.tooltip_text = str(row.get("description", ""))
 		button.disabled = not bool(row.get("canClaim", false)) or eventBus == null
 		_applyGoalButtonIcon(button, row)
 
@@ -75,7 +78,7 @@ func _applyAssetTheme() -> void:
 	UI_ASSET_THEME.applyPanel(self, UI_ASSET_THEME.PANEL_SMALL_PATH, 32.0, 8.0)
 	for button in goalButtons:
 		UI_ASSET_THEME.applyListButton(button)
-		button.custom_minimum_size = Vector2(0.0, 38.0)
+		button.custom_minimum_size = Vector2(0.0, 32.0)
 
 
 func _applyGoalButtonIcon(button: Button, row: Dictionary) -> void:
@@ -84,4 +87,18 @@ func _applyGoalButtonIcon(button: Button, row: Dictionary) -> void:
 	elif bool(row.get("canClaim", false)):
 		UI_ASSET_THEME.applyButtonIcon(button, UI_ASSET_THEME.ICON_CONFIRM_PATH, "Claim reward", 22)
 	else:
-		UI_ASSET_THEME.applyButtonIcon(button, UI_ASSET_THEME.ICON_HELP_PATH, "Mini goal progress", 22)
+		UI_ASSET_THEME.applyButtonIcon(button, _iconForGoalType(str(row.get("goalType", ""))), "Mini goal progress", 22)
+
+
+func _iconForGoalType(goalType: String) -> String:
+	match goalType:
+		"reachGold":
+			return UI_ASSET_THEME.ICON_GOLD_PATH
+		"reachArmyPower":
+			return UI_ASSET_THEME.ICON_ARMY_PATH
+		"holdThreatenedCountryMonths", "conquerWithThreatBelow":
+			return UI_ASSET_THEME.ICON_WARNING_PATH
+		"conquerCountries", "defeatStrongerCountry":
+			return UI_ASSET_THEME.ICON_ATTACK_PATH
+		_:
+			return UI_ASSET_THEME.ICON_HELP_PATH
