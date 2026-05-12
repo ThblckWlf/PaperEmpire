@@ -4,9 +4,10 @@ class_name CombatSimulation
 
 const BATTLE_DURATION_SECONDS: float = 6.0
 const COUNTRY_DEFENSE_POWER_MULTIPLIER: float = 8.0
-const MIN_WIN_CASUALTY_RATE: float = 0.05
+const MIN_WIN_CASUALTY_RATE: float = 0.10
 const MAX_WIN_CASUALTY_RATE: float = 0.35
-const LOSS_CASUALTY_RATE: float = 0.55
+const MIN_LOSS_CASUALTY_RATE: float = 0.70
+const MAX_LOSS_CASUALTY_RATE: float = 1.0
 const MIN_CASUALTIES_WHEN_DAMAGED: int = 1
 const BATTLE_DATA := preload("res://src/core/model/battle_data.gd")
 
@@ -21,9 +22,11 @@ static func calculateArmyCombatPower(
 		return 0.0
 
 	var targetDefense := int(context.get("targetDefense", 0))
+	var opposingUnits := _dictionaryValue(context.get("opposingUnits", {}))
+	var infantryCount := maxi(0, int(army.units.get(GameIds.INFANTRY_UNIT_ID, army.units.get(str(GameIds.INFANTRY_UNIT_ID), 0))))
 	var totalPower := 0.0
 	for unitId in army.units.keys():
-		var amount := int(army.units.get(unitId, 0))
+		var amount := maxi(0, int(army.units.get(unitId, 0)))
 		if amount <= 0:
 			continue
 
@@ -32,10 +35,10 @@ static func calculateArmyCombatPower(
 			continue
 
 		var unitPower := float(amount * unitData.combatPower)
-		if unitData.id == GameIds.CAVALRY_UNIT_ID:
-			unitPower *= 1.0 + float(unitData.bonuses.get("flanking", 0.0))
-		elif unitData.id == GameIds.ARTILLERY_UNIT_ID and targetDefense > 0:
-			unitPower *= 1.0 + float(unitData.bonuses.get("fortificationDamage", 0.0))
+		unitPower *= _artillerySupportMultiplier(unitData, amount, infantryCount)
+		unitPower *= _counterMultiplier(unitData, amount, opposingUnits)
+		if unitData.id == GameIds.ARTILLERY_UNIT_ID and targetDefense > 0:
+			unitPower *= float(unitData.bonuses.get("defenseDamageMultiplier", 1.0))
 
 		totalPower += unitPower
 
@@ -62,35 +65,63 @@ static func startAttack(
 	runState: RunState,
 	armyId: StringName,
 	targetCountryId: StringName,
-	units: Array[UnitData]
+	_units: Array[UnitData]
 ) -> Dictionary:
 	var result := _validateAttack(runState, armyId, targetCountryId)
 	if not bool(result.get("accepted", false)):
 		return result
 
 	var army := runState.armies[armyId] as ArmyData
-	var targetCountry := runState.countries[targetCountryId] as CountryData
-	var battle = BATTLE_DATA.new()
-	battle.id = _nextBattleId(runState)
-	battle.attackerArmyId = army.id
-	battle.sourceCountryId = army.locationCountryId
-	battle.targetCountryId = targetCountryId
-	battle.status = BattleStatus.Value.Active
-	battle.durationSeconds = BATTLE_DURATION_SECONDS
-	battle.attackerPower = calculateArmyCombatPower(army, units, runState.economy, {
-		"targetDefense": targetCountry.defense,
-	})
-	battle.defenderPower = calculateCountryDefensePower(targetCountry, runState.upgradeEffects, runState.worldReaction)
-	runState.battles[battle.id] = battle
-
 	army.status = ArmyStatus.Value.Attacking
 	army.targetCountryId = targetCountryId
 	army.movementProgress = 0.0
+
+	result["sourceCountryId"] = army.locationCountryId
+	result["isAttack"] = true
+	return result
+
+
+static func beginBattleAfterArrival(
+	runState: RunState,
+	armyId: StringName,
+	sourceCountryId: StringName,
+	targetCountryId: StringName,
+	units: Array[UnitData]
+) -> Dictionary:
+	var result := _validateBattleStart(runState, armyId, sourceCountryId, targetCountryId)
+	if not bool(result.get("accepted", false)):
+		return result
+
+	var army := runState.armies[armyId] as ArmyData
+	var targetCountry := runState.countries[targetCountryId] as CountryData
+	var defenderArmyIds := _defenderArmyIds(runState, targetCountryId, army.ownerId)
+	var battle = BATTLE_DATA.new()
+	battle.id = _nextBattleId(runState)
+	battle.attackerArmyId = army.id
+	battle.defenderArmyIds = defenderArmyIds
+	battle.sourceCountryId = sourceCountryId
+	battle.targetCountryId = targetCountryId
+	battle.status = BattleStatus.Value.Active
+	battle.durationSeconds = BATTLE_DURATION_SECONDS
+	battle.attackerPower = _calculateAttackerBattlePower(runState, battle, units)
+	battle.defenderPower = _calculateDefenderBattlePower(runState, battle, units)
+	runState.battles[battle.id] = battle
+
+	army.status = ArmyStatus.Value.Fighting
+	army.targetCountryId = targetCountryId
+	for defenderArmyId in defenderArmyIds:
+		var defender := runState.armies.get(defenderArmyId, null) as ArmyData
+		if defender != null:
+			defender.status = ArmyStatus.Value.Defending
+			defender.targetCountryId = sourceCountryId
+			defender.movementProgress = 0.0
 
 	result["battleId"] = battle.id
 	result["sourceCountryId"] = battle.sourceCountryId
 	result["attackerPower"] = battle.attackerPower
 	result["defenderPower"] = battle.defenderPower
+	result["defenderArmyIds"] = battle.defenderArmyIds.duplicate()
+	result["countryDefensePower"] = calculateCountryDefensePower(targetCountry, runState.upgradeEffects, runState.worldReaction)
 	return result
 
 
@@ -122,26 +153,43 @@ static func _finishBattle(runState: RunState, battle: Variant, units: Array[Unit
 		battle.status = BattleStatus.Value.Ended
 		return events
 
-	battle.attackerPower = calculateArmyCombatPower(army, units, runState.economy, {
-		"targetDefense": targetCountry.defense,
-	})
-	battle.defenderPower = calculateCountryDefensePower(targetCountry, runState.upgradeEffects, runState.worldReaction)
+	battle.attackerPower = _calculateAttackerBattlePower(runState, battle, units)
+	battle.defenderPower = _calculateDefenderBattlePower(runState, battle, units)
 	battle.attackerWon = battle.attackerPower >= battle.defenderPower
 	battle.winnerOwnerId = GameIds.PLAYER_OWNER_ID if battle.attackerWon else targetCountry.ownerId
 	var previousOwnerId := targetCountry.ownerId
 
 	if battle.attackerWon:
-		var casualtyRate := clampf(battle.defenderPower / maxf(battle.attackerPower, 1.0) * 0.25, MIN_WIN_CASUALTY_RATE, MAX_WIN_CASUALTY_RATE)
-		battle.casualties = _applyCasualties(army, casualtyRate)
+		var attackerCasualtyRate := _winnerCasualtyRate(battle.attackerPower, battle.defenderPower)
+		var attackerCasualties := _applyCasualties(army, attackerCasualtyRate)
+		var defenderCasualties := _applyDefenderCasualties(runState, battle.defenderArmyIds, MAX_LOSS_CASUALTY_RATE)
+		_removeDefenderArmies(runState, battle.defenderArmyIds)
 		targetCountry.ownerId = GameIds.PLAYER_OWNER_ID
 		army.locationCountryId = battle.targetCountryId
 		army.status = ArmyStatus.Value.Stationed
+		army.targetCountryId = GameIds.EMPTY_ID
+		battle.casualties = {
+			"attacker": attackerCasualties,
+			"defenders": defenderCasualties,
+		}
 	else:
-		battle.casualties = _applyCasualties(army, LOSS_CASUALTY_RATE)
-		army.status = ArmyStatus.Value.Defeated if _unitCount(army.units) <= 0 else ArmyStatus.Value.Stationed
+		var defenderCasualtyRate := _winnerCasualtyRate(battle.defenderPower, battle.attackerPower)
+		var attackerCasualtyRate := _loserCasualtyRate(battle.attackerPower, battle.defenderPower)
+		var defenderCasualties := _applyDefenderCasualties(runState, battle.defenderArmyIds, defenderCasualtyRate)
+		var attackerCasualties := _applyCasualties(army, attackerCasualtyRate)
+		_restoreDefenderArmies(runState, battle.defenderArmyIds)
+		if _unitCount(army.units) <= 0:
+			runState.armies.erase(army.id)
+		else:
+			army.locationCountryId = battle.sourceCountryId
+			army.status = ArmyStatus.Value.Stationed
+			army.targetCountryId = GameIds.EMPTY_ID
+			army.movementProgress = 0.0
+		battle.casualties = {
+			"attacker": attackerCasualties,
+			"defenders": defenderCasualties,
+		}
 
-	army.targetCountryId = GameIds.EMPTY_ID
-	army.movementProgress = 0.0
 	battle.status = BattleStatus.Value.Ended
 	battle.elapsedSeconds = battle.durationSeconds
 
@@ -226,14 +274,130 @@ static func _validateAttack(runState: RunState, armyId: StringName, targetCountr
 	return result
 
 
+static func _validateBattleStart(
+	runState: RunState,
+	armyId: StringName,
+	sourceCountryId: StringName,
+	targetCountryId: StringName
+) -> Dictionary:
+	var result := {
+		"accepted": false,
+		"armyId": armyId,
+		"sourceCountryId": sourceCountryId,
+		"targetCountryId": targetCountryId,
+		"reason": "",
+	}
+	if runState == null:
+		result["reason"] = "missing_run_state"
+		return result
+
+	if not runState.armies.has(armyId):
+		result["reason"] = "unknown_army"
+		return result
+
+	if not runState.countries.has(sourceCountryId) or not runState.countries.has(targetCountryId):
+		result["reason"] = "unknown_country"
+		return result
+
+	var army := runState.armies[armyId] as ArmyData
+	if army == null:
+		result["reason"] = "invalid_army"
+		return result
+
+	if army.ownerId != GameIds.PLAYER_OWNER_ID:
+		result["reason"] = "army_not_owned"
+		return result
+
+	if army.locationCountryId != targetCountryId:
+		result["reason"] = "army_not_at_target"
+		return result
+
+	var targetCountry := runState.countries[targetCountryId] as CountryData
+	if targetCountry == null or targetCountry.ownerId == GameIds.PLAYER_OWNER_ID:
+		result["reason"] = "invalid_target_country"
+		return result
+
+	result["accepted"] = true
+	return result
+
+
+static func _calculateAttackerBattlePower(runState: RunState, battle: Variant, units: Array[UnitData]) -> float:
+	var army := runState.armies.get(battle.attackerArmyId, null) as ArmyData
+	var targetCountry := runState.countries.get(battle.targetCountryId, null) as CountryData
+	return calculateArmyCombatPower(army, units, runState.economy, {
+		"targetDefense": targetCountry.defense if targetCountry != null else 0,
+		"opposingUnits": _combinedUnits(runState, battle.defenderArmyIds),
+	})
+
+
+static func _calculateDefenderBattlePower(runState: RunState, battle: Variant, units: Array[UnitData]) -> float:
+	var attacker := runState.armies.get(battle.attackerArmyId, null) as ArmyData
+	var targetCountry := runState.countries.get(battle.targetCountryId, null) as CountryData
+	var attackerUnits := attacker.units if attacker != null else {}
+	var power := calculateCountryDefensePower(targetCountry, runState.upgradeEffects, runState.worldReaction)
+	for defenderArmyId in battle.defenderArmyIds:
+		var defender := runState.armies.get(defenderArmyId, null) as ArmyData
+		if defender == null:
+			continue
+
+		power += calculateArmyCombatPower(defender, units, {}, {
+			"opposingUnits": attackerUnits,
+		})
+	return maxf(power, 0.0)
+
+
+static func _defenderArmyIds(runState: RunState, targetCountryId: StringName, attackerOwnerId: StringName) -> Array[StringName]:
+	var defenderIds: Array[StringName] = []
+	var armyIds := runState.armies.keys()
+	armyIds.sort()
+	for armyId in armyIds:
+		var army := runState.armies[armyId] as ArmyData
+		if army == null:
+			continue
+
+		if army.locationCountryId != targetCountryId:
+			continue
+
+		if army.ownerId == attackerOwnerId or army.status == ArmyStatus.Value.Defeated:
+			continue
+
+		defenderIds.append(army.id)
+	return defenderIds
+
+
+static func _combinedUnits(runState: RunState, armyIds: Array[StringName]) -> Dictionary:
+	var combined := {}
+	for armyId in armyIds:
+		var army := runState.armies.get(armyId, null) as ArmyData
+		if army == null:
+			continue
+
+		for unitId in army.units.keys():
+			var normalizedId := StringName(str(unitId))
+			combined[normalizedId] = int(combined.get(normalizedId, 0)) + maxi(0, int(army.units.get(unitId, 0)))
+	return combined
+
+
+static func _applyDefenderCasualties(runState: RunState, defenderArmyIds: Array[StringName], casualtyRate: float) -> Dictionary:
+	var casualties := {}
+	for defenderArmyId in defenderArmyIds:
+		var defender := runState.armies.get(defenderArmyId, null) as ArmyData
+		if defender == null:
+			continue
+
+		casualties[str(defenderArmyId)] = _applyCasualties(defender, casualtyRate)
+	return casualties
+
+
 static func _applyCasualties(army: ArmyData, casualtyRate: float) -> Dictionary:
 	var casualties := {}
 	var totalLost := 0
 	var unitIds := army.units.keys()
 	unitIds.sort()
 	for unitId in unitIds:
-		var amount := int(army.units.get(unitId, 0))
+		var amount := maxi(0, int(army.units.get(unitId, 0)))
 		if amount <= 0:
+			army.units[unitId] = 0
 			continue
 
 		var lost := int(floor(float(amount) * casualtyRate))
@@ -241,13 +405,65 @@ static func _applyCasualties(army: ArmyData, casualtyRate: float) -> Dictionary:
 			lost = 1
 
 		lost = mini(lost, amount)
-		if lost <= 0:
+		army.units[unitId] = maxi(0, amount - lost)
+		if lost > 0:
+			casualties[unitId] = lost
+			totalLost += lost
+	return casualties
+
+
+static func _restoreDefenderArmies(runState: RunState, defenderArmyIds: Array[StringName]) -> void:
+	for defenderArmyId in defenderArmyIds:
+		var defender := runState.armies.get(defenderArmyId, null) as ArmyData
+		if defender == null:
 			continue
 
-		army.units[unitId] = amount - lost
-		casualties[unitId] = lost
-		totalLost += lost
-	return casualties
+		if _unitCount(defender.units) <= 0:
+			runState.armies.erase(defenderArmyId)
+			continue
+
+		defender.status = ArmyStatus.Value.Stationed
+		defender.targetCountryId = GameIds.EMPTY_ID
+		defender.movementProgress = 0.0
+
+
+static func _removeDefenderArmies(runState: RunState, defenderArmyIds: Array[StringName]) -> void:
+	for defenderArmyId in defenderArmyIds:
+		runState.armies.erase(defenderArmyId)
+
+
+static func _winnerCasualtyRate(winnerPower: float, loserPower: float) -> float:
+	var pressure := loserPower / maxf(winnerPower, 1.0)
+	return clampf(pressure * 0.28, MIN_WIN_CASUALTY_RATE, MAX_WIN_CASUALTY_RATE)
+
+
+static func _loserCasualtyRate(loserPower: float, winnerPower: float) -> float:
+	var dominance := winnerPower / maxf(loserPower, 1.0)
+	return clampf(0.70 + (dominance - 1.0) * 0.15, MIN_LOSS_CASUALTY_RATE, MAX_LOSS_CASUALTY_RATE)
+
+
+static func _artillerySupportMultiplier(unitData: UnitData, artilleryAmount: int, infantryCount: int) -> float:
+	if unitData.id != GameIds.ARTILLERY_UNIT_ID:
+		return 1.0
+
+	var requiredInfantry := int(unitData.bonuses.get("supportInfantryPerArtillery", 2)) * artilleryAmount
+	if infantryCount >= requiredInfantry:
+		return 1.0
+
+	return float(unitData.bonuses.get("unsupportedCombatMultiplier", 0.5))
+
+
+static func _counterMultiplier(unitData: UnitData, ownAmount: int, opposingUnits: Dictionary) -> float:
+	var counterVs := StringName(str(unitData.bonuses.get("counterBonusVs", "")))
+	if counterVs == GameIds.EMPTY_ID:
+		return 1.0
+
+	var counteredAmount := maxi(0, int(opposingUnits.get(counterVs, opposingUnits.get(str(counterVs), 0))))
+	if counteredAmount <= 0:
+		return 1.0
+
+	var counterRatio := clampf(float(counteredAmount) / maxf(float(ownAmount), 1.0), 0.0, 1.0)
+	return lerpf(1.0, float(unitData.bonuses.get("counterBonusMultiplier", 1.0)), counterRatio)
 
 
 static func _hasActiveBattleFor(runState: RunState, armyId: StringName, targetCountryId: StringName) -> bool:
@@ -265,6 +481,7 @@ static func _battlePayload(battle: Variant) -> Dictionary:
 	return {
 		"battleId": battle.id,
 		"armyId": battle.attackerArmyId,
+		"defenderArmyIds": battle.defenderArmyIds.duplicate(),
 		"sourceCountryId": battle.sourceCountryId,
 		"targetCountryId": battle.targetCountryId,
 		"attackerPower": battle.attackerPower,
@@ -285,7 +502,7 @@ static func _unitById(units: Array[UnitData], unitId: StringName) -> UnitData:
 static func _unitCount(units: Dictionary) -> int:
 	var total := 0
 	for unitId in units.keys():
-		total += int(units.get(unitId, 0))
+		total += maxi(0, int(units.get(unitId, 0)))
 	return total
 
 
@@ -294,3 +511,9 @@ static func _nextBattleId(runState: RunState) -> StringName:
 	while runState.battles.has(StringName("battle_%d" % nextIndex)):
 		nextIndex += 1
 	return StringName("battle_%d" % nextIndex)
+
+
+static func _dictionaryValue(value: Variant) -> Dictionary:
+	if value is Dictionary:
+		return value as Dictionary
+	return {}

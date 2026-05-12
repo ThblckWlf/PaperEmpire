@@ -9,6 +9,7 @@ const DEFAULT_FIXED_STEP_SECONDS: float = 0.1
 const ECONOMY_SIMULATION := preload("res://src/core/simulation/economy_simulation.gd")
 const ARMY_MOVEMENT_SIMULATION := preload("res://src/core/simulation/army_movement_simulation.gd")
 const COMBAT_SIMULATION := preload("res://src/core/simulation/combat_simulation.gd")
+const AI_RECRUITMENT_SIMULATION := preload("res://src/core/simulation/ai_recruitment_simulation.gd")
 const UPGRADE_SIMULATION := preload("res://src/core/simulation/upgrade_simulation.gd")
 const THREAT_SIMULATION := preload("res://src/core/simulation/threat_simulation.gd")
 const MINI_GOAL_SIMULATION := preload("res://src/core/simulation/mini_goal_simulation.gd")
@@ -99,11 +100,14 @@ func collectPendingEvents() -> Array[GameEvent]:
 
 
 func _advanceFixedStep(deltaSeconds: float) -> void:
-	var completedMoves: Array[Dictionary] = ARMY_MOVEMENT_SIMULATION.advanceMovement(runState, deltaSeconds)
+	var units := PrototypeContentLoader.loadUnits()
+	var completedMoves: Array[Dictionary] = ARMY_MOVEMENT_SIMULATION.advanceMovement(runState, deltaSeconds, units)
 	for movePayload in completedMoves:
 		_raiseEvent(EventType.ARMY_MOVED, movePayload)
+		if bool(movePayload.get("isAttack", false)):
+			_beginBattleForCompletedAttack(movePayload, units)
 
-	var battleEvents: Array[Dictionary] = COMBAT_SIMULATION.advanceBattles(runState, deltaSeconds, PrototypeContentLoader.loadUnits())
+	var battleEvents: Array[Dictionary] = COMBAT_SIMULATION.advanceBattles(runState, deltaSeconds, units)
 	for battleEvent in battleEvents:
 		_handleBattleEvent(battleEvent)
 
@@ -113,7 +117,9 @@ func _advanceFixedStep(deltaSeconds: float) -> void:
 
 
 func _raiseMonthTick() -> void:
-	var economyResult: Dictionary = ECONOMY_SIMULATION.applyMonthTick(runState, PrototypeContentLoader.loadUnits())
+	var units := PrototypeContentLoader.loadUnits()
+	var economyResult: Dictionary = ECONOMY_SIMULATION.applyMonthTick(runState, units)
+	var aiRecruitmentEvents: Array[Dictionary] = AI_RECRUITMENT_SIMULATION.applyMonthTick(runState, units)
 	var threatResult: Dictionary = THREAT_SIMULATION.applyMonthlyThreat(runState)
 	var payload := {
 		"week": int(runState.time.get("week", 1)),
@@ -121,6 +127,7 @@ func _raiseMonthTick() -> void:
 		"year": int(runState.time.get("year", 1)),
 		"elapsedSeconds": GameTime.getElapsedSeconds(runState.time),
 		"economy": economyResult,
+		"aiRecruitmentUpdatedArmyCount": aiRecruitmentEvents.size(),
 		"threat": threatResult,
 	}
 	monthTick.emit(int(payload["month"]), int(payload["year"]), float(payload["elapsedSeconds"]))
@@ -128,6 +135,21 @@ func _raiseMonthTick() -> void:
 		_raiseEvent(EventType.THREAT_CHANGED, threatResult)
 		_raiseWorldReactionIfChanged(threatResult)
 	_raiseEvent(EventType.MONTH_TICK, payload)
+
+
+func _beginBattleForCompletedAttack(movePayload: Dictionary, units: Array[UnitData]) -> void:
+	var battleResult: Dictionary = COMBAT_SIMULATION.beginBattleAfterArrival(
+		runState,
+		StringName(str(movePayload.get("armyId", ""))),
+		StringName(str(movePayload.get("fromCountryId", ""))),
+		StringName(str(movePayload.get("toCountryId", ""))),
+		units
+	)
+	if not bool(battleResult.get("accepted", false)):
+		_raiseEvent(EventType.INVALID_ATTACK, battleResult)
+		return
+
+	_raiseEvent(EventType.BATTLE_STARTED, battleResult)
 
 
 func _handleBattleEvent(battleEvent: Dictionary) -> void:

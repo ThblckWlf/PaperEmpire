@@ -19,6 +19,7 @@ static func serializeRunState(runState: RunState) -> Dictionary:
 		"countries": _serializeCountries(runState.countries),
 		"armies": _serializeArmies(runState.armies),
 		"battles": _serializeBattles(runState.battles),
+		"aiGoldByCountry": _serializeValue(runState.aiGoldByCountry),
 		"activeUpgradeChoice": _serializeValue(runState.activeUpgradeChoice),
 		"upgrades": _serializeValue(runState.upgrades),
 		"upgradeEffects": _serializeValue(runState.upgradeEffects),
@@ -39,6 +40,7 @@ static func deserializeRunState(data: Dictionary) -> RunState:
 	runState.countries = _deserializeCountries(_dictionaryValue(data.get("countries", {})))
 	runState.armies = _deserializeArmies(_dictionaryValue(data.get("armies", {})))
 	runState.battles = _deserializeBattles(_dictionaryValue(data.get("battles", {})))
+	runState.aiGoldByCountry = _dictionaryValue(data.get("aiGoldByCountry", {})).duplicate(true)
 	runState.activeUpgradeChoice = _dictionaryValue(data.get("activeUpgradeChoice", {})).duplicate(true)
 	runState.upgrades = _deserializeStringNameArray(data.get("upgrades", []))
 	runState.upgradeEffects = _dictionaryValue(data.get("upgradeEffects", runState.upgradeEffects)).duplicate(true)
@@ -125,6 +127,7 @@ static func _serializeBattles(battles: Dictionary) -> Dictionary:
 		serialized[str(battleId)] = {
 			"id": str(battle.get("id")),
 			"attackerArmyId": str(battle.get("attackerArmyId")),
+			"defenderArmyIds": _serializeValue(battle.get("defenderArmyIds")),
 			"sourceCountryId": str(battle.get("sourceCountryId")),
 			"targetCountryId": str(battle.get("targetCountryId")),
 			"status": int(battle.get("status")),
@@ -185,6 +188,7 @@ static func _deserializeBattles(data: Dictionary) -> Dictionary:
 		var battle := BattleData.new()
 		battle.id = StringName(str(row.get("id", battleId)))
 		battle.attackerArmyId = StringName(str(row.get("attackerArmyId", GameIds.EMPTY_ID)))
+		battle.defenderArmyIds = _deserializeStringNameArray(row.get("defenderArmyIds", []))
 		battle.sourceCountryId = StringName(str(row.get("sourceCountryId", GameIds.EMPTY_ID)))
 		battle.targetCountryId = StringName(str(row.get("targetCountryId", GameIds.EMPTY_ID)))
 		battle.status = int(row.get("status", BattleStatus.Value.Pending))

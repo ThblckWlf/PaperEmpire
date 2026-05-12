@@ -72,10 +72,16 @@ func submitCommand(commandName: StringName, payload: Dictionary = {}) -> void:
 			_recruitUnits(
 				StringName(str(payload.get("countryId", selectedCountryId))),
 				StringName(str(payload.get("unitType", payload.get("unitId", "")))),
-				int(payload.get("amount", 0))
+				int(payload.get("amount", 0)),
+				StringName(str(payload.get("armyId", selectedArmyId)))
 			)
 		CommandType.CREATE_ARMY:
 			_createArmy(StringName(str(payload.get("countryId", selectedCountryId))))
+		CommandType.UPDATE_ARMY_COMPOSITION:
+			_updateArmyComposition(
+				StringName(str(payload.get("armyId", selectedArmyId))),
+				payload.get("targetUnits", {}) as Dictionary
+			)
 		CommandType.CHOOSE_UPGRADE:
 			_chooseUpgrade(StringName(str(payload.get("upgradeId", ""))))
 		CommandType.CLAIM_MINI_GOAL_REWARD:
@@ -185,6 +191,7 @@ func _startAttack(armyId: StringName, targetCountryId: StringName) -> void:
 		PrototypeContentLoader.loadUnits()
 	)
 	if not bool(attackResult.get("accepted", false)):
+		_raiseEvent(EventType.INVALID_ATTACK, attackResult)
 		_reportWarning("Cannot start attack: %s" % str(attackResult.get("reason", "unknown_reason")))
 		return
 
@@ -201,7 +208,7 @@ func _startAttack(armyId: StringName, targetCountryId: StringName) -> void:
 	})
 	_raiseEvent(EventType.THREAT_CHANGED, threatResult)
 	_raiseWorldReactionIfChanged(threatResult)
-	_raiseEvent(EventType.BATTLE_STARTED, attackResult)
+	_raiseEvent(EventType.ARMY_MOVE_STARTED, attackResult)
 
 
 func _chooseUpgrade(upgradeId: StringName) -> void:
@@ -302,16 +309,23 @@ func _awardRunEndCrowns() -> void:
 	})
 
 
-func _recruitUnits(countryId: StringName, unitId: StringName, amount: int) -> void:
+func _recruitUnits(
+	countryId: StringName,
+	unitId: StringName,
+	amount: int,
+	armyId: StringName = GameIds.EMPTY_ID
+) -> void:
 	var recruitResult: Dictionary = RECRUITMENT_SIMULATION.applyRecruitment(
 		currentRunState,
 		countryId,
 		unitId,
 		amount,
 		PrototypeContentLoader.loadUnits(),
-		selectedArmyId
+		armyId
 	)
 	if not bool(recruitResult.get("accepted", false)):
+		if str(recruitResult.get("reason", "")) == "not_enough_gold":
+			_raiseEvent(EventType.NOT_ENOUGH_GOLD, recruitResult)
 		_reportWarning("Cannot recruit units: %s" % str(recruitResult.get("reason", "unknown_reason")))
 		return
 
@@ -321,6 +335,27 @@ func _recruitUnits(countryId: StringName, unitId: StringName, amount: int) -> vo
 		"armyId": selectedArmyId,
 	})
 	_raiseEvent(EventType.UNITS_RECRUITED, recruitResult)
+	_raiseEvent(EventType.ARMY_UPDATED, recruitResult)
+
+
+func _updateArmyComposition(armyId: StringName, targetUnits: Dictionary) -> void:
+	var updateResult: Dictionary = RECRUITMENT_SIMULATION.updateArmyComposition(
+		currentRunState,
+		armyId,
+		targetUnits,
+		PrototypeContentLoader.loadUnits()
+	)
+	if not bool(updateResult.get("accepted", false)):
+		if str(updateResult.get("reason", "")) == "not_enough_gold":
+			_raiseEvent(EventType.NOT_ENOUGH_GOLD, updateResult)
+		_reportWarning("Cannot update army: %s" % str(updateResult.get("reason", "unknown_reason")))
+		return
+
+	selectedArmyId = armyId
+	_raiseEvent(EventType.ARMY_SELECTED, {
+		"armyId": selectedArmyId,
+	})
+	_raiseEvent(EventType.ARMY_UPDATED, updateResult)
 
 
 func _createArmy(countryId: StringName) -> void:
@@ -423,6 +458,10 @@ func _firstArmyId() -> StringName:
 
 	var armyIds := currentRunState.armies.keys()
 	armyIds.sort()
+	for armyId in armyIds:
+		var army := currentRunState.armies[armyId] as ArmyData
+		if army != null and army.ownerId == GameIds.PLAYER_OWNER_ID:
+			return StringName(str(armyId))
 	return StringName(str(armyIds[0]))
 
 

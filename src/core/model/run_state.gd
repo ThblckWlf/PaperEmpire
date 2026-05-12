@@ -36,6 +36,7 @@ var economy: Dictionary = {
 var countries: Dictionary = {}
 var armies: Dictionary = {}
 var battles: Dictionary = {}
+var aiGoldByCountry: Dictionary = {}
 var activeUpgradeChoice: Dictionary = {}
 var upgrades: Array[StringName] = []
 var upgradeEffects: Dictionary = {

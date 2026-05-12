@@ -11,6 +11,7 @@ static func validate(runState: RunState) -> ValidationResult:
 	_validateResources(runState.resources, result)
 	_validateWorldReaction(runState.worldReaction, result)
 	_validateEconomy(runState.economy, result)
+	_validateAiGold(runState.aiGoldByCountry, result)
 	_validateUpgrades(runState, result)
 	_validateMiniGoalState(runState, result)
 	_validateSpeed(runState.speed, result)
@@ -126,6 +127,10 @@ static func _validateArmyLocations(runState: RunState, result: ValidationResult)
 		if army.targetCountryId != GameIds.EMPTY_ID and not runState.countries.has(army.targetCountryId):
 			result.addError("Army %s has unknown targetCountryId: %s." % [army.id, army.targetCountryId])
 
+		for unitId in army.units.keys():
+			if int(army.units.get(unitId, 0)) < 0:
+				result.addError("Army %s has negative unit count for %s." % [army.id, str(unitId)])
+
 
 static func _validateBattles(runState: RunState, result: ValidationResult) -> void:
 	for battleId in runState.battles.keys():
@@ -136,6 +141,7 @@ static func _validateBattles(runState: RunState, result: ValidationResult) -> vo
 
 		var storedId := StringName(str(battle.get("id")))
 		var attackerArmyId := StringName(str(battle.get("attackerArmyId")))
+		var defenderArmyIds: Array[StringName] = _stringNameArray(battle.get("defenderArmyIds"))
 		var sourceCountryId := StringName(str(battle.get("sourceCountryId")))
 		var targetCountryId := StringName(str(battle.get("targetCountryId")))
 		var status := int(battle.get("status"))
@@ -147,8 +153,12 @@ static func _validateBattles(runState: RunState, result: ValidationResult) -> vo
 		elif storedId != battleId:
 			result.addError("Battle %s is stored under mismatched key %s." % [storedId, battleId])
 
-		if not runState.armies.has(attackerArmyId):
+		if status != BattleStatus.Value.Ended and not runState.armies.has(attackerArmyId):
 			result.addError("Battle %s has unknown attackerArmyId: %s." % [storedId, attackerArmyId])
+
+		for defenderArmyId in defenderArmyIds:
+			if status != BattleStatus.Value.Ended and not runState.armies.has(defenderArmyId):
+				result.addError("Battle %s has unknown defenderArmyId: %s." % [storedId, defenderArmyId])
 
 		if not runState.countries.has(sourceCountryId):
 			result.addError("Battle %s has unknown sourceCountryId: %s." % [storedId, sourceCountryId])
@@ -227,6 +237,25 @@ static func _validateMiniGoalState(runState: RunState, result: ValidationResult)
 				result.addError("Mini goal %s %s is not bool." % [goalId, key])
 
 
+static func _validateAiGold(aiGoldByCountry: Dictionary, result: ValidationResult) -> void:
+	for countryId in aiGoldByCountry.keys():
+		var gold = aiGoldByCountry[countryId]
+		if not _isNumeric(gold):
+			result.addError("RunState aiGoldByCountry %s is not numeric." % str(countryId))
+		elif float(gold) < 0.0 or is_nan(float(gold)):
+			result.addError("RunState aiGoldByCountry %s is invalid." % str(countryId))
+
+
 static func _isNumeric(value: Variant) -> bool:
 	var valueType := typeof(value)
 	return valueType == TYPE_INT or valueType == TYPE_FLOAT
+
+
+static func _stringNameArray(value: Variant) -> Array[StringName]:
+	var result: Array[StringName] = []
+	if not (value is Array):
+		return result
+
+	for item in value as Array:
+		result.append(StringName(str(item)))
+	return result

@@ -17,8 +17,11 @@ const UI_ASSET_THEME := preload("res://scenes/ui/ui_asset_theme.gd")
 
 var eventBus: EventBus
 var currentCountryId: StringName = GameIds.EMPTY_ID
+var currentSelectedArmyId: StringName = GameIds.EMPTY_ID
 var isPlayerOwned: bool = false
 var canRecruit: bool = false
+var canAttack: bool = false
+var attackButton: Button
 
 
 func _ready() -> void:
@@ -26,6 +29,9 @@ func _ready() -> void:
 	cavalryButton.pressed.connect(_onCavalryPressed)
 	artilleryButton.pressed.connect(_onArtilleryPressed)
 	createArmyButton.pressed.connect(_onCreateArmyPressed)
+	attackButton = _ensureAttackButton()
+	if attackButton != null:
+		attackButton.pressed.connect(_onAttackPressed)
 	_applyAssetTheme()
 	_updateCommandButtonStates()
 
@@ -37,8 +43,10 @@ func configure(newEventBus: EventBus) -> void:
 func setData(data: Dictionary) -> void:
 	if not bool(data.get("hasCountry", false)):
 		currentCountryId = GameIds.EMPTY_ID
+		currentSelectedArmyId = GameIds.EMPTY_ID
 		isPlayerOwned = false
 		canRecruit = false
+		canAttack = false
 		titleLabel.text = str(data.get("name", "No country selected"))
 		ownerLabel.text = "Owner: -"
 		goldLabel.text = "Gold/month: -"
@@ -50,16 +58,19 @@ func setData(data: Dictionary) -> void:
 		return
 
 	currentCountryId = StringName(str(data.get("id", "")))
+	currentSelectedArmyId = StringName(str(data.get("selectedArmyId", "")))
 	isPlayerOwned = bool(data.get("isPlayerOwned", false))
 	canRecruit = bool(data.get("canRecruit", false))
+	canAttack = bool(data.get("canAttack", false))
 	titleLabel.text = str(data.get("name", "Country"))
 	ownerLabel.text = "Owner: %s" % str(data.get("ownerId", ""))
 	goldLabel.text = "Gold/month: %d" % int(data.get("goldPerMonth", 0))
 	foodLabel.text = "Food/month: %d" % int(data.get("foodPerMonth", 0))
 	defenseLabel.text = "Defense: %d" % int(data.get("defense", 0))
-	armiesLabel.text = "Armies: %d / Units: %d" % [
+	armiesLabel.text = "Armies: %d / Units: %d\n%s" % [
 		int(data.get("stationedArmyCount", 0)),
 		int(data.get("stationedUnitCount", 0)),
+		"\n".join(data.get("stationedArmyRows", [])),
 	]
 	recruitLabel.text = "Recruitment: available" if canRecruit else "Recruitment: unavailable"
 	_updateCommandButtonStates()
@@ -86,6 +97,16 @@ func _onCreateArmyPressed() -> void:
 	})
 
 
+func _onAttackPressed() -> void:
+	if eventBus == null or currentCountryId == GameIds.EMPTY_ID or currentSelectedArmyId == GameIds.EMPTY_ID:
+		return
+
+	eventBus.requestCommand(CommandType.START_ATTACK, {
+		"armyId": str(currentSelectedArmyId),
+		"targetCountryId": str(currentCountryId),
+	})
+
+
 func _requestRecruit(unitId: StringName) -> void:
 	if eventBus == null or currentCountryId == GameIds.EMPTY_ID:
 		return
@@ -106,6 +127,9 @@ func _updateCommandButtonStates() -> void:
 	cavalryButton.disabled = recruitDisabled
 	artilleryButton.disabled = recruitDisabled
 	createArmyButton.disabled = eventBus == null or currentCountryId == GameIds.EMPTY_ID or not isPlayerOwned
+	if attackButton != null:
+		attackButton.disabled = eventBus == null or currentCountryId == GameIds.EMPTY_ID or not canAttack
+		attackButton.visible = canAttack
 
 
 func _applyAssetTheme() -> void:
@@ -121,7 +145,25 @@ func _applyAssetTheme() -> void:
 	UI_ASSET_THEME.applyTextButton(cavalryButton, false, true)
 	UI_ASSET_THEME.applyTextButton(artilleryButton, false, true)
 	UI_ASSET_THEME.applyTextButton(createArmyButton, false, false)
+	if attackButton != null:
+		UI_ASSET_THEME.applyTextButton(attackButton, true, false)
 	UI_ASSET_THEME.applyButtonIcon(infantryButton, UI_ASSET_THEME.ICON_INFANTRY_PATH, "Recruit infantry", 24)
 	UI_ASSET_THEME.applyButtonIcon(cavalryButton, UI_ASSET_THEME.ICON_CAVALRY_PATH, "Recruit cavalry", 24)
 	UI_ASSET_THEME.applyButtonIcon(artilleryButton, UI_ASSET_THEME.ICON_ARTILLERY_PATH, "Recruit artillery", 24)
 	UI_ASSET_THEME.applyButtonIcon(createArmyButton, UI_ASSET_THEME.ICON_MANAGE_ARMY_PATH, "Create a new army", 28)
+	if attackButton != null:
+		UI_ASSET_THEME.applyButtonIcon(attackButton, UI_ASSET_THEME.ICON_ATTACK_PATH, "Attack selected country", 28)
+
+
+func _ensureAttackButton() -> Button:
+	var column := titleLabel.get_parent() as VBoxContainer
+	if column == null:
+		return null
+
+	var button := column.get_node_or_null("AttackButton") as Button
+	if button == null:
+		button = Button.new()
+		button.name = "AttackButton"
+		button.text = "Attack"
+		column.add_child(button)
+	return button

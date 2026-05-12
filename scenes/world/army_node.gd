@@ -53,7 +53,7 @@ func updateFromArmy(army: ArmyData, countries: Dictionary) -> void:
 	currentStatus = army.status
 	position = _armyPosition(army, countries)
 	countLabel.text = str(_unitCount(army.units))
-	isMovingVisual = army.status == ArmyStatus.Value.Moving
+	isMovingVisual = army.status == ArmyStatus.Value.Moving or army.status == ArmyStatus.Value.Attacking
 	_applyVisualState(isMovingVisual)
 
 
@@ -106,7 +106,7 @@ func _ensureTokenNode() -> void:
 func _tokenTexture(isMoving: bool) -> Texture2D:
 	if isSelected:
 		return TOKEN_SELECTED_TEXTURE
-	if currentStatus == ArmyStatus.Value.Attacking or currentStatus == ArmyStatus.Value.Defending:
+	if currentStatus == ArmyStatus.Value.Attacking or currentStatus == ArmyStatus.Value.Defending or currentStatus == ArmyStatus.Value.Fighting:
 		return TOKEN_FIGHTING_TEXTURE
 	if isMoving:
 		return TOKEN_MOVING_TEXTURE
@@ -120,7 +120,7 @@ func _armyPosition(army: ArmyData, countries: Dictionary) -> Vector2:
 	if sourceCountry == null:
 		return Vector2.ZERO
 
-	if army.status != ArmyStatus.Value.Moving or army.targetCountryId == GameIds.EMPTY_ID:
+	if not [ArmyStatus.Value.Moving, ArmyStatus.Value.Attacking].has(army.status) or army.targetCountryId == GameIds.EMPTY_ID:
 		return sourceCountry.center
 
 	var targetCountry := countries.get(army.targetCountryId, null) as CountryData

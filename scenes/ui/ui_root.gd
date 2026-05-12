@@ -87,6 +87,7 @@ func configure(
 	settingsManager = newSettingsManager
 	saveManager = newSaveManager
 	bottomBar.configure(eventBus)
+	leftPanel.configure(eventBus)
 	rightPanel.configure(eventBus)
 	miniGoalPanel.configure(eventBus)
 	upgradeModal.configure(eventBus)
@@ -111,9 +112,9 @@ func _refreshAll() -> void:
 		return
 
 	topBar.setData(RUN_STATE_VIEW.createTopBarData(runState))
-	leftPanel.setData(RUN_STATE_VIEW.createArmyPanelData(runState, gameManager.getSelectedArmyId()))
+	leftPanel.setData(RUN_STATE_VIEW.createArmyPanelData(runState, gameManager.getSelectedArmyId(), gameManager.getSelectedCountryId()))
 	miniGoalPanel.setData(RUN_STATE_VIEW.createMiniGoalPanelData(runState))
-	rightPanel.setData(RUN_STATE_VIEW.createCountryPanelData(runState, gameManager.getSelectedCountryId()))
+	rightPanel.setData(RUN_STATE_VIEW.createCountryPanelData(runState, gameManager.getSelectedCountryId(), gameManager.getSelectedArmyId()))
 	bottomBar.setCurrentSpeed(int(runState.speed))
 	if mainMenu != null and mainMenu.visible:
 		mainMenu.call("refreshSaveStatus")
@@ -127,7 +128,7 @@ func _onGameEventRaised(eventName: StringName, payload: Dictionary) -> void:
 		EventType.UPGRADE_CHOSEN:
 			_closeUpgradeModal()
 			_refreshAll()
-		EventType.RUN_STARTED, EventType.RUN_RESET, EventType.RUN_WON, EventType.COUNTRY_SELECTED, EventType.ARMY_SELECTED, EventType.ARMY_MOVE_STARTED, EventType.ARMY_MOVED, EventType.UNITS_RECRUITED, EventType.ARMY_CREATED, EventType.BATTLE_STARTED, EventType.BATTLE_ENDED, EventType.COUNTRY_CONQUERED, EventType.MINI_GOAL_REWARD_CLAIMED, EventType.META_PROGRESS_CHANGED, EventType.META_UPGRADE_PURCHASED, EventType.CROWNS_REWARDED, EventType.THREAT_CHANGED, EventType.WORLD_REACTION_UPDATED, EventType.GAME_SPEED_CHANGED, EventType.MONTH_TICK:
+		EventType.RUN_STARTED, EventType.RUN_RESET, EventType.RUN_WON, EventType.COUNTRY_SELECTED, EventType.ARMY_SELECTED, EventType.ARMY_MOVE_STARTED, EventType.ARMY_MOVED, EventType.UNITS_RECRUITED, EventType.ARMY_UPDATED, EventType.ARMY_CREATED, EventType.BATTLE_STARTED, EventType.BATTLE_ENDED, EventType.COUNTRY_CONQUERED, EventType.MINI_GOAL_REWARD_CLAIMED, EventType.META_PROGRESS_CHANGED, EventType.META_UPGRADE_PURCHASED, EventType.CROWNS_REWARDED, EventType.THREAT_CHANGED, EventType.WORLD_REACTION_UPDATED, EventType.GAME_SPEED_CHANGED, EventType.MONTH_TICK, EventType.NOT_ENOUGH_GOLD, EventType.INVALID_ATTACK:
 			_refreshAll()
 
 

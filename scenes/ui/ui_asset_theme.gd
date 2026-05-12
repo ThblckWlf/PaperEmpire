@@ -225,6 +225,8 @@ static func iconForArmyStatus(statusText: String) -> String:
 			return ICON_STATUS_MOVING_PATH
 		"attacking":
 			return ICON_STATUS_OFFENSIVE_PATH
+		"fighting":
+			return ICON_STATUS_FIGHTING_PATH
 		"defending":
 			return ICON_STATUS_DEFENSIVE_PATH
 		"defeated":

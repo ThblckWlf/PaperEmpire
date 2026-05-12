@@ -4,6 +4,7 @@ class_name BattleData
 
 var id: StringName = GameIds.EMPTY_ID
 var attackerArmyId: StringName = GameIds.EMPTY_ID
+var defenderArmyIds: Array[StringName] = []
 var sourceCountryId: StringName = GameIds.EMPTY_ID
 var targetCountryId: StringName = GameIds.EMPTY_ID
 var status: int = BattleStatus.Value.Pending

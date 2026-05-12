@@ -8,4 +8,5 @@ enum Value {
 	Attacking,
 	Defending,
 	Defeated,
+	Fighting,
 }

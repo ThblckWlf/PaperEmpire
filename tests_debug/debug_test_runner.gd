@@ -430,7 +430,7 @@ func _testEconomyCalculatesIncomeAndUpkeep() -> ValidationResult:
 		result.addError("EconomySimulation calculated wrong gold income.")
 	if int(income.get("food", 0)) != 24:
 		result.addError("EconomySimulation calculated wrong food income.")
-	if upkeep != 17:
+	if upkeep != 48:
 		result.addError("EconomySimulation calculated wrong army food upkeep.")
 	return result
 
@@ -441,9 +441,9 @@ func _testEconomyAppliesMonthTickAndShortage() -> ValidationResult:
 	var monthResult: Dictionary = ECONOMY_SIMULATION.applyMonthTick(runState, PrototypeContentLoader.loadUnits())
 	if int(runState.resources.get("gold", 0)) != NewRunFactory.START_GOLD + 35:
 		result.addError("EconomySimulation did not apply monthly gold income.")
-	if int(runState.resources.get("food", 0)) != NewRunFactory.START_FOOD + 24 - 17:
+	if int(runState.resources.get("food", 0)) != NewRunFactory.START_FOOD + 24 - 48:
 		result.addError("EconomySimulation did not apply food income and upkeep.")
-	if int(monthResult.get("foodUpkeep", 0)) != 17:
+	if int(monthResult.get("foodUpkeep", 0)) != 48:
 		result.addError("EconomySimulation month result missing upkeep.")
 
 	runState.resources["food"] = 0
@@ -469,6 +469,8 @@ func _testArmyMovementValidatesAndAdvances() -> ValidationResult:
 	if bool(invalidMove.get("accepted", false)):
 		result.addError("ArmyMovementSimulation accepted a non-neighbor move.")
 
+	var can := runState.countries[&"can"] as CountryData
+	can.ownerId = GameIds.PLAYER_OWNER_ID
 	var move: Dictionary = ARMY_MOVEMENT_SIMULATION.requestMove(runState, &"army_start", &"can")
 	if not bool(move.get("accepted", false)):
 		result.addError("ArmyMovementSimulation rejected a neighbor move.")
@@ -505,6 +507,8 @@ func _testGameManagerMoveArmyCommand() -> ValidationResult:
 	manager.setEventBus(bus)
 	manager.setSimulationManager(simulation)
 	manager.startNewRun("usa")
+	var can := manager.getCurrentRunState().countries[&"can"] as CountryData
+	can.ownerId = GameIds.PLAYER_OWNER_ID
 
 	bus.requestCommand(CommandType.MOVE_ARMY, {
 		"armyId": "army_start",
@@ -518,7 +522,7 @@ func _testGameManagerMoveArmyCommand() -> ValidationResult:
 	if not _capturedEvent(EventType.ARMY_MOVE_STARTED):
 		result.addError("move_army command did not emit armyMoveStarted.")
 
-	simulation.stepSimulation(ARMY_MOVEMENT_SIMULATION.MOVEMENT_SECONDS_PER_EDGE)
+	simulation.stepSimulation(ARMY_MOVEMENT_SIMULATION.MOVEMENT_SECONDS_PER_EDGE * 1.5)
 	if army.locationCountryId != &"can":
 		result.addError("SimulationManager did not complete army movement.")
 	if not _capturedEvent(EventType.ARMY_MOVED):
@@ -535,7 +539,7 @@ func _testRecruitmentAppliesRules() -> ValidationResult:
 	var units := PrototypeContentLoader.loadUnits()
 	var infantry := _unitFromCatalog(GameIds.INFANTRY_UNIT_ID)
 	var cost: Dictionary = RECRUITMENT_SIMULATION.calculateRecruitmentCost(infantry, 2)
-	if int(cost.get("goldCost", 0)) != 100:
+	if int(cost.get("goldCost", 0)) != 20:
 		result.addError("RecruitmentSimulation calculated wrong infantry gold cost.")
 	if int(cost.get("foodReserveRequired", 0)) != 2:
 		result.addError("RecruitmentSimulation calculated wrong infantry food reserve.")
@@ -553,7 +557,7 @@ func _testRecruitmentAppliesRules() -> ValidationResult:
 		result.addError("RecruitmentSimulation rejected valid recruitment.")
 
 	var army := runState.armies[&"army_start"] as ArmyData
-	if int(runState.resources.get("gold", 0)) != NewRunFactory.START_GOLD - 90:
+	if int(runState.resources.get("gold", 0)) != NewRunFactory.START_GOLD - 25:
 		result.addError("RecruitmentSimulation did not spend gold.")
 	if int(army.units.get(GameIds.CAVALRY_UNIT_ID, 0)) != NewRunFactory.START_CAVALRY + 1:
 		result.addError("RecruitmentSimulation did not add recruited units.")
@@ -570,8 +574,8 @@ func _testRecruitmentAppliesRules() -> ValidationResult:
 	runState.resources["gold"] = 1000
 	runState.resources["food"] = 0
 	var noFoodRecruit: Dictionary = RECRUITMENT_SIMULATION.applyRecruitment(runState, &"usa", GameIds.INFANTRY_UNIT_ID, 1, units, &"army_start")
-	if bool(noFoodRecruit.get("accepted", false)):
-		result.addError("RecruitmentSimulation accepted recruitment without food reserve.")
+	if not bool(noFoodRecruit.get("accepted", false)):
+		result.addError("RecruitmentSimulation rejected recruitment even though MVP recruitment only costs gold.")
 
 	runState.resources["food"] = 100
 	runState.economy["recruitmentBlocked"] = true
@@ -598,7 +602,7 @@ func _testGameManagerRecruitAndCreateArmyCommands() -> ValidationResult:
 		"amount": 1,
 	})
 	var army := manager.getCurrentRunState().armies[&"army_start"] as ArmyData
-	if int(manager.getCurrentRunState().resources.get("gold", 0)) != NewRunFactory.START_GOLD - 50:
+	if int(manager.getCurrentRunState().resources.get("gold", 0)) != NewRunFactory.START_GOLD - 10:
 		result.addError("recruit_units command did not spend gold.")
 	if int(army.units.get(GameIds.INFANTRY_UNIT_ID, 0)) != NewRunFactory.START_INFANTRY + 1:
 		result.addError("recruit_units command did not add infantry.")
@@ -635,7 +639,7 @@ func _testCombatCalculatesPower() -> ValidationResult:
 	var power := COMBAT_SIMULATION.calculateArmyCombatPower(army, PrototypeContentLoader.loadUnits(), runState.economy, {
 		"targetDefense": targetCountry.defense,
 	})
-	var expectedPower := 178.0
+	var expectedPower := 492.0
 	if not is_equal_approx(power, expectedPower):
 		result.addError("CombatSimulation calculated wrong army power: %s." % power)
 
@@ -662,8 +666,8 @@ func _testCombatStartsValidAttacks() -> ValidationResult:
 	var attack: Dictionary = COMBAT_SIMULATION.startAttack(runState, &"army_start", &"can", PrototypeContentLoader.loadUnits())
 	if not bool(attack.get("accepted", false)):
 		result.addError("CombatSimulation rejected a valid attack.")
-	if not runState.battles.has(StringName(str(attack.get("battleId", "")))):
-		result.addError("CombatSimulation did not create BattleData.")
+	if not runState.battles.is_empty():
+		result.addError("CombatSimulation created BattleData before the attacker arrived.")
 
 	var army := runState.armies[&"army_start"] as ArmyData
 	if army.status != ArmyStatus.Value.Attacking:
@@ -697,14 +701,14 @@ func _testSimulationCompletesBattleAndConquest() -> ValidationResult:
 		"armyId": "army_start",
 		"targetCountryId": "can",
 	})
-	if not _capturedEvent(EventType.BATTLE_STARTED):
-		result.addError("start_attack command did not emit battleStarted.")
 
 	var army := manager.getCurrentRunState().armies[&"army_start"] as ArmyData
 	if army.status != ArmyStatus.Value.Attacking:
 		result.addError("start_attack command did not set army attacking.")
 
-	simulation.stepSimulation(COMBAT_SIMULATION.BATTLE_DURATION_SECONDS)
+	simulation.stepSimulation(ARMY_MOVEMENT_SIMULATION.MOVEMENT_SECONDS_PER_EDGE * 1.5 + COMBAT_SIMULATION.BATTLE_DURATION_SECONDS)
+	if not _capturedEvent(EventType.BATTLE_STARTED):
+		result.addError("Attack arrival did not emit battleStarted.")
 	var targetCountry := manager.getCurrentRunState().countries[&"can"] as CountryData
 	if targetCountry.ownerId != GameIds.PLAYER_OWNER_ID:
 		result.addError("SimulationManager did not conquer target country.")
@@ -754,13 +758,13 @@ func _testUpgradeRollsChoicesAndAppliesEffects() -> ValidationResult:
 		result.addError("UpgradeSimulation rejected recruitment discount.")
 	var infantry := _unitFromCatalog(GameIds.INFANTRY_UNIT_ID)
 	var discountedCost: Dictionary = RECRUITMENT_SIMULATION.calculateRecruitmentCost(infantry, 1, runState.upgradeEffects)
-	if int(discountedCost.get("goldCost", 0)) != 45:
+	if int(discountedCost.get("goldCost", 0)) != 9:
 		result.addError("Recruitment discount did not change recruitment cost.")
 
 	runState.activeUpgradeChoice = {"isOpen": true, "choices": [_upgradeById(&"efficientSupply")]}
 	UPGRADE_SIMULATION.applyUpgradeChoice(runState, &"efficientSupply")
 	var upkeep := ECONOMY_SIMULATION.calculateArmyFoodUpkeep(runState, PrototypeContentLoader.loadUnits())
-	if upkeep != 16:
+	if upkeep != 44:
 		result.addError("Food upkeep upgrade did not reduce upkeep.")
 
 	runState.activeUpgradeChoice = {"isOpen": true, "choices": [_upgradeById(&"warChest")]}
@@ -848,7 +852,8 @@ func _testThreatAppliesPassiveAndActionThreat() -> ValidationResult:
 
 	simulation.setGameSpeed(GameSpeed.Value.Normal)
 	simulation.stepSimulation(GameTime.SECONDS_PER_WEEK_AT_1X * GameTime.WEEKS_PER_MONTH)
-	if int(runState.resources.get("threat", 0)) != THREAT_SIMULATION.PASSIVE_THREAT_PER_MONTH:
+	var expectedMonthlyThreat := THREAT_SIMULATION.PASSIVE_THREAT_PER_MONTH + THREAT_SIMULATION.calculateLargeArmyThreat(runState)
+	if int(runState.resources.get("threat", 0)) != expectedMonthlyThreat:
 		result.addError("Running run did not gain passive monthly threat.")
 	if not _capturedEvent(EventType.THREAT_CHANGED):
 		result.addError("Passive threat did not emit threatChanged.")
@@ -1263,14 +1268,14 @@ func _testMainUiLayoutBindsStateAndCommands() -> ValidationResult:
 
 	var infantryButton := main.get_node("GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer/RecruitButtons/InfantryButton") as Button
 	infantryButton.emit_signal("pressed")
-	if goldLabel.text != "Gold: %d" % (startingGold - 50):
+	if goldLabel.text != "Gold: %d" % (startingGold - 10):
 		result.addError("Recruit button did not update top bar gold.")
 
 	eventBus.requestCommand(CommandType.SET_GAME_SPEED, {
 		"speed": GameSpeed.Value.Normal,
 	})
 	simulationManager.stepSimulation(GameTime.SECONDS_PER_WEEK_AT_1X * GameTime.WEEKS_PER_MONTH)
-	if goldLabel.text != "Gold: %d" % (startingGold - 50 + 35):
+	if goldLabel.text != "Gold: %d" % (startingGold - 10 + 35):
 		result.addError("TopBar did not update after month tick economy apply.")
 
 	eventBus.requestCommand(CommandType.SELECT_COUNTRY, {
@@ -1350,6 +1355,8 @@ func _testEffectsLayerReactsToEventFeedback() -> ValidationResult:
 	manager.setEventBus(bus)
 	manager.setSimulationManager(simulation)
 	manager.startNewRun("usa")
+	var can := manager.getCurrentRunState().countries[&"can"] as CountryData
+	can.ownerId = GameIds.PLAYER_OWNER_ID
 	worldMap.configure(manager, bus, audio)
 
 	var effectsLayer = worldMap.get_node("EffectsLayer")
@@ -1911,8 +1918,8 @@ func _testVerticalSliceBalanceEnvelope() -> ValidationResult:
 	})
 	var mex := runState.countries[&"mex"] as CountryData
 	var chn := runState.countries[&"chn"] as CountryData
-	var earlyDefense := COMBAT_SIMULATION.calculateCountryDefensePower(mex, runState.upgradeEffects, runState.worldReaction)
-	var lateDefense := COMBAT_SIMULATION.calculateCountryDefensePower(chn, runState.upgradeEffects, runState.worldReaction)
+	var earlyDefense := _countryDefenseWithLocalArmies(runState, mex, units)
+	var lateDefense := _countryDefenseWithLocalArmies(runState, chn, units)
 	if startingPower <= earlyDefense:
 		result.addError("Starting army cannot beat an early neighbor.")
 	if startingPower >= lateDefense:
@@ -1969,7 +1976,7 @@ func _testVerticalSliceMiniRunReachesWinStatus() -> ValidationResult:
 		"armyId": "army_start",
 		"targetCountryId": "can",
 	})
-	simulation.stepSimulation(COMBAT_SIMULATION.BATTLE_DURATION_SECONDS)
+	simulation.stepSimulation(ARMY_MOVEMENT_SIMULATION.MOVEMENT_SECONDS_PER_EDGE * 1.5 + COMBAT_SIMULATION.BATTLE_DURATION_SECONDS)
 	_chooseFirstUpgradeForVerticalSlice(manager, bus, result)
 	if (manager.getCurrentRunState().countries[&"can"] as CountryData).ownerId != GameIds.PLAYER_OWNER_ID:
 		result.addError("Vertical slice first conquest failed.")
@@ -2056,7 +2063,7 @@ func _attackForVerticalSlice(
 		result.addError("Vertical slice could not start attack on %s." % str(targetCountryId))
 		return
 
-	simulation.stepSimulation(COMBAT_SIMULATION.BATTLE_DURATION_SECONDS)
+	simulation.stepSimulation(ARMY_MOVEMENT_SIMULATION.MOVEMENT_SECONDS_PER_EDGE * 1.5 + COMBAT_SIMULATION.BATTLE_DURATION_SECONDS)
 	var country := manager.getCurrentRunState().countries[targetCountryId] as CountryData
 	if country.ownerId != GameIds.PLAYER_OWNER_ID:
 		result.addError("Vertical slice did not conquer %s." % str(targetCountryId))
@@ -2080,7 +2087,7 @@ func _moveArmyForVerticalSlice(
 		"armyId": str(manager.getSelectedArmyId()),
 		"targetCountryId": str(targetCountryId),
 	})
-	simulation.stepSimulation(ARMY_MOVEMENT_SIMULATION.MOVEMENT_SECONDS_PER_EDGE)
+	simulation.stepSimulation(ARMY_MOVEMENT_SIMULATION.MOVEMENT_SECONDS_PER_EDGE * 1.5)
 	var army := manager.getCurrentRunState().armies[manager.getSelectedArmyId()] as ArmyData
 	if army.locationCountryId != targetCountryId or army.status != ArmyStatus.Value.Stationed:
 		result.addError("Vertical slice did not move army to %s." % str(targetCountryId))
@@ -2222,6 +2229,16 @@ func _unitCount(units: Dictionary) -> int:
 	for unitId in units.keys():
 		total += int(units.get(unitId, 0))
 	return total
+
+
+func _countryDefenseWithLocalArmies(runState: RunState, country: CountryData, units: Array[UnitData]) -> float:
+	var power := COMBAT_SIMULATION.calculateCountryDefensePower(country, runState.upgradeEffects, runState.worldReaction)
+	for armyId in runState.armies.keys():
+		var army := runState.armies[armyId] as ArmyData
+		if army == null or army.locationCountryId != country.id or army.ownerId == GameIds.PLAYER_OWNER_ID:
+			continue
+		power += COMBAT_SIMULATION.calculateArmyCombatPower(army, units, {}, {})
+	return power
 
 
 func _countryShapeBounds(center: Vector2, points: PackedVector2Array) -> Rect2:
