@@ -69,12 +69,12 @@ func _applyAssetTheme() -> void:
 	foodLabel.tooltip_text = "Wird monatlich produziert und von Armeen verbraucht."
 	armyLabel.tooltip_text = "Gesamtzahl deiner Einheiten."
 	threatLabel.tooltip_text = "Steigt durch Zeit, Kriege, Eroberungen und große Armeen."
-	UI_ASSET_THEME.applyLabel(goldLabel, 15)
-	UI_ASSET_THEME.applyLabel(foodLabel, 15)
-	UI_ASSET_THEME.applyLabel(armyLabel, 15)
-	UI_ASSET_THEME.applyLabel(threatLabel, 15)
-	UI_ASSET_THEME.applyLabel(shortageLabel, 15)
-	UI_ASSET_THEME.applyLabel(dateLabel, 13)
+	UI_ASSET_THEME.applyLabel(goldLabel, 19)
+	UI_ASSET_THEME.applyLabel(foodLabel, 19)
+	UI_ASSET_THEME.applyLabel(armyLabel, 19)
+	UI_ASSET_THEME.applyLabel(threatLabel, 19)
+	UI_ASSET_THEME.applyLabel(shortageLabel, 17)
+	UI_ASSET_THEME.applyLabel(dateLabel, 17)
 	_applySectionLabel(goldLabel)
 	_applySectionLabel(foodLabel)
 	_applySectionLabel(armyLabel)
@@ -93,8 +93,8 @@ func _applySectionLayout(section: HBoxContainer) -> void:
 		return
 
 	section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	section.custom_minimum_size = Vector2(224.0, 0.0)
-	section.add_theme_constant_override("separation", 7)
+	section.custom_minimum_size = Vector2(296.0, 0.0)
+	section.add_theme_constant_override("separation", 10)
 	section.alignment = BoxContainer.ALIGNMENT_CENTER
 
 
@@ -102,11 +102,11 @@ func _applySectionLabel(label: Label, isCentered: bool = false) -> void:
 	if label == null:
 		return
 
-	label.custom_minimum_size = Vector2(154.0, 42.0)
+	label.custom_minimum_size = Vector2(210.0, 56.0)
 	label.clip_text = true
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER if isCentered else HORIZONTAL_ALIGNMENT_LEFT
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_constant_override("line_spacing", -2)
+	label.add_theme_constant_override("line_spacing", 0)
 
 
 func _ensureInlineIcon(iconName: String, beforeNode: Control, texturePath: String) -> void:
@@ -116,7 +116,7 @@ func _ensureInlineIcon(iconName: String, beforeNode: Control, texturePath: Strin
 
 	var icon := parent.get_node_or_null(iconName) as TextureRect
 	if icon == null:
-		icon = UI_ASSET_THEME.makeIcon(texturePath, Vector2(28.0, 28.0))
+		icon = UI_ASSET_THEME.makeIcon(texturePath, Vector2(38.0, 38.0))
 		icon.name = iconName
 		parent.add_child(icon)
 		parent.move_child(icon, beforeNode.get_index())

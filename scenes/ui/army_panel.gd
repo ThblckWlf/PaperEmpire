@@ -90,25 +90,25 @@ func setData(data: Dictionary) -> void:
 
 
 func _applyAssetTheme() -> void:
-	UI_ASSET_THEME.applyPanel(self, UI_ASSET_THEME.PANEL_LARGE_PATH, 38.0, 10.0)
-	UI_ASSET_THEME.applyTitleLabel(titleLabel, 20)
-	UI_ASSET_THEME.applyLabel(statusLabel, 16)
-	UI_ASSET_THEME.applyLabel(locationLabel, 16)
-	UI_ASSET_THEME.applyLabel(targetLabel, 16)
-	UI_ASSET_THEME.applyLabel(unitsLabel, 16)
+	UI_ASSET_THEME.applyPanel(self, UI_ASSET_THEME.PANEL_LARGE_PATH, 38.0, 14.0)
+	UI_ASSET_THEME.applyTitleLabel(titleLabel, 24)
+	UI_ASSET_THEME.applyLabel(statusLabel, 18)
+	UI_ASSET_THEME.applyLabel(locationLabel, 18)
+	UI_ASSET_THEME.applyLabel(targetLabel, 18)
+	UI_ASSET_THEME.applyLabel(unitsLabel, 18)
 	if powerLabel != null:
-		UI_ASSET_THEME.applyLabel(powerLabel, 16)
+		UI_ASSET_THEME.applyLabel(powerLabel, 18)
 	if upkeepLabel != null:
-		UI_ASSET_THEME.applyLabel(upkeepLabel, 16)
+		UI_ASSET_THEME.applyLabel(upkeepLabel, 18)
 	if costLabel != null:
-		UI_ASSET_THEME.applyLabel(costLabel, 16)
+		UI_ASSET_THEME.applyLabel(costLabel, 18)
 	for unitId in unitEditorRows.keys():
 		var row := unitEditorRows[unitId] as Dictionary
 		var label := row.get("label", null) as Label
 		var minusButton := row.get("minusButton", null) as Button
 		var plusButton := row.get("plusButton", null) as Button
 		if label != null:
-			UI_ASSET_THEME.applyLabel(label, 16)
+			UI_ASSET_THEME.applyLabel(label, 18)
 		if minusButton != null:
 			UI_ASSET_THEME.applyTextButton(minusButton, false, true)
 		if plusButton != null:
@@ -202,8 +202,8 @@ func _ensureArmyNavigationRow(column: VBoxContainer) -> void:
 		previousArmyButton = Button.new()
 		previousArmyButton.name = "PreviousArmyButton"
 		previousArmyButton.text = "<"
-		previousArmyButton.tooltip_text = "Vorherige Armee"
-		previousArmyButton.custom_minimum_size = Vector2(32.0, 28.0)
+		previousArmyButton.tooltip_text = "Vorherige Armee (Shift+Tab)"
+		previousArmyButton.custom_minimum_size = Vector2(48.0, 40.0)
 		previousArmyButton.focus_mode = Control.FOCUS_NONE
 		navigationRow.add_child(previousArmyButton)
 	if not previousArmyButton.pressed.is_connected(_onPreviousArmyPressed):
@@ -214,8 +214,8 @@ func _ensureArmyNavigationRow(column: VBoxContainer) -> void:
 		nextArmyButton = Button.new()
 		nextArmyButton.name = "NextArmyButton"
 		nextArmyButton.text = ">"
-		nextArmyButton.tooltip_text = "Nächste Armee"
-		nextArmyButton.custom_minimum_size = Vector2(32.0, 28.0)
+		nextArmyButton.tooltip_text = "Nächste Armee (Tab)"
+		nextArmyButton.custom_minimum_size = Vector2(48.0, 40.0)
 		nextArmyButton.focus_mode = Control.FOCUS_NONE
 		navigationRow.add_child(nextArmyButton)
 	if not nextArmyButton.pressed.is_connected(_onNextArmyPressed):
@@ -269,7 +269,7 @@ func _ensureUnitEditorRow(parent: VBoxContainer, unitId: StringName) -> void:
 		minusButton = Button.new()
 		minusButton.name = "MinusButton"
 		minusButton.text = "-"
-		minusButton.custom_minimum_size = Vector2(32.0, 28.0)
+		minusButton.custom_minimum_size = Vector2(44.0, 38.0)
 		rowNode.add_child(minusButton)
 	minusButton.pressed.connect(Callable(self, "_changeDraftUnit").bind(unitId, -1))
 
@@ -278,7 +278,7 @@ func _ensureUnitEditorRow(parent: VBoxContainer, unitId: StringName) -> void:
 		plusButton = Button.new()
 		plusButton.name = "PlusButton"
 		plusButton.text = "+"
-		plusButton.custom_minimum_size = Vector2(32.0, 28.0)
+		plusButton.custom_minimum_size = Vector2(44.0, 38.0)
 		rowNode.add_child(plusButton)
 	plusButton.pressed.connect(Callable(self, "_changeDraftUnit").bind(unitId, 1))
 

@@ -149,33 +149,35 @@ func _updateCommandButtonStates() -> void:
 
 
 func _applyAssetTheme() -> void:
-	UI_ASSET_THEME.applyPanel(self, UI_ASSET_THEME.PANEL_LARGE_PATH, 38.0, 10.0)
-	UI_ASSET_THEME.applyTitleLabel(titleLabel, 20)
-	UI_ASSET_THEME.applyLabel(ownerLabel, 16)
-	UI_ASSET_THEME.applyLabel(goldLabel, 16)
-	UI_ASSET_THEME.applyLabel(foodLabel, 16)
-	UI_ASSET_THEME.applyLabel(defenseLabel, 16)
-	UI_ASSET_THEME.applyLabel(armiesLabel, 16)
-	UI_ASSET_THEME.applyLabel(recruitLabel, 16)
-	_applyRecruitButton(infantryButton, UI_ASSET_THEME.ICON_INFANTRY_PATH, "Infanterie rekrutieren")
-	_applyRecruitButton(cavalryButton, UI_ASSET_THEME.ICON_CAVALRY_PATH, "Kavallerie rekrutieren")
-	_applyRecruitButton(artilleryButton, UI_ASSET_THEME.ICON_ARTILLERY_PATH, "Artillerie rekrutieren")
-	UI_ASSET_THEME.applyTextButton(createArmyButton, false, true)
-	UI_ASSET_THEME.applyButtonIcon(createArmyButton, UI_ASSET_THEME.ICON_MANAGE_ARMY_PATH, "Neue Armee im ausgewählten Land", 24)
+	UI_ASSET_THEME.applyPanel(self, UI_ASSET_THEME.PANEL_LARGE_PATH, 38.0, 14.0)
+	UI_ASSET_THEME.applyTitleLabel(titleLabel, 24)
+	UI_ASSET_THEME.applyLabel(ownerLabel, 18)
+	UI_ASSET_THEME.applyLabel(goldLabel, 18)
+	UI_ASSET_THEME.applyLabel(foodLabel, 18)
+	UI_ASSET_THEME.applyLabel(defenseLabel, 18)
+	UI_ASSET_THEME.applyLabel(armiesLabel, 18)
+	UI_ASSET_THEME.applyLabel(recruitLabel, 18)
+	recruitButtons.add_theme_constant_override("separation", 8)
+	_applyRecruitButton(infantryButton, UI_ASSET_THEME.ICON_INFANTRY_PATH, "Inf", "Infanterie rekrutieren (+1)")
+	_applyRecruitButton(cavalryButton, UI_ASSET_THEME.ICON_CAVALRY_PATH, "Kav", "Kavallerie rekrutieren (+1)")
+	_applyRecruitButton(artilleryButton, UI_ASSET_THEME.ICON_ARTILLERY_PATH, "Art", "Artillerie rekrutieren (+1)")
+	UI_ASSET_THEME.applyTextButton(createArmyButton, false, false)
+	UI_ASSET_THEME.applyButtonIcon(createArmyButton, UI_ASSET_THEME.ICON_MANAGE_ARMY_PATH, "Neue Armee im ausgewählten Land", 28)
 	createArmyButton.text = "Neue Armee"
-	createArmyButton.custom_minimum_size = Vector2(0.0, 38.0)
+	createArmyButton.custom_minimum_size = Vector2(0.0, 48.0)
 	if attackButton != null:
 		UI_ASSET_THEME.applyTextButton(attackButton, true, false)
-		UI_ASSET_THEME.applyButtonIcon(attackButton, UI_ASSET_THEME.ICON_ATTACK_PATH, "Angriff starten", 28)
+		UI_ASSET_THEME.applyButtonIcon(attackButton, UI_ASSET_THEME.ICON_ATTACK_PATH, "Angriff starten", 32)
 		attackButton.text = "Angriff starten"
-		attackButton.custom_minimum_size = Vector2(0.0, 42.0)
+		attackButton.custom_minimum_size = Vector2(0.0, 52.0)
 
 
-func _applyRecruitButton(button: Button, iconPath: String, tooltipText: String) -> void:
+func _applyRecruitButton(button: Button, iconPath: String, shortName: String, tooltipText: String) -> void:
 	UI_ASSET_THEME.applyTextButton(button, false, true)
-	UI_ASSET_THEME.applyButtonIcon(button, iconPath, tooltipText, 24)
-	button.text = "+1"
-	button.custom_minimum_size = Vector2(74.0, 36.0)
+	UI_ASSET_THEME.applyButtonIcon(button, iconPath, tooltipText, 28)
+	button.text = "%s +1" % shortName
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.custom_minimum_size = Vector2(96.0, 46.0)
 
 
 func _ensureAttackButton() -> Button:
@@ -213,12 +215,12 @@ func _wrapLabelInRow(rowName: String, label: Label, iconPath: String) -> void:
 			previousParent.remove_child(label)
 		row = HBoxContainer.new()
 		row.name = rowName
-		row.add_theme_constant_override("separation", 8)
+		row.add_theme_constant_override("separation", 10)
 		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		column.add_child(row)
 		column.move_child(row, labelIndex)
 		if iconPath != "":
-			row.add_child(UI_ASSET_THEME.makeIcon(iconPath, Vector2(22.0, 22.0)))
+			row.add_child(UI_ASSET_THEME.makeIcon(iconPath, Vector2(28.0, 28.0)))
 		row.add_child(label)
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	statRows[rowName] = row
