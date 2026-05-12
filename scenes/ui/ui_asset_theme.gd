@@ -11,6 +11,7 @@ const PANEL_LARGE_PATH: String = "res://assets/ui/panels/panelLarge.9.png"
 const PANEL_SMALL_PATH: String = "res://assets/ui/panels/panelSmall.9.png"
 const PANEL_MODAL_PATH: String = "res://assets/ui/panels/panelModalLarge.9.png"
 const PANEL_TOP_BAR_PATH: String = "res://assets/ui/panels/panelTopBar.9.png"
+const PANEL_MAIN_TOP_BAR_PATH: String = "res://assets/ui/panels/panelMainTopBar.png"
 const PANEL_WARNING_PATH: String = "res://assets/ui/panels/warningPanel.9.png"
 
 const BUTTON_DEFAULT_PATH: String = "res://assets/ui/buttons/buttonDefault.png"
@@ -31,6 +32,7 @@ const UPGRADE_CARD_RARE_PATH: String = "res://assets/ui/cards/upgradeCardRare.9.
 const UPGRADE_CARD_HOVER_PATH: String = "res://assets/ui/cards/upgradeCardHover.9.png"
 const UPGRADE_CARD_SELECTED_PATH: String = "res://assets/ui/cards/upgradeCardSelected.9.png"
 const UPGRADE_CARD_DISABLED_PATH: String = "res://assets/ui/cards/upgradeCardDisabled.9.png"
+const UPGRADE_CHOICE_CARD_PATH: String = "res://assets/ui/cards/upgradeChoiceCard.png"
 
 const CHECKBOX_CHECKED_PATH: String = "res://assets/ui/checkboxes/checkboxChecked.png"
 const CHECKBOX_DEFAULT_PATH: String = "res://assets/ui/checkboxes/checkboxDefault.png"
@@ -101,6 +103,19 @@ static func applyTopBarPanel(panel: PanelContainer) -> void:
 	applyPanel(panel, PANEL_TOP_BAR_PATH, 42.0, 10.0)
 
 
+static func applyMainTopBarPanel(panel: PanelContainer) -> void:
+	var style := textureStyle(PANEL_MAIN_TOP_BAR_PATH, 30.0, 8.0)
+	style.texture_margin_left = 170.0
+	style.texture_margin_right = 170.0
+	style.texture_margin_top = 30.0
+	style.texture_margin_bottom = 30.0
+	style.content_margin_left = 34.0
+	style.content_margin_right = 34.0
+	style.content_margin_top = 8.0
+	style.content_margin_bottom = 8.0
+	panel.add_theme_stylebox_override("panel", style)
+
+
 static func applyTextButton(button: Button, danger: bool = false, compact: bool = false) -> void:
 	var normalPath := BUTTON_DANGER_PATH if danger else BUTTON_DEFAULT_PATH
 	var hoverPath := BUTTON_DANGER_HOVER_PATH if danger else BUTTON_DEFAULT_HOVER_PATH
@@ -136,6 +151,26 @@ static func applyUpgradeButton(button: Button, rarity: String) -> void:
 	button.add_theme_stylebox_override("disabled", textureStyle(UPGRADE_CARD_DISABLED_PATH, 34.0, 16.0))
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_applyButtonTextTheme(button, 17, 54)
+
+
+static func applyUpgradeChoiceCardButton(button: Button) -> void:
+	var emptyStyle := StyleBoxEmpty.new()
+	button.add_theme_stylebox_override("normal", emptyStyle)
+	button.add_theme_stylebox_override("hover", emptyStyle)
+	button.add_theme_stylebox_override("pressed", emptyStyle)
+	button.add_theme_stylebox_override("disabled", emptyStyle)
+	button.add_theme_stylebox_override("focus", emptyStyle)
+	button.text = ""
+	button.icon = null
+	button.flat = true
+	button.clip_text = true
+	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	button.add_theme_color_override("font_color", INK_COLOR)
+	button.add_theme_color_override("font_hover_color", INK_COLOR)
+	button.add_theme_color_override("font_pressed_color", INK_COLOR)
+	button.add_theme_color_override("font_hover_pressed_color", INK_COLOR)
+	button.add_theme_color_override("font_disabled_color", DISABLED_INK_COLOR)
+	button.add_theme_font_size_override("font_size", 16)
 
 
 static func applyButtonIcon(button: Button, texturePath: String, tooltipText: String = "", maxWidth: int = 30) -> void:

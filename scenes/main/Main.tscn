@@ -60,39 +60,66 @@ script = ExtResource("7_top_bar")
 
 [node name="MarginContainer" type="MarginContainer" parent="GameRoot/UIRoot/Root/TopBar" unique_id=1110450029]
 layout_mode = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 10
+theme_override_constants/margin_left = 64
+theme_override_constants/margin_top = 17
+theme_override_constants/margin_right = 64
+theme_override_constants/margin_bottom = 17
 
 [node name="HBoxContainer" type="HBoxContainer" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer" unique_id=954557581]
 layout_mode = 2
-theme_override_constants/separation = 28
+theme_override_constants/separation = 0
+alignment = 1
 
-[node name="GoldLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer" unique_id=98728415]
+[node name="GoldSection" type="HBoxContainer" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 7
+alignment = 1
+
+[node name="GoldLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer/GoldSection" unique_id=98728415]
 layout_mode = 2
 text = "Gold: 0"
 
-[node name="FoodLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer" unique_id=1815225628]
+[node name="FoodSection" type="HBoxContainer" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 7
+alignment = 1
+
+[node name="FoodLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer/FoodSection" unique_id=1815225628]
 layout_mode = 2
 text = "Nahrung: 0"
 
-[node name="ArmyLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer" unique_id=781415729]
+[node name="ArmySection" type="HBoxContainer" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 7
+alignment = 1
+
+[node name="ArmyLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer/ArmySection" unique_id=781415729]
 layout_mode = 2
 text = "Armee: 0"
 
-[node name="ThreatLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer" unique_id=490760524]
+[node name="ThreatSection" type="HBoxContainer" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 7
+alignment = 1
+
+[node name="ThreatLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer/ThreatSection" unique_id=490760524]
 layout_mode = 2
 text = "Bedrohung: 0%"
 
-[node name="ShortageLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer" unique_id=1147714683]
+[node name="ShortageLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer/ThreatSection" unique_id=1147714683]
 layout_mode = 2
 
-[node name="Spacer" type="Control" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer" unique_id=725268248]
+[node name="DateSection" type="HBoxContainer" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_constants/separation = 7
+alignment = 1
 
-[node name="DateLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer" unique_id=963383276]
+[node name="DateLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer/DateSection" unique_id=963383276]
 layout_mode = 2
 text = "Y1 M1 W1"
 
@@ -332,14 +359,23 @@ layout_mode = 2
 text = "Choose Upgrade"
 horizontal_alignment = 1
 
-[node name="ChoiceButton1" type="Button" parent="GameRoot/UIRoot/Root/ModalLayer/UpgradeModal/MarginContainer/VBoxContainer" unique_id=1218538738]
+[node name="ChoiceRow" type="HBoxContainer" parent="GameRoot/UIRoot/Root/ModalLayer/UpgradeModal/MarginContainer/VBoxContainer"]
 layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="ChoiceButton1" type="Button" parent="GameRoot/UIRoot/Root/ModalLayer/UpgradeModal/MarginContainer/VBoxContainer/ChoiceRow" unique_id=1218538738]
+layout_mode = 2
+custom_minimum_size = Vector2(260, 420)
 text = "-"
 
-[node name="ChoiceButton2" type="Button" parent="GameRoot/UIRoot/Root/ModalLayer/UpgradeModal/MarginContainer/VBoxContainer" unique_id=1188015330]
+[node name="ChoiceButton2" type="Button" parent="GameRoot/UIRoot/Root/ModalLayer/UpgradeModal/MarginContainer/VBoxContainer/ChoiceRow" unique_id=1188015330]
 layout_mode = 2
+custom_minimum_size = Vector2(260, 420)
 text = "-"
 
-[node name="ChoiceButton3" type="Button" parent="GameRoot/UIRoot/Root/ModalLayer/UpgradeModal/MarginContainer/VBoxContainer" unique_id=1695169428]
+[node name="ChoiceButton3" type="Button" parent="GameRoot/UIRoot/Root/ModalLayer/UpgradeModal/MarginContainer/VBoxContainer/ChoiceRow" unique_id=1695169428]
 layout_mode = 2
+custom_minimum_size = Vector2(260, 420)
 text = "-"

@@ -516,17 +516,20 @@ func _applyLayout() -> void:
 	rootControl.offset_bottom = 0.0
 	rootControl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-	topBar.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	topBar.offset_left = 0.0
-	topBar.offset_top = 0.0
-	topBar.offset_right = 0.0
-	topBar.offset_bottom = 48.0
+	topBar.anchor_left = 0.5
+	topBar.anchor_top = 0.0
+	topBar.anchor_right = 0.5
+	topBar.anchor_bottom = 0.0
+	topBar.offset_left = -760.0
+	topBar.offset_top = 10.0
+	topBar.offset_right = 760.0
+	topBar.offset_bottom = 94.0
 
 	leftPanel.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	leftPanel.offset_left = 14.0
-	leftPanel.offset_top = 62.0
+	leftPanel.offset_top = 106.0
 	leftPanel.offset_right = 274.0
-	leftPanel.offset_bottom = 438.0
+	leftPanel.offset_bottom = 466.0
 
 	miniGoalPanel.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	miniGoalPanel.offset_left = 14.0
@@ -536,9 +539,9 @@ func _applyLayout() -> void:
 
 	rightPanel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	rightPanel.offset_left = -336.0
-	rightPanel.offset_top = 62.0
+	rightPanel.offset_top = 106.0
 	rightPanel.offset_right = -14.0
-	rightPanel.offset_bottom = 392.0
+	rightPanel.offset_bottom = 420.0
 
 	bottomBar.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	bottomBar.offset_left = -456.0
@@ -560,7 +563,7 @@ func _applyLayout() -> void:
 	escMenu.offset_bottom = 210.0
 
 	upgradeModal.set_anchors_preset(Control.PRESET_CENTER)
-	upgradeModal.offset_left = -260.0
-	upgradeModal.offset_top = -190.0
-	upgradeModal.offset_right = 260.0
-	upgradeModal.offset_bottom = 190.0
+	upgradeModal.offset_left = -520.0
+	upgradeModal.offset_top = -320.0
+	upgradeModal.offset_right = 520.0
+	upgradeModal.offset_bottom = 320.0

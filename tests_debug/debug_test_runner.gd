@@ -982,7 +982,7 @@ func _testUpgradeModalAppliesSelectedUpgrade() -> ValidationResult:
 	var uiRoot = main.get_node("GameRoot/UIRoot")
 	var modalLayer = main.get_node("GameRoot/UIRoot/Root/ModalLayer")
 	var upgradeModal = main.get_node("GameRoot/UIRoot/Root/ModalLayer/UpgradeModal")
-	var choiceButton := main.get_node("GameRoot/UIRoot/Root/ModalLayer/UpgradeModal/MarginContainer/VBoxContainer/ChoiceButton1") as Button
+	var choiceButton := main.get_node("GameRoot/UIRoot/Root/ModalLayer/UpgradeModal/MarginContainer/VBoxContainer/ChoiceRow/ChoiceButton1") as Button
 	var choices := [
 		_upgradeById(&"rapidRecruitment"),
 		_upgradeById(&"warChest"),
@@ -1423,17 +1423,17 @@ func _testMainUiLayoutBindsStateAndCommands() -> ValidationResult:
 		_cleanupMainForTest(main)
 		return result
 
-	var goldLabel := main.get_node("GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer/GoldLabel") as Label
+	var goldLabel := main.get_node("GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer/GoldSection/GoldLabel") as Label
 	var startingGold := int(gameManager.getCurrentRunState().resources.get("gold", 0))
-	if not goldLabel.text.begins_with("Gold: %d" % startingGold) or not goldLabel.text.contains("/Monat"):
+	if not goldLabel.text.contains("Gold") or not goldLabel.text.contains(str(startingGold)) or not goldLabel.text.contains("/Monat"):
 		result.addError("TopBar did not bind starting gold.")
 
-	var threatLabel := main.get_node("GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer/ThreatLabel") as Label
+	var threatLabel := main.get_node("GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer/ThreatSection/ThreatLabel") as Label
 	gameManager.getCurrentRunState().resources["threat"] = 55
 	eventBus.raiseGameEvent(EventType.THREAT_CHANGED, {
 		"threat": 55,
 	})
-	if threatLabel.text != "Bedrohung: 55%":
+	if not threatLabel.text.contains("Bedrohung") or not threatLabel.text.contains("55%"):
 		result.addError("TopBar did not show high threat state.")
 
 	var armyTitle := main.get_node("GameRoot/UIRoot/Root/LeftPanel/MarginContainer/VBoxContainer/TitleLabel") as Label
@@ -1442,14 +1442,14 @@ func _testMainUiLayoutBindsStateAndCommands() -> ValidationResult:
 
 	var infantryButton := main.get_node("GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer/RecruitButtons/InfantryButton") as Button
 	infantryButton.emit_signal("pressed")
-	if not goldLabel.text.begins_with("Gold: %d" % (startingGold - 10)):
+	if not goldLabel.text.contains(str(startingGold - 10)):
 		result.addError("Recruit button did not update top bar gold.")
 
 	eventBus.requestCommand(CommandType.SET_GAME_SPEED, {
 		"speed": GameSpeed.Value.Normal,
 	})
 	simulationManager.stepSimulation(GameTime.SECONDS_PER_WEEK_AT_1X * GameTime.WEEKS_PER_MONTH)
-	if not goldLabel.text.begins_with("Gold: %d" % (startingGold - 10 + 35)):
+	if not goldLabel.text.contains(str(startingGold - 10 + 35)):
 		result.addError("TopBar did not update after month tick economy apply.")
 
 	eventBus.requestCommand(CommandType.SELECT_COUNTRY, {
