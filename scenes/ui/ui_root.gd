@@ -53,6 +53,31 @@ func _ready() -> void:
 	modalLayer.visible = false
 
 
+func _input(event: InputEvent) -> void:
+	if not gameplayVisible or modalLayer.visible:
+		return
+	if _isTextFieldFocused():
+		return
+	if eventBus == null:
+		return
+
+	# Intercept Tab in _input so it routes to army cycling instead of UI focus traversal.
+	if event.is_action_pressed(INPUT_ACTIONS.ACTION_PREVIOUS_ARMY, false, true):
+		eventBus.requestCommand(CommandType.SELECT_PREVIOUS_PLAYER_ARMY)
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed(INPUT_ACTIONS.ACTION_NEXT_ARMY, false, true):
+		eventBus.requestCommand(CommandType.SELECT_NEXT_PLAYER_ARMY)
+		get_viewport().set_input_as_handled()
+
+
+func _isTextFieldFocused() -> bool:
+	var viewport := get_viewport()
+	if viewport == null:
+		return false
+	var focusOwner := viewport.gui_get_focus_owner()
+	return focusOwner is LineEdit or focusOwner is TextEdit or focusOwner is SpinBox
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	var keyEvent := event as InputEventKey
 	if keyEvent == null or not keyEvent.pressed or keyEvent.echo:

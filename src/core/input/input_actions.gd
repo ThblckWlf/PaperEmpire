@@ -13,6 +13,8 @@ const ACTION_ZOOM_OUT: StringName = &"zoom_out"
 const ACTION_SPEED_NORMAL: StringName = &"speed_normal"
 const ACTION_SPEED_FAST: StringName = &"speed_fast"
 const ACTION_SPEED_VERY_FAST: StringName = &"speed_very_fast"
+const ACTION_NEXT_ARMY: StringName = &"nextArmy"
+const ACTION_PREVIOUS_ARMY: StringName = &"previousArmy"
 
 
 static func ensureDefaultActions() -> void:
@@ -27,6 +29,8 @@ static func ensureDefaultActions() -> void:
 	_ensureKeyAction(ACTION_SPEED_NORMAL, [KEY_1])
 	_ensureKeyAction(ACTION_SPEED_FAST, [KEY_2])
 	_ensureKeyAction(ACTION_SPEED_VERY_FAST, [KEY_3])
+	_ensureKeyActionWithModifiers(ACTION_NEXT_ARMY, KEY_TAB, false)
+	_ensureKeyActionWithModifiers(ACTION_PREVIOUS_ARMY, KEY_TAB, true)
 
 
 static func _ensureKeyAction(actionName: StringName, keycodes: Array[int]) -> void:
@@ -36,6 +40,15 @@ static func _ensureKeyAction(actionName: StringName, keycodes: Array[int]) -> vo
 		event.physical_keycode = keycode
 		if not InputMap.action_has_event(actionName, event):
 			InputMap.action_add_event(actionName, event)
+
+
+static func _ensureKeyActionWithModifiers(actionName: StringName, keycode: int, shiftPressed: bool) -> void:
+	_ensureAction(actionName)
+	var event := InputEventKey.new()
+	event.physical_keycode = keycode
+	event.shift_pressed = shiftPressed
+	if not InputMap.action_has_event(actionName, event):
+		InputMap.action_add_event(actionName, event)
 
 
 static func _ensureMouseButtonAction(actionName: StringName, buttons: Array[int]) -> void:

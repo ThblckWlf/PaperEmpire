@@ -4,6 +4,8 @@ class_name CommandType
 
 const SELECT_COUNTRY: StringName = &"select_country"
 const SELECT_ARMY: StringName = &"select_army"
+const SELECT_NEXT_PLAYER_ARMY: StringName = &"select_next_player_army"
+const SELECT_PREVIOUS_PLAYER_ARMY: StringName = &"select_previous_player_army"
 const MOVE_ARMY: StringName = &"move_army"
 const START_ATTACK: StringName = &"start_attack"
 const RECRUIT_UNITS: StringName = &"recruit_units"

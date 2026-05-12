@@ -8,6 +8,8 @@ const MAX_ZOOM: float = 3.2
 const ZOOM_STEP: float = 0.15
 const KEYBOARD_PAN_SPEED: float = 760.0
 const BOUNDS_PADDING: float = 460.0
+const SMOOTH_FOCUS_SPEED: float = 9.0
+const SMOOTH_FOCUS_SNAP_DISTANCE: float = 1.5
 const FALLBACK_BOUNDS := Rect2(Vector2.ZERO, Vector2(4096.0, 2304.0))
 const INPUT_ACTIONS := preload("res://src/core/input/input_actions.gd")
 
@@ -15,6 +17,8 @@ var mapBounds: Rect2 = FALLBACK_BOUNDS
 var isDragging: bool = false
 var activeDragButton: int = MOUSE_BUTTON_NONE
 var hasCenteredOnBounds: bool = false
+var smoothFocusTargetPosition: Vector2 = Vector2.ZERO
+var hasSmoothFocusTarget: bool = false
 
 
 func _ready() -> void:
@@ -25,6 +29,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	_advanceSmoothFocus(delta)
 	if get_viewport().gui_get_focus_owner() != null:
 		return
 
@@ -32,6 +37,7 @@ func _process(delta: float) -> void:
 	if direction == Vector2.ZERO:
 		return
 
+	cancelSmoothFocus()
 	var panDistance := KEYBOARD_PAN_SPEED * delta / getZoomScalar()
 	panBy(direction.normalized() * panDistance)
 
@@ -55,6 +61,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	var mouseMotion := event as InputEventMouseMotion
 	if mouseMotion != null and isDragging:
+		cancelSmoothFocus()
 		panBy(-mouseMotion.relative / getZoomScalar())
 		get_viewport().set_input_as_handled()
 
@@ -80,6 +87,36 @@ func centerOnMap() -> void:
 func panBy(deltaWorld: Vector2) -> void:
 	position += deltaWorld
 	_clampPosition()
+
+
+func focusOnWorldPosition(target: Vector2) -> void:
+	smoothFocusTargetPosition = _positionWithinBounds(target)
+	hasSmoothFocusTarget = true
+
+
+func cancelSmoothFocus() -> void:
+	hasSmoothFocusTarget = false
+
+
+func _advanceSmoothFocus(delta: float) -> void:
+	if not hasSmoothFocusTarget:
+		return
+
+	var weight := clampf(SMOOTH_FOCUS_SPEED * delta, 0.0, 1.0)
+	position = position.lerp(smoothFocusTargetPosition, weight)
+	_clampPosition()
+	if position.distance_to(smoothFocusTargetPosition) <= SMOOTH_FOCUS_SNAP_DISTANCE:
+		position = smoothFocusTargetPosition
+		_clampPosition()
+		hasSmoothFocusTarget = false
+
+
+func _positionWithinBounds(target: Vector2) -> Vector2:
+	var bounds := getMovementBounds()
+	return Vector2(
+		clampf(target.x, bounds.position.x, bounds.end.x),
+		clampf(target.y, bounds.position.y, bounds.end.y)
+	)
 
 
 func setZoomScalar(nextZoom: float) -> void:
@@ -121,6 +158,7 @@ func _handleMouseButton(mouseButton: InputEventMouseButton) -> void:
 
 
 func zoomAtCursor(deltaZoom: float) -> void:
+	cancelSmoothFocus()
 	var worldBeforeZoom := get_global_mouse_position()
 	setZoomScalar(getZoomScalar() + deltaZoom)
 	var worldAfterZoom := get_global_mouse_position()

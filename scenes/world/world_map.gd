@@ -153,7 +153,10 @@ func _onGameEventRaised(eventName: StringName, payload: Dictionary) -> void:
 		EventType.COUNTRY_SELECTED:
 			_updateSelection(StringName(str(payload.get("countryId", ""))))
 		EventType.ARMY_SELECTED:
-			_updateArmySelection(StringName(str(payload.get("armyId", ""))))
+			var selectedArmyId := StringName(str(payload.get("armyId", "")))
+			_updateArmySelection(selectedArmyId)
+			if bool(payload.get("focusCamera", false)) and selectedArmyId != GameIds.EMPTY_ID:
+				_focusCameraOnArmy(selectedArmyId)
 		EventType.ARMY_MOVE_STARTED, EventType.ARMY_MOVED, EventType.UNITS_RECRUITED, EventType.ARMY_UPDATED, EventType.BATTLE_STARTED, EventType.BATTLE_ENDED:
 			_updateArmyNodesFromRunState()
 		EventType.ARMY_CREATED, EventType.COUNTRY_CONQUERED:
@@ -211,6 +214,17 @@ func _updateArmySelection(selectedArmyId: StringName) -> void:
 		var node = armyNodes[armyId]
 		if node != null:
 			node.setSelected(armyId == selectedArmyId)
+
+
+func _focusCameraOnArmy(armyId: StringName) -> void:
+	if mapCamera == null or not mapCamera.has_method("focusOnWorldPosition"):
+		return
+
+	var armyNode := armyNodes.get(armyId, null) as Node2D
+	if armyNode == null:
+		return
+
+	mapCamera.focusOnWorldPosition(armyNode.global_position)
 
 
 func _updateCountryOwnersFromRunState() -> void:

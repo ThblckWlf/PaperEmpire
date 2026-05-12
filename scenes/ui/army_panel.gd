@@ -16,6 +16,8 @@ var upkeepLabel: Label
 var costLabel: Label
 var updateArmyButton: Button
 var createArmyButton: Button
+var previousArmyButton: Button
+var nextArmyButton: Button
 var currentArmyId: StringName = GameIds.EMPTY_ID
 var selectedCountryId: StringName = GameIds.EMPTY_ID
 var currentUnits: Dictionary = {}
@@ -111,6 +113,10 @@ func _applyAssetTheme() -> void:
 			UI_ASSET_THEME.applyTextButton(minusButton, false, true)
 		if plusButton != null:
 			UI_ASSET_THEME.applyTextButton(plusButton, false, true)
+	if previousArmyButton != null:
+		UI_ASSET_THEME.applyTextButton(previousArmyButton, false, true)
+	if nextArmyButton != null:
+		UI_ASSET_THEME.applyTextButton(nextArmyButton, false, true)
 	if updateArmyButton != null:
 		UI_ASSET_THEME.applyTextButton(updateArmyButton, false, false)
 		UI_ASSET_THEME.applyButtonIcon(updateArmyButton, UI_ASSET_THEME.ICON_MANAGE_ARMY_PATH, "Armee aktualisieren", 24)
@@ -147,6 +153,7 @@ func _ensureManagementControls() -> void:
 	if column == null:
 		return
 
+	_ensureArmyNavigationRow(column)
 	powerLabel = _ensureLabel(column, "PowerLabel", "Stärke: -")
 	upkeepLabel = _ensureLabel(column, "UpkeepLabel", "Nahrung/Monat: -")
 	costLabel = _ensureLabel(column, "PendingCostLabel", "Kosten: 0")
@@ -178,6 +185,53 @@ func _ensureManagementControls() -> void:
 		column.add_child(createArmyButton)
 	createArmyButton.text = "Neue Armee"
 	createArmyButton.pressed.connect(_onCreateArmyPressed)
+
+
+func _ensureArmyNavigationRow(column: VBoxContainer) -> void:
+	var navigationRow := column.get_node_or_null("ArmyNavRow") as HBoxContainer
+	if navigationRow == null:
+		navigationRow = HBoxContainer.new()
+		navigationRow.name = "ArmyNavRow"
+		navigationRow.add_theme_constant_override("separation", 4)
+		navigationRow.alignment = BoxContainer.ALIGNMENT_END
+		column.add_child(navigationRow)
+		column.move_child(navigationRow, 0)
+
+	previousArmyButton = navigationRow.get_node_or_null("PreviousArmyButton") as Button
+	if previousArmyButton == null:
+		previousArmyButton = Button.new()
+		previousArmyButton.name = "PreviousArmyButton"
+		previousArmyButton.text = "<"
+		previousArmyButton.tooltip_text = "Vorherige Armee"
+		previousArmyButton.custom_minimum_size = Vector2(32.0, 28.0)
+		previousArmyButton.focus_mode = Control.FOCUS_NONE
+		navigationRow.add_child(previousArmyButton)
+	if not previousArmyButton.pressed.is_connected(_onPreviousArmyPressed):
+		previousArmyButton.pressed.connect(_onPreviousArmyPressed)
+
+	nextArmyButton = navigationRow.get_node_or_null("NextArmyButton") as Button
+	if nextArmyButton == null:
+		nextArmyButton = Button.new()
+		nextArmyButton.name = "NextArmyButton"
+		nextArmyButton.text = ">"
+		nextArmyButton.tooltip_text = "Nächste Armee"
+		nextArmyButton.custom_minimum_size = Vector2(32.0, 28.0)
+		nextArmyButton.focus_mode = Control.FOCUS_NONE
+		navigationRow.add_child(nextArmyButton)
+	if not nextArmyButton.pressed.is_connected(_onNextArmyPressed):
+		nextArmyButton.pressed.connect(_onNextArmyPressed)
+
+
+func _onPreviousArmyPressed() -> void:
+	if eventBus == null:
+		return
+	eventBus.requestCommand(CommandType.SELECT_PREVIOUS_PLAYER_ARMY)
+
+
+func _onNextArmyPressed() -> void:
+	if eventBus == null:
+		return
+	eventBus.requestCommand(CommandType.SELECT_NEXT_PLAYER_ARMY)
 
 
 func _ensureLabel(column: VBoxContainer, labelName: String, defaultText: String) -> Label:

@@ -64,6 +64,10 @@ func submitCommand(commandName: StringName, payload: Dictionary = {}) -> void:
 			_selectCountry(StringName(str(payload.get("countryId", ""))))
 		CommandType.SELECT_ARMY:
 			_selectArmy(StringName(str(payload.get("armyId", ""))))
+		CommandType.SELECT_NEXT_PLAYER_ARMY:
+			selectNextPlayerArmy()
+		CommandType.SELECT_PREVIOUS_PLAYER_ARMY:
+			selectPreviousPlayerArmy()
 		CommandType.MOVE_ARMY:
 			_moveArmy(
 				StringName(str(payload.get("armyId", selectedArmyId))),
@@ -143,6 +147,29 @@ func getSelectedCountryId() -> StringName:
 
 func getSelectedArmyId() -> StringName:
 	return selectedArmyId
+
+
+func getPlayerArmies() -> Array:
+	var result: Array = []
+	if currentRunState == null:
+		return result
+
+	for armyId in currentRunState.armies.keys():
+		var army := currentRunState.armies[armyId] as ArmyData
+		if not _isValidPlayerArmy(army):
+			continue
+		result.append(army)
+
+	result.sort_custom(Callable(self, "_comparePlayerArmies"))
+	return result
+
+
+func selectNextPlayerArmy() -> void:
+	_cyclePlayerArmy(1)
+
+
+func selectPreviousPlayerArmy() -> void:
+	_cyclePlayerArmy(-1)
 
 
 func getMetaProgressData() -> Dictionary:
@@ -567,13 +594,68 @@ func _firstArmyId() -> StringName:
 	if currentRunState == null or currentRunState.armies.is_empty():
 		return GameIds.EMPTY_ID
 
+	var playerArmies := getPlayerArmies()
+	if not playerArmies.is_empty():
+		return (playerArmies[0] as ArmyData).id
+
 	var armyIds := currentRunState.armies.keys()
 	armyIds.sort()
-	for armyId in armyIds:
-		var army := currentRunState.armies[armyId] as ArmyData
-		if army != null and army.ownerId == GameIds.PLAYER_OWNER_ID:
-			return StringName(str(armyId))
 	return StringName(str(armyIds[0]))
+
+
+func _isValidPlayerArmy(army: ArmyData) -> bool:
+	if army == null:
+		return false
+	if army.ownerId != GameIds.PLAYER_OWNER_ID:
+		return false
+	if army.status == ArmyStatus.Value.Defeated:
+		return false
+	if army.locationCountryId == GameIds.EMPTY_ID:
+		return false
+	return true
+
+
+func _comparePlayerArmies(a: ArmyData, b: ArmyData) -> bool:
+	if a.locationCountryId != b.locationCountryId:
+		return str(a.locationCountryId) < str(b.locationCountryId)
+	return str(a.id) < str(b.id)
+
+
+func _cyclePlayerArmy(direction: int) -> void:
+	if not hasActiveRun():
+		return
+
+	var armies := getPlayerArmies()
+	if armies.is_empty():
+		if selectedArmyId != GameIds.EMPTY_ID:
+			selectedArmyId = GameIds.EMPTY_ID
+			_raiseEvent(EventType.ARMY_SELECTED, {
+				"armyId": selectedArmyId,
+				"focusCamera": false,
+			})
+		return
+
+	var currentIndex := -1
+	for index in range(armies.size()):
+		var army := armies[index] as ArmyData
+		if army != null and army.id == selectedArmyId:
+			currentIndex = index
+			break
+
+	var nextIndex: int
+	if currentIndex == -1:
+		nextIndex = 0 if direction >= 0 else armies.size() - 1
+	else:
+		nextIndex = posmod(currentIndex + direction, armies.size())
+
+	var nextArmy := armies[nextIndex] as ArmyData
+	selectedArmyId = nextArmy.id
+	_raiseEvent(EventType.ARMY_SELECTED, {
+		"armyId": selectedArmyId,
+		"locationCountryId": nextArmy.locationCountryId,
+		"status": nextArmy.status,
+		"focusCamera": true,
+	})
 
 
 func _firstPlayerCountryId() -> StringName:
