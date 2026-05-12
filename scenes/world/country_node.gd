@@ -6,14 +6,12 @@ signal countryPressed(countryId: StringName)
 signal countryMoveTargetPressed(countryId: StringName)
 signal countryHoverChanged(countryId: StringName, isHovered: bool)
 
-const HOVER_GLOW_TEXTURE: Texture2D = preload("res://assets/vfx/map/countryHoverGlow.png")
-const SELECTION_PULSE_TEXTURE: Texture2D = preload("res://assets/vfx/map/selectionPulse.png")
-
 const PLAYER_COLOR: Color = Color(0.43, 0.56, 0.39, 0.30)
 const NEUTRAL_COLOR: Color = Color(0.0, 0.0, 0.0, 0.0)
 const WORLD_COLOR: Color = Color(0.64, 0.29, 0.25, 0.26)
 const UNKNOWN_COLOR: Color = Color(0.49, 0.61, 0.65, 0.18)
 const HOVER_COLOR: Color = Color(0.76, 0.58, 0.20, 0.24)
+const SELECTED_FILL_COLOR: Color = Color(0.92, 0.68, 0.22, 0.20)
 const SELECTED_OUTLINE_COLOR: Color = Color("#C39535")
 const HOVER_OUTLINE_COLOR: Color = Color(0.18, 0.16, 0.12, 0.72)
 
@@ -31,7 +29,6 @@ var polygonNodes: Array[Polygon2D] = []
 var outlineNodes: Array[Line2D] = []
 var isSelected: bool = false
 var isHovered: bool = false
-var feedbackSprite: Sprite2D
 
 
 func _ready() -> void:
@@ -44,7 +41,6 @@ func _ready() -> void:
 	collisionTemplate.polygon = PackedVector2Array()
 	if shapePolygons.is_empty():
 		shapePolygons = [_defaultPoints()]
-	_ensureFeedbackSprite()
 	_rebuildShapeNodes()
 	_applyVisualState()
 
@@ -120,17 +116,18 @@ func _applyVisualState() -> void:
 	if not is_node_ready():
 		return
 
-	var fillColor := HOVER_COLOR if isHovered else _ownerColor(ownerId)
+	var fillColor := _ownerColor(ownerId)
+	if isSelected:
+		fillColor = SELECTED_FILL_COLOR
+	elif isHovered:
+		fillColor = HOVER_COLOR
 	for polygonNode in polygonNodes:
 		polygonNode.color = fillColor
 
 	for outlineNode in outlineNodes:
 		outlineNode.visible = isSelected or isHovered
 		outlineNode.default_color = SELECTED_OUTLINE_COLOR if isSelected else HOVER_OUTLINE_COLOR
-		outlineNode.width = 5.0 if isSelected else 2.4
-	if feedbackSprite != null:
-		feedbackSprite.visible = isSelected or isHovered
-		feedbackSprite.texture = SELECTION_PULSE_TEXTURE if isSelected else HOVER_GLOW_TEXTURE
+		outlineNode.width = 4.0 if isSelected else 2.2
 	z_index = 10 if isSelected else 0
 
 
@@ -184,53 +181,6 @@ func _rebuildShapeNodes() -> void:
 		outlineNode.end_cap_mode = Line2D.LINE_CAP_ROUND
 		add_child(outlineNode)
 		outlineNodes.append(outlineNode)
-	_updateFeedbackSpriteBounds()
-
-
-func _ensureFeedbackSprite() -> void:
-	if feedbackSprite != null:
-		return
-
-	feedbackSprite = Sprite2D.new()
-	feedbackSprite.name = "SelectionFeedback"
-	feedbackSprite.texture = HOVER_GLOW_TEXTURE
-	feedbackSprite.visible = false
-	feedbackSprite.z_index = -2
-	add_child(feedbackSprite)
-	move_child(feedbackSprite, 0)
-
-
-func _updateFeedbackSpriteBounds() -> void:
-	_ensureFeedbackSprite()
-	if feedbackSprite == null or shapePolygons.is_empty():
-		return
-
-	var bounds := _shapeBounds()
-	feedbackSprite.position = bounds.get_center()
-	var textureSize := Vector2(float(HOVER_GLOW_TEXTURE.get_width()), float(HOVER_GLOW_TEXTURE.get_height()))
-	var targetSize := bounds.size * 1.25
-	if textureSize.x <= 0.0 or textureSize.y <= 0.0:
-		return
-
-	feedbackSprite.scale = Vector2(
-		maxf(targetSize.x / textureSize.x, 0.08),
-		maxf(targetSize.y / textureSize.y, 0.08)
-	)
-
-
-func _shapeBounds() -> Rect2:
-	var hasBounds := false
-	var bounds := Rect2()
-	for points in shapePolygons:
-		for point in points:
-			if hasBounds:
-				bounds = bounds.expand(point)
-			else:
-				bounds = Rect2(point, Vector2.ZERO)
-				hasBounds = true
-	if not hasBounds:
-		return Rect2(Vector2.ZERO, Vector2(48.0, 48.0))
-	return bounds
 
 
 func _defaultPoints() -> PackedVector2Array:

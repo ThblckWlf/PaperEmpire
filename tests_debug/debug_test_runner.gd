@@ -1425,7 +1425,7 @@ func _testMainUiLayoutBindsStateAndCommands() -> ValidationResult:
 
 	var goldLabel := main.get_node("GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer/GoldLabel") as Label
 	var startingGold := int(gameManager.getCurrentRunState().resources.get("gold", 0))
-	if goldLabel.text != "Gold: %d" % startingGold:
+	if not goldLabel.text.begins_with("Gold: %d" % startingGold) or not goldLabel.text.contains("/Monat"):
 		result.addError("TopBar did not bind starting gold.")
 
 	var threatLabel := main.get_node("GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer/ThreatLabel") as Label
@@ -1433,23 +1433,23 @@ func _testMainUiLayoutBindsStateAndCommands() -> ValidationResult:
 	eventBus.raiseGameEvent(EventType.THREAT_CHANGED, {
 		"threat": 55,
 	})
-	if threatLabel.text != "Threat: 55 (High)":
+	if threatLabel.text != "Bedrohung: 55%":
 		result.addError("TopBar did not show high threat state.")
 
 	var armyTitle := main.get_node("GameRoot/UIRoot/Root/LeftPanel/MarginContainer/VBoxContainer/TitleLabel") as Label
-	if armyTitle.text != "army_start":
-		result.addError("ArmyPanel did not bind selected army.")
+	if armyTitle.text != "United States of America":
+		result.addError("ArmyPanel did not bind player country.")
 
 	var infantryButton := main.get_node("GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer/RecruitButtons/InfantryButton") as Button
 	infantryButton.emit_signal("pressed")
-	if goldLabel.text != "Gold: %d" % (startingGold - 10):
+	if not goldLabel.text.begins_with("Gold: %d" % (startingGold - 10)):
 		result.addError("Recruit button did not update top bar gold.")
 
 	eventBus.requestCommand(CommandType.SET_GAME_SPEED, {
 		"speed": GameSpeed.Value.Normal,
 	})
 	simulationManager.stepSimulation(GameTime.SECONDS_PER_WEEK_AT_1X * GameTime.WEEKS_PER_MONTH)
-	if goldLabel.text != "Gold: %d" % (startingGold - 10 + 35):
+	if not goldLabel.text.begins_with("Gold: %d" % (startingGold - 10 + 35)):
 		result.addError("TopBar did not update after month tick economy apply.")
 
 	eventBus.requestCommand(CommandType.SELECT_COUNTRY, {
@@ -1458,6 +1458,15 @@ func _testMainUiLayoutBindsStateAndCommands() -> ValidationResult:
 	var countryTitle := main.get_node("GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer/TitleLabel") as Label
 	if countryTitle.text != "Canada":
 		result.addError("CountryPanel did not update from country selection.")
+
+	var attackButton := main.get_node_or_null("GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer/AttackButton") as Button
+	if attackButton == null or not attackButton.visible or attackButton.disabled:
+		result.addError("CountryPanel did not expose a valid attack button.")
+	else:
+		attackButton.emit_signal("pressed")
+		var selectedArmy := gameManager.getCurrentRunState().armies.get(&"army_start", null) as ArmyData
+		if selectedArmy == null or selectedArmy.status != ArmyStatus.Value.Attacking:
+			result.addError("Attack button did not start the selected army attack.")
 
 	var pauseButton := main.get_node("GameRoot/UIRoot/Root/BottomBar/MarginContainer/HBoxContainer/PauseButton") as Button
 	pauseButton.emit_signal("pressed")
