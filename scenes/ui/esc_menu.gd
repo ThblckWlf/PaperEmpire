@@ -8,7 +8,10 @@ signal settingsRequested
 signal returnToMainMenuRequested
 signal quitGameRequested
 
+const UI_ASSET_THEME := preload("res://scenes/ui/ui_asset_theme.gd")
+
 @onready var buttonContainer: VBoxContainer = $MarginContainer/VBoxContainer as VBoxContainer
+@onready var titleLabel: Label = $MarginContainer/VBoxContainer/TitleLabel as Label
 @onready var resumeButton: Button = $MarginContainer/VBoxContainer/ResumeButton as Button
 @onready var quitButton: Button = $MarginContainer/VBoxContainer/QuitButton as Button
 
@@ -20,6 +23,7 @@ var returnToMainMenuButton: Button
 
 func _ready() -> void:
 	_ensurePauseButtons()
+	_applyAssetTheme()
 	resumeButton.pressed.connect(_onResumePressed)
 	saveButton.pressed.connect(_onSavePressed)
 	loadButton.pressed.connect(_onLoadPressed)
@@ -86,3 +90,19 @@ func _ensurePauseButtons() -> void:
 		buttonContainer.move_child(returnToMainMenuButton, settingsButton.get_index() + 1)
 
 	quitButton.text = "Quit Game"
+
+
+func _applyAssetTheme() -> void:
+	UI_ASSET_THEME.applyPanel(self, UI_ASSET_THEME.PANEL_MODAL_PATH, 42.0, 14.0)
+	UI_ASSET_THEME.applyTitleLabel(titleLabel, 24)
+	_applyMenuButton(resumeButton, UI_ASSET_THEME.ICON_CONFIRM_PATH, "Resume game")
+	_applyMenuButton(saveButton, UI_ASSET_THEME.ICON_SAVE_PATH, "Save game")
+	_applyMenuButton(loadButton, UI_ASSET_THEME.ICON_LOAD_PATH, "Load game")
+	_applyMenuButton(settingsButton, UI_ASSET_THEME.ICON_SETTINGS_PATH, "Open settings")
+	_applyMenuButton(returnToMainMenuButton, UI_ASSET_THEME.ICON_BACK_PATH, "Return to main menu")
+	_applyMenuButton(quitButton, UI_ASSET_THEME.ICON_CANCEL_PATH, "Quit game", true)
+
+
+func _applyMenuButton(button: Button, iconPath: String, tooltipText: String, danger: bool = false) -> void:
+	UI_ASSET_THEME.applyTextButton(button, danger, false)
+	UI_ASSET_THEME.applyButtonIcon(button, iconPath, tooltipText, 28)

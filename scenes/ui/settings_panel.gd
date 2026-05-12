@@ -4,6 +4,8 @@ extends PanelContainer
 signal settingChanged(settingKey: StringName, value: Variant)
 signal closeRequested
 
+const UI_ASSET_THEME := preload("res://scenes/ui/ui_asset_theme.gd")
+
 const INK_COLOR: Color = Color("#211d17")
 const MUTED_INK_COLOR: Color = Color("#4d422f")
 const DISABLED_INK_COLOR: Color = Color("#655d4f")
@@ -193,8 +195,10 @@ func _refreshAcceptButton() -> void:
 
 
 func _applyReadableTheme() -> void:
-	add_theme_stylebox_override("panel", _panelStyle())
+	UI_ASSET_THEME.applyPanel(self, UI_ASSET_THEME.PANEL_MODAL_PATH, 42.0, 14.0)
 	_applyReadableThemeRecursive(self)
+	UI_ASSET_THEME.applyButtonIcon(closeButton, UI_ASSET_THEME.ICON_BACK_PATH, "Back", 24)
+	UI_ASSET_THEME.applyButtonIcon(acceptButton, UI_ASSET_THEME.ICON_CONFIRM_PATH, "Accept settings", 24)
 
 
 func _applyReadableThemeRecursive(root: Node) -> void:
@@ -209,17 +213,11 @@ func _applyReadableThemeRecursive(root: Node) -> void:
 
 		var checkBox := child as CheckBox
 		if checkBox != null:
-			checkBox.add_theme_color_override("font_color", INK_COLOR)
-			checkBox.add_theme_color_override("font_hover_color", INK_COLOR)
-			checkBox.add_theme_color_override("font_pressed_color", INK_COLOR)
-			checkBox.add_theme_color_override("font_hover_pressed_color", INK_COLOR)
-			checkBox.add_theme_color_override("font_disabled_color", DISABLED_INK_COLOR)
-			checkBox.add_theme_font_size_override("font_size", 18)
+			UI_ASSET_THEME.applyCheckbox(checkBox)
 
 		var slider := child as HSlider
 		if slider != null:
-			slider.add_theme_stylebox_override("slider", _sliderTrackStyle())
-			slider.add_theme_stylebox_override("grabber_area", _sliderFillStyle())
+			UI_ASSET_THEME.applySlider(slider)
 
 		_applyReadableThemeRecursive(child)
 
@@ -236,16 +234,7 @@ func _applyLabelStyle(label: Label) -> void:
 
 
 func _applyButtonStyle(button: Button) -> void:
-	button.add_theme_stylebox_override("normal", _buttonStyle(BUTTON_COLOR))
-	button.add_theme_stylebox_override("hover", _buttonStyle(BUTTON_HOVER_COLOR))
-	button.add_theme_stylebox_override("pressed", _buttonStyle(BUTTON_PRESSED_COLOR))
-	button.add_theme_stylebox_override("disabled", _buttonStyle(PARCHMENT_COLOR.darkened(0.08)))
-	button.add_theme_color_override("font_color", INK_COLOR)
-	button.add_theme_color_override("font_hover_color", INK_COLOR)
-	button.add_theme_color_override("font_pressed_color", INK_COLOR)
-	button.add_theme_color_override("font_hover_pressed_color", INK_COLOR)
-	button.add_theme_color_override("font_disabled_color", DISABLED_INK_COLOR)
-	button.add_theme_font_size_override("font_size", 18)
+	UI_ASSET_THEME.applyTextButton(button, false, true)
 
 
 func _panelStyle() -> StyleBoxFlat:

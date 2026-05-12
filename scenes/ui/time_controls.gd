@@ -1,6 +1,8 @@
 extends PanelContainer
 
 
+const UI_ASSET_THEME := preload("res://scenes/ui/ui_asset_theme.gd")
+
 @onready var pauseButton: Button = $MarginContainer/HBoxContainer/PauseButton as Button
 @onready var normalButton: Button = $MarginContainer/HBoxContainer/NormalButton as Button
 @onready var fastButton: Button = $MarginContainer/HBoxContainer/FastButton as Button
@@ -14,6 +16,7 @@ func _ready() -> void:
 	normalButton.pressed.connect(_requestNormal)
 	fastButton.pressed.connect(_requestFast)
 	veryFastButton.pressed.connect(_requestVeryFast)
+	_applyAssetTheme()
 
 
 func configure(newEventBus: EventBus) -> void:
@@ -54,3 +57,17 @@ func _requestSpeedCommand(commandName: StringName, payload: Dictionary) -> void:
 		return
 
 	eventBus.requestCommand(commandName, payload)
+
+
+func _applyAssetTheme() -> void:
+	UI_ASSET_THEME.applyTopBarPanel(self)
+	_applyTimeButton(pauseButton, UI_ASSET_THEME.TIME_PAUSE_PATH, "Pause")
+	_applyTimeButton(normalButton, UI_ASSET_THEME.TIME_SPEED_1_PATH, "Normal speed")
+	_applyTimeButton(fastButton, UI_ASSET_THEME.TIME_SPEED_2_PATH, "Fast speed")
+	_applyTimeButton(veryFastButton, UI_ASSET_THEME.TIME_SPEED_4_PATH, "Very fast speed")
+
+
+func _applyTimeButton(button: Button, texturePath: String, tooltipText: String) -> void:
+	UI_ASSET_THEME.applyTextButton(button, false, true)
+	UI_ASSET_THEME.applyButtonIcon(button, texturePath, tooltipText, 26)
+	button.custom_minimum_size = Vector2(108.0, 46.0)

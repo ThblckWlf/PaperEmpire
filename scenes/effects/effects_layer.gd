@@ -6,6 +6,13 @@ signal visualEffectRaised(eventName: StringName, payload: Dictionary)
 
 const MISSILE_EFFECT_SCENE: PackedScene = preload("res://scenes/effects/MissileEffect.tscn")
 const EXPLOSION_EFFECT_SCENE: PackedScene = preload("res://scenes/effects/ExplosionEffect.tscn")
+const MOVE_ARROW_TEXTURE: Texture2D = preload("res://assets/map/paths/moveArrowGreen.png")
+const PATH_ARROW_HEAD_TEXTURE: Texture2D = preload("res://assets/map/paths/pathArrowHead.png")
+const BATTLE_MARKER_TEXTURE: Texture2D = preload("res://assets/map/markers/battleMarker.png")
+const BATTLE_CLASH_TEXTURE: Texture2D = preload("res://assets/vfx/battle/battleClashIcon.png")
+const BATTLE_VICTORY_TEXTURE: Texture2D = preload("res://assets/vfx/battle/battleVictoryStamp.png")
+const BATTLE_DEFEAT_TEXTURE: Texture2D = preload("res://assets/vfx/battle/battleDefeatStamp.png")
+const CONQUEST_STAMP_TEXTURE: Texture2D = preload("res://assets/vfx/conquest/conquestStamp.png")
 
 const MOVEMENT_LINE_COLOR: Color = Color(0.2, 0.82, 0.72, 0.55)
 const MOVEMENT_MARKER_COLOR: Color = Color(0.22, 0.92, 0.78, 0.9)
@@ -65,6 +72,7 @@ func _onGameEventRaised(eventName: StringName, payload: Dictionary) -> void:
 		EventType.BATTLE_STARTED:
 			_startBattlePulse(payload)
 		EventType.BATTLE_ENDED:
+			_playBattleResultStamp(payload)
 			_stopBattlePulse(StringName(str(payload.get("battleId", ""))))
 		EventType.COUNTRY_CONQUERED:
 			_playConquestFlash(StringName(str(payload.get("countryId", ""))))
@@ -102,12 +110,18 @@ func _updateMovementFeedback(army: ArmyData, countries: Dictionary) -> void:
 
 	var feedbackNode := _ensureMovementFeedback(army.id)
 	var pathLine := feedbackNode.get_node("PathLine") as Line2D
-	var markerNode := feedbackNode.get_node("ProgressMarker") as Polygon2D
+	var pathArrow := feedbackNode.get_node("PathArrow") as Sprite2D
+	var markerNode := feedbackNode.get_node("ProgressMarker") as Sprite2D
 	var progress := clampf(army.movementProgress, 0.0, 1.0)
 	var currentPosition := sourceCountry.center.lerp(targetCountry.center, progress)
+	var direction := targetCountry.center - sourceCountry.center
+	var distance := direction.length()
 	pathLine.points = PackedVector2Array([sourceCountry.center, targetCountry.center])
+	pathArrow.position = sourceCountry.center.lerp(targetCountry.center, 0.5)
+	pathArrow.rotation = direction.angle()
+	pathArrow.scale = Vector2(maxf(distance / float(MOVE_ARROW_TEXTURE.get_width()), 0.1), 0.16)
 	markerNode.position = currentPosition
-	markerNode.rotation = (targetCountry.center - sourceCountry.center).angle()
+	markerNode.rotation = direction.angle()
 
 
 func _ensureMovementFeedback(armyId: StringName) -> Node2D:
@@ -122,18 +136,22 @@ func _ensureMovementFeedback(armyId: StringName) -> Node2D:
 	var pathLine := Line2D.new()
 	pathLine.name = "PathLine"
 	pathLine.width = 3.0
-	pathLine.default_color = MOVEMENT_LINE_COLOR
+	pathLine.default_color = MOVEMENT_LINE_COLOR.darkened(0.35)
 	feedbackNode.add_child(pathLine)
 
-	var markerNode := Polygon2D.new()
+	var pathArrow := Sprite2D.new()
+	pathArrow.name = "PathArrow"
+	pathArrow.texture = MOVE_ARROW_TEXTURE
+	pathArrow.centered = true
+	pathArrow.modulate = Color(1.0, 1.0, 1.0, 0.82)
+	feedbackNode.add_child(pathArrow)
+
+	var markerNode := Sprite2D.new()
 	markerNode.name = "ProgressMarker"
-	markerNode.polygon = PackedVector2Array([
-		Vector2(11.0, 0.0),
-		Vector2(-7.0, -5.0),
-		Vector2(-4.0, 0.0),
-		Vector2(-7.0, 5.0),
-	])
-	markerNode.color = MOVEMENT_MARKER_COLOR
+	markerNode.texture = PATH_ARROW_HEAD_TEXTURE
+	markerNode.centered = true
+	markerNode.modulate = MOVEMENT_MARKER_COLOR
+	markerNode.scale = Vector2(0.14, 0.14)
 	feedbackNode.add_child(markerNode)
 
 	var tween := feedbackNode.create_tween()
@@ -163,14 +181,33 @@ func _startBattlePulse(payload: Dictionary) -> void:
 	if battleFeedback.has(battleId):
 		return
 
+	var feedbackNode := Node2D.new()
+	feedbackNode.name = "BattleFeedback_%s" % str(battleId)
+	feedbackNode.position = _countryCenter(countryId)
+	feedbackNode.z_index = 42
+	battleLayer.add_child(feedbackNode)
+
 	var pulseNode := Polygon2D.new()
-	pulseNode.name = "BattlePulse_%s" % str(battleId)
-	pulseNode.position = _countryCenter(countryId)
+	pulseNode.name = "Pulse"
 	pulseNode.polygon = _countryShapeOrCircle(countryId)
 	pulseNode.color = BATTLE_PULSE_COLOR
-	pulseNode.z_index = 42
-	battleLayer.add_child(pulseNode)
-	battleFeedback[battleId] = pulseNode
+	feedbackNode.add_child(pulseNode)
+
+	var markerNode := Sprite2D.new()
+	markerNode.name = "BattleMarker"
+	markerNode.texture = BATTLE_MARKER_TEXTURE
+	markerNode.centered = true
+	markerNode.scale = Vector2(0.16, 0.16)
+	feedbackNode.add_child(markerNode)
+
+	var clashNode := Sprite2D.new()
+	clashNode.name = "BattleClash"
+	clashNode.texture = BATTLE_CLASH_TEXTURE
+	clashNode.centered = true
+	clashNode.scale = Vector2(0.12, 0.12)
+	clashNode.position = Vector2(0.0, -22.0)
+	feedbackNode.add_child(clashNode)
+	battleFeedback[battleId] = feedbackNode
 
 	var tween := pulseNode.create_tween()
 	tween.set_loops()
@@ -194,20 +231,53 @@ func _playConquestFlash(countryId: StringName) -> void:
 	if countryId == GameIds.EMPTY_ID:
 		return
 
+	var flashRoot := Node2D.new()
+	flashRoot.name = "ConquestFlash_%s" % str(countryId)
+	flashRoot.position = _countryCenter(countryId)
+	flashRoot.z_index = 44
+	oneShotLayer.add_child(flashRoot)
+
 	var flashNode := Polygon2D.new()
-	flashNode.name = "ConquestFlash_%s" % str(countryId)
-	flashNode.position = _countryCenter(countryId)
+	flashNode.name = "CountryFlash"
 	flashNode.polygon = _countryShapeOrCircle(countryId)
 	flashNode.color = CONQUEST_FLASH_COLOR
-	flashNode.z_index = 44
-	oneShotLayer.add_child(flashNode)
+	flashRoot.add_child(flashNode)
 
-	var tween := flashNode.create_tween()
+	var stampNode := Sprite2D.new()
+	stampNode.name = "ConquestStamp"
+	stampNode.texture = CONQUEST_STAMP_TEXTURE
+	stampNode.centered = true
+	stampNode.scale = Vector2(0.22, 0.22)
+	flashRoot.add_child(stampNode)
+
+	var tween := flashRoot.create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(flashNode, "scale", Vector2(1.08, 1.08), 0.45).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.tween_property(flashNode, "modulate:a", 0.0, 0.45)
+	tween.tween_property(flashRoot, "scale", Vector2(1.08, 1.08), 0.45).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(flashRoot, "modulate:a", 0.0, 0.45)
 	tween.set_parallel(false)
-	tween.tween_callback(flashNode.queue_free)
+	tween.tween_callback(flashRoot.queue_free)
+
+
+func _playBattleResultStamp(payload: Dictionary) -> void:
+	var countryId := StringName(str(payload.get("targetCountryId", "")))
+	if countryId == GameIds.EMPTY_ID:
+		return
+
+	var stampNode := Sprite2D.new()
+	stampNode.name = "BattleResultStamp_%s" % str(payload.get("battleId", ""))
+	stampNode.texture = BATTLE_VICTORY_TEXTURE if bool(payload.get("attackerWon", false)) else BATTLE_DEFEAT_TEXTURE
+	stampNode.centered = true
+	stampNode.position = _countryCenter(countryId)
+	stampNode.scale = Vector2(0.24, 0.24)
+	stampNode.z_index = 45
+	oneShotLayer.add_child(stampNode)
+
+	var tween := stampNode.create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(stampNode, "scale", Vector2(0.3, 0.3), 0.55).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(stampNode, "modulate:a", 0.0, 0.55).set_delay(0.35)
+	tween.set_parallel(false)
+	tween.tween_callback(stampNode.queue_free)
 
 
 func _playMissile(payload: Dictionary) -> void:

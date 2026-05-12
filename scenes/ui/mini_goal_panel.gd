@@ -1,6 +1,8 @@
 extends PanelContainer
 
 
+const UI_ASSET_THEME := preload("res://scenes/ui/ui_asset_theme.gd")
+
 @onready var goalButtons: Array[Button] = [
 	$MarginContainer/VBoxContainer/GoalButton1 as Button,
 	$MarginContainer/VBoxContainer/GoalButton2 as Button,
@@ -15,6 +17,7 @@ var goalIds: Array[StringName] = []
 
 
 func _ready() -> void:
+	_applyAssetTheme()
 	for index in range(goalButtons.size()):
 		goalButtons[index].pressed.connect(_onGoalPressed.bind(index))
 
@@ -32,6 +35,7 @@ func setData(data: Dictionary) -> void:
 		if index >= rows.size() or not (rows[index] is Dictionary):
 			button.text = "-"
 			button.disabled = true
+			button.icon = null
 			continue
 
 		var row := rows[index] as Dictionary
@@ -47,6 +51,7 @@ func setData(data: Dictionary) -> void:
 			suffix,
 		]
 		button.disabled = not bool(row.get("canClaim", false)) or eventBus == null
+		_applyGoalButtonIcon(button, row)
 
 
 func _onGoalPressed(index: int) -> void:
@@ -64,3 +69,19 @@ func _updateButtonsEnabled() -> void:
 
 	for button in goalButtons:
 		button.disabled = true
+
+
+func _applyAssetTheme() -> void:
+	UI_ASSET_THEME.applyPanel(self, UI_ASSET_THEME.PANEL_SMALL_PATH, 32.0, 8.0)
+	for button in goalButtons:
+		UI_ASSET_THEME.applyListButton(button)
+		button.custom_minimum_size = Vector2(0.0, 38.0)
+
+
+func _applyGoalButtonIcon(button: Button, row: Dictionary) -> void:
+	if bool(row.get("isRewardClaimed", false)):
+		UI_ASSET_THEME.applyButtonIcon(button, UI_ASSET_THEME.ICON_CROWN_PATH, "Reward claimed", 22)
+	elif bool(row.get("canClaim", false)):
+		UI_ASSET_THEME.applyButtonIcon(button, UI_ASSET_THEME.ICON_CONFIRM_PATH, "Claim reward", 22)
+	else:
+		UI_ASSET_THEME.applyButtonIcon(button, UI_ASSET_THEME.ICON_HELP_PATH, "Mini goal progress", 22)

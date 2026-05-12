@@ -10,6 +10,7 @@ const INPUT_ACTIONS := preload("res://src/core/input/input_actions.gd")
 const SAVE_FORMAT := preload("res://src/save/save_format.gd")
 const SHOP_PANEL_SCRIPT := preload("res://scenes/ui/shop_panel.gd")
 const SETTINGS_PANEL_SCRIPT := preload("res://scenes/ui/settings_panel.gd")
+const UI_ASSET_THEME := preload("res://scenes/ui/ui_asset_theme.gd")
 
 const MANUAL_SLOT_ID: String = "manual_1"
 const PAPER_BACKGROUND_PATH: String = "res://assets/map/backgrounds/paperBackgroundMenuDesk.png"
@@ -412,6 +413,7 @@ func _ensureCountrySelectionPanel() -> void:
 	startSelectedCountryButton.text = "Start Run"
 	startSelectedCountryButton.pressed.connect(_requestSelectedNewRun)
 	buttonRow.add_child(startSelectedCountryButton)
+	UI_ASSET_THEME.applyButtonIcon(startSelectedCountryButton, UI_ASSET_THEME.ICON_ATTACK_PATH, "Start run", 28)
 
 	var backButton := Button.new()
 	backButton.name = "BackButton"
@@ -419,6 +421,7 @@ func _ensureCountrySelectionPanel() -> void:
 	backButton.text = "Back"
 	backButton.pressed.connect(_closeModal)
 	buttonRow.add_child(backButton)
+	UI_ASSET_THEME.applyButtonIcon(backButton, UI_ASSET_THEME.ICON_BACK_PATH, "Back", 28)
 
 	_applyPaperControlTheme(countrySelectionPanel)
 
@@ -643,6 +646,7 @@ func _applyTheme() -> void:
 	_applyButtonStyle(quitButton, true, false)
 	_applyButtonStyle(primaryModalButton, false, false)
 	_applyButtonStyle(closeModalButton, false, false)
+	_applyMenuButtonIcons()
 
 	_applyPaperControlTheme(self)
 	_applyTitleLabelStyle($SafeArea/TitlePanel/MarginContainer/TitleContent/GameTitleLabel as Label)
@@ -651,6 +655,20 @@ func _applyTheme() -> void:
 	_applyModalLabelStyle(modalBodyLabel)
 
 	modalDim.color = Color(0.04, 0.035, 0.025, 0.55)
+
+
+func _applyMenuButtonIcons() -> void:
+	UI_ASSET_THEME.applyButtonIcon(continueRunButton, UI_ASSET_THEME.ICON_CONFIRM_PATH, "Continue run", 30)
+	UI_ASSET_THEME.applyButtonIcon(newRunButton, UI_ASSET_THEME.ICON_ATTACK_PATH, "Start a new run", 30)
+	UI_ASSET_THEME.applyButtonIcon(shopButton, UI_ASSET_THEME.ICON_SHOP_PATH, "Open shop", 30)
+	UI_ASSET_THEME.applyButtonIcon(howToPlayButton, UI_ASSET_THEME.ICON_HELP_PATH, "How to play", 30)
+	UI_ASSET_THEME.applyButtonIcon(settingsButton, UI_ASSET_THEME.ICON_SETTINGS_PATH, "Open settings", 30)
+	UI_ASSET_THEME.applyButtonIcon(loadGameButton, UI_ASSET_THEME.ICON_LOAD_PATH, "Load game", 30)
+	UI_ASSET_THEME.applyButtonIcon(creditsButton, UI_ASSET_THEME.ICON_CROWN_PATH, "Credits", 30)
+	UI_ASSET_THEME.applyButtonIcon(quitButton, UI_ASSET_THEME.ICON_CANCEL_PATH, "Quit game", 30)
+	UI_ASSET_THEME.applyButtonIcon(startAgeRunHiddenButton, UI_ASSET_THEME.ICON_ATTACK_PATH, "Start age run", 30)
+	UI_ASSET_THEME.applyButtonIcon(primaryModalButton, UI_ASSET_THEME.ICON_CONFIRM_PATH, "Confirm", 30)
+	UI_ASSET_THEME.applyButtonIcon(closeModalButton, UI_ASSET_THEME.ICON_BACK_PATH, "Close", 30)
 
 
 func _focusFirstMenuButton() -> void:

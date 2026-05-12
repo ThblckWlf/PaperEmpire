@@ -4,6 +4,8 @@ extends PanelContainer
 signal purchaseRequested(upgradeId: StringName)
 signal closeRequested
 
+const UI_ASSET_THEME := preload("res://scenes/ui/ui_asset_theme.gd")
+
 const INK_COLOR: Color = Color("#211d17")
 const DISABLED_INK_COLOR: Color = Color("#655d4f")
 const PARCHMENT_COLOR: Color = Color("#d8bd7c")
@@ -52,6 +54,7 @@ func setData(data: Dictionary) -> void:
 			suffix,
 			str(row.get("description", "")),
 		]
+		UI_ASSET_THEME.applyButtonIcon(button, UI_ASSET_THEME.iconForUpgradeEffect(str(row.get("effectType", ""))), str(row.get("name", "Upgrade")), 34)
 		button.visible = true
 		button.disabled = not bool(row.get("canPurchase", false))
 
@@ -85,9 +88,16 @@ func _buildPanel() -> void:
 	closeButton.pressed.connect(_onClosePressed)
 	header.add_child(closeButton)
 
+	var crownRow := HBoxContainer.new()
+	crownRow.add_theme_constant_override("separation", 8)
+	mainColumn.add_child(crownRow)
+
+	var crownIcon := UI_ASSET_THEME.makeIcon(UI_ASSET_THEME.ICON_CROWN_PATH, Vector2(28.0, 28.0))
+	crownRow.add_child(crownIcon)
+
 	crownLabel = Label.new()
 	crownLabel.text = "Crowns: 0"
-	mainColumn.add_child(crownLabel)
+	crownRow.add_child(crownLabel)
 
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -126,7 +136,7 @@ func _onClosePressed() -> void:
 
 
 func _applyReadableTheme() -> void:
-	add_theme_stylebox_override("panel", _panelStyle())
+	UI_ASSET_THEME.applyPanel(self, UI_ASSET_THEME.PANEL_MODAL_PATH, 42.0, 14.0)
 	_applyReadableThemeRecursive(self)
 
 
@@ -155,16 +165,11 @@ func _applyLabelStyle(label: Label) -> void:
 
 
 func _applyButtonStyle(button: Button) -> void:
-	button.add_theme_stylebox_override("normal", _buttonStyle(BUTTON_COLOR))
-	button.add_theme_stylebox_override("hover", _buttonStyle(BUTTON_HOVER_COLOR))
-	button.add_theme_stylebox_override("pressed", _buttonStyle(BUTTON_PRESSED_COLOR))
-	button.add_theme_stylebox_override("disabled", _buttonStyle(PARCHMENT_COLOR.darkened(0.08)))
-	button.add_theme_color_override("font_color", INK_COLOR)
-	button.add_theme_color_override("font_hover_color", INK_COLOR)
-	button.add_theme_color_override("font_pressed_color", INK_COLOR)
-	button.add_theme_color_override("font_hover_pressed_color", INK_COLOR)
-	button.add_theme_color_override("font_disabled_color", DISABLED_INK_COLOR)
-	button.add_theme_font_size_override("font_size", 18)
+	if button == closeButton:
+		UI_ASSET_THEME.applyTextButton(button, false, true)
+		UI_ASSET_THEME.applyButtonIcon(button, UI_ASSET_THEME.ICON_BACK_PATH, "Back", 24)
+	else:
+		UI_ASSET_THEME.applyListButton(button)
 
 
 func _panelStyle() -> StyleBoxFlat:

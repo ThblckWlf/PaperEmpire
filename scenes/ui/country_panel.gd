@@ -1,6 +1,8 @@
 extends PanelContainer
 
 
+const UI_ASSET_THEME := preload("res://scenes/ui/ui_asset_theme.gd")
+
 @onready var titleLabel: Label = $MarginContainer/VBoxContainer/TitleLabel as Label
 @onready var ownerLabel: Label = $MarginContainer/VBoxContainer/OwnerLabel as Label
 @onready var goldLabel: Label = $MarginContainer/VBoxContainer/GoldLabel as Label
@@ -24,6 +26,7 @@ func _ready() -> void:
 	cavalryButton.pressed.connect(_onCavalryPressed)
 	artilleryButton.pressed.connect(_onArtilleryPressed)
 	createArmyButton.pressed.connect(_onCreateArmyPressed)
+	_applyAssetTheme()
 	_updateCommandButtonStates()
 
 
@@ -103,3 +106,22 @@ func _updateCommandButtonStates() -> void:
 	cavalryButton.disabled = recruitDisabled
 	artilleryButton.disabled = recruitDisabled
 	createArmyButton.disabled = eventBus == null or currentCountryId == GameIds.EMPTY_ID or not isPlayerOwned
+
+
+func _applyAssetTheme() -> void:
+	UI_ASSET_THEME.applyPanel(self, UI_ASSET_THEME.PANEL_LARGE_PATH, 38.0, 12.0)
+	UI_ASSET_THEME.applyTitleLabel(titleLabel, 22)
+	UI_ASSET_THEME.applyLabel(ownerLabel, 17)
+	UI_ASSET_THEME.applyLabel(goldLabel, 17)
+	UI_ASSET_THEME.applyLabel(foodLabel, 17)
+	UI_ASSET_THEME.applyLabel(defenseLabel, 17)
+	UI_ASSET_THEME.applyLabel(armiesLabel, 17)
+	UI_ASSET_THEME.applyLabel(recruitLabel, 17)
+	UI_ASSET_THEME.applyTextButton(infantryButton, false, true)
+	UI_ASSET_THEME.applyTextButton(cavalryButton, false, true)
+	UI_ASSET_THEME.applyTextButton(artilleryButton, false, true)
+	UI_ASSET_THEME.applyTextButton(createArmyButton, false, false)
+	UI_ASSET_THEME.applyButtonIcon(infantryButton, UI_ASSET_THEME.ICON_INFANTRY_PATH, "Recruit infantry", 24)
+	UI_ASSET_THEME.applyButtonIcon(cavalryButton, UI_ASSET_THEME.ICON_CAVALRY_PATH, "Recruit cavalry", 24)
+	UI_ASSET_THEME.applyButtonIcon(artilleryButton, UI_ASSET_THEME.ICON_ARTILLERY_PATH, "Recruit artillery", 24)
+	UI_ASSET_THEME.applyButtonIcon(createArmyButton, UI_ASSET_THEME.ICON_MANAGE_ARMY_PATH, "Create a new army", 28)

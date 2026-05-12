@@ -1,6 +1,8 @@
 extends PanelContainer
 
 
+const UI_ASSET_THEME := preload("res://scenes/ui/ui_asset_theme.gd")
+
 const THREAT_COLORS := {
 	"low": Color(0.86, 0.86, 0.86, 1.0),
 	"caution": Color(1.0, 0.82, 0.32, 1.0),
@@ -16,6 +18,10 @@ const THREAT_COLORS := {
 @onready var dateLabel: Label = $MarginContainer/HBoxContainer/DateLabel as Label
 
 
+func _ready() -> void:
+	_applyAssetTheme()
+
+
 func setData(data: Dictionary) -> void:
 	goldLabel.text = "Gold: %d" % int(data.get("gold", 0))
 	foodLabel.text = "Food: %d" % int(data.get("food", 0))
@@ -24,4 +30,46 @@ func setData(data: Dictionary) -> void:
 	threatLabel.text = "Threat: %d (%s)" % [int(data.get("threat", 0)), threatState.capitalize()]
 	threatLabel.modulate = THREAT_COLORS.get(threatState, THREAT_COLORS["low"])
 	shortageLabel.text = "Food shortage" if bool(data.get("isFoodShortage", false)) else ""
+	_setIconVisible("ShortageIcon", shortageLabel.text != "")
 	dateLabel.text = str(data.get("dateText", "Y1 M1 W1"))
+
+
+func _applyAssetTheme() -> void:
+	UI_ASSET_THEME.applyTopBarPanel(self)
+	var container := goldLabel.get_parent() as HBoxContainer
+	if container != null:
+		container.add_theme_constant_override("separation", 10)
+	UI_ASSET_THEME.applyLabel(goldLabel, 18)
+	UI_ASSET_THEME.applyLabel(foodLabel, 18)
+	UI_ASSET_THEME.applyLabel(armyLabel, 18)
+	UI_ASSET_THEME.applyLabel(threatLabel, 18)
+	UI_ASSET_THEME.applyLabel(shortageLabel, 18)
+	UI_ASSET_THEME.applyLabel(dateLabel, 18)
+	_ensureInlineIcon("GoldIcon", goldLabel, UI_ASSET_THEME.ICON_GOLD_PATH)
+	_ensureInlineIcon("FoodIcon", foodLabel, UI_ASSET_THEME.ICON_FOOD_PATH)
+	_ensureInlineIcon("ArmyIcon", armyLabel, UI_ASSET_THEME.ICON_ARMY_PATH)
+	_ensureInlineIcon("ThreatIcon", threatLabel, UI_ASSET_THEME.ICON_THREAT_PATH)
+	_ensureInlineIcon("ShortageIcon", shortageLabel, UI_ASSET_THEME.ICON_WARNING_PATH)
+	_setIconVisible("ShortageIcon", false)
+
+
+func _ensureInlineIcon(iconName: String, beforeNode: Control, texturePath: String) -> void:
+	var parent := beforeNode.get_parent() as Control
+	if parent == null:
+		return
+
+	var icon := parent.get_node_or_null(iconName) as TextureRect
+	if icon == null:
+		icon = UI_ASSET_THEME.makeIcon(texturePath, Vector2(28.0, 28.0))
+		icon.name = iconName
+		parent.add_child(icon)
+		parent.move_child(icon, beforeNode.get_index())
+	else:
+		icon.texture = UI_ASSET_THEME.loadTexture(texturePath)
+	icon.tooltip_text = beforeNode.tooltip_text
+
+
+func _setIconVisible(iconName: String, visible: bool) -> void:
+	var icon := get_node_or_null("MarginContainer/HBoxContainer/%s" % iconName) as TextureRect
+	if icon != null:
+		icon.visible = visible
