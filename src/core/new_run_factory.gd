@@ -4,10 +4,13 @@ class_name NewRunFactory
 
 const META_PROGRESS_SIMULATION := preload("res://src/core/simulation/meta_progress_simulation.gd")
 const RUN_STATS_SIMULATION := preload("res://src/core/simulation/run_stats_simulation.gd")
+const ECONOMY_SIMULATION := preload("res://src/core/simulation/economy_simulation.gd")
 
 const DEFAULT_START_COUNTRY_ID: StringName = &"usa"
 const START_GOLD: int = 150
 const START_FOOD: int = 100
+const MIN_COUNTRY_FOOD_PER_MONTH: int = 32
+const START_FOOD_NET_TARGET: int = 12
 const START_INFANTRY: int = 30
 const START_CAVALRY: int = 6
 const START_ARTILLERY: int = 2
@@ -67,6 +70,7 @@ static func createNewRun(
 		runState.armies[&"army_start"] = _createStartingArmy(startCountryId)
 		_createInitialDefendingArmies(runState)
 		META_PROGRESS_SIMULATION.applyStartingBonuses(runState, startCountryId, metaProgressData, metaUpgradeRows)
+		_applyFoodIncomeFloors(runState, startCountryId)
 		RUN_STATS_SIMULATION.initializeForRun(runState)
 	else:
 		runState.runStatus = RunState.RUN_STATUS_NOT_STARTED
@@ -130,6 +134,24 @@ static func _createInitialDefendingArmies(runState: RunState) -> void:
 		runState.armies[army.id] = army
 		if not runState.aiGoldByOwner.has(country.ownerId):
 			runState.aiGoldByOwner[country.ownerId] = 0
+
+
+static func _applyFoodIncomeFloors(runState: RunState, startCountryId: StringName) -> void:
+	for countryId in runState.countries.keys():
+		var country := runState.countries[countryId] as CountryData
+		if country != null:
+			country.foodPerMonth = maxi(country.foodPerMonth, MIN_COUNTRY_FOOD_PER_MONTH)
+
+	var startCountry := runState.countries.get(startCountryId, null) as CountryData
+	var startArmy := runState.armies.get(&"army_start", null) as ArmyData
+	if startCountry == null or startArmy == null:
+		return
+
+	var startUpkeep := ECONOMY_SIMULATION.calculateUnitFoodUpkeepRaw(
+		startArmy.units,
+		PrototypeContentLoader.loadUnits()
+	)
+	startCountry.foodPerMonth = maxi(startCountry.foodPerMonth, startUpkeep + START_FOOD_NET_TARGET)
 
 
 static func _defenseUnitsForCountry(country: CountryData) -> Dictionary:

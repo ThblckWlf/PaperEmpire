@@ -417,10 +417,12 @@ func _testEconomyCalculatesIncomeAndUpkeep() -> ValidationResult:
 	var upkeep: int = ECONOMY_SIMULATION.calculateArmyFoodUpkeep(runState, PrototypeContentLoader.loadUnits())
 	if int(income.get("gold", 0)) != 35:
 		result.addError("EconomySimulation calculated wrong gold income.")
-	if int(income.get("food", 0)) != 24:
+	if int(income.get("food", 0)) != 60:
 		result.addError("EconomySimulation calculated wrong food income.")
 	if upkeep != 48:
 		result.addError("EconomySimulation calculated wrong army food upkeep.")
+	if int(income.get("food", 0)) - upkeep < 10 or int(income.get("food", 0)) - upkeep > 15:
+		result.addError("Starting food net is outside the target buffer.")
 	return result
 
 
@@ -430,7 +432,7 @@ func _testEconomyAppliesMonthTickAndShortage() -> ValidationResult:
 	var monthResult: Dictionary = ECONOMY_SIMULATION.applyMonthTick(runState, PrototypeContentLoader.loadUnits())
 	if int(runState.resources.get("gold", 0)) != NewRunFactory.START_GOLD + 35:
 		result.addError("EconomySimulation did not apply monthly gold income.")
-	if int(runState.resources.get("food", 0)) != NewRunFactory.START_FOOD + 24 - 48:
+	if int(runState.resources.get("food", 0)) != NewRunFactory.START_FOOD + 60 - 48:
 		result.addError("EconomySimulation did not apply food income and upkeep.")
 	if int(monthResult.get("foodUpkeep", 0)) != 48:
 		result.addError("EconomySimulation month result missing upkeep.")
@@ -439,7 +441,6 @@ func _testEconomyAppliesMonthTickAndShortage() -> ValidationResult:
 	var army := runState.armies[&"army_start"] as ArmyData
 	army.units[GameIds.INFANTRY_UNIT_ID] = 1000
 	ECONOMY_SIMULATION.applyMonthTick(runState, PrototypeContentLoader.loadUnits())
-	ECONOMY_SIMULATION.applyMonthTick(runState, PrototypeContentLoader.loadUnits())
 	if not bool(runState.economy.get("isFoodShortage", false)):
 		result.addError("EconomySimulation did not set food shortage flag.")
 	if not bool(runState.economy.get("recruitmentBlocked", false)):
@@ -447,7 +448,7 @@ func _testEconomyAppliesMonthTickAndShortage() -> ValidationResult:
 	if not bool(runState.economy.get("healingBlocked", false)):
 		result.addError("EconomySimulation did not set healing block flag.")
 	if not is_equal_approx(float(runState.economy.get("combatPowerMultiplier", 1.0)), ECONOMY_SIMULATION.FOOD_SHORTAGE_COMBAT_MULTIPLIER):
-		result.addError("EconomySimulation did not apply food shortage combat malus.")
+		result.addError("EconomySimulation did not apply immediate food shortage combat malus.")
 	return result
 
 
@@ -544,6 +545,10 @@ func _testRecruitmentAppliesRules() -> ValidationResult:
 	)
 	if not bool(recruit.get("accepted", false)):
 		result.addError("RecruitmentSimulation rejected valid recruitment.")
+	if int(recruit.get("projectedFoodNet", -999)) <= 0:
+		result.addError("RecruitmentSimulation projected invalid food net for a normal recruit.")
+	if bool(recruit.get("foodWarning", false)):
+		result.addError("RecruitmentSimulation flagged a normal recruit as food warning.")
 
 	var army := runState.armies[&"army_start"] as ArmyData
 	if int(runState.resources.get("gold", 0)) != NewRunFactory.START_GOLD - 25:
@@ -563,8 +568,26 @@ func _testRecruitmentAppliesRules() -> ValidationResult:
 	runState.resources["gold"] = 1000
 	runState.resources["food"] = 0
 	var noFoodRecruit: Dictionary = RECRUITMENT_SIMULATION.applyRecruitment(runState, &"usa", GameIds.INFANTRY_UNIT_ID, 1, units, &"army_start")
-	if not bool(noFoodRecruit.get("accepted", false)):
-		result.addError("RecruitmentSimulation rejected recruitment even though MVP recruitment only costs gold.")
+	if bool(noFoodRecruit.get("accepted", false)) or str(noFoodRecruit.get("reason", "")) != "recruitment_blocked":
+		result.addError("RecruitmentSimulation allowed recruitment at zero food.")
+
+	var fiveRecruitRunState := NewRunFactory.createNewRun(&"usa")
+	for recruitIndex in range(5):
+		RECRUITMENT_SIMULATION.applyRecruitment(fiveRecruitRunState, &"usa", GameIds.INFANTRY_UNIT_ID, 1, units, &"army_start")
+	var fiveRecruitFoodStatus := ECONOMY_SIMULATION.calculateFoodStatus(fiveRecruitRunState, units)
+	if int(fiveRecruitFoodStatus.get("netFood", 0)) < 0:
+		result.addError("Five starting infantry recruits pushed food net negative.")
+
+	var softCapRunState := NewRunFactory.createNewRun(&"usa")
+	var softCapCountry := softCapRunState.countries[&"usa"] as CountryData
+	softCapCountry.foodPerMonth = ECONOMY_SIMULATION.calculateArmyFoodUpkeep(softCapRunState, units)
+	softCapRunState.resources["gold"] = 1000
+	softCapRunState.resources["food"] = 10
+	var warningRecruit: Dictionary = RECRUITMENT_SIMULATION.applyRecruitment(softCapRunState, &"usa", GameIds.INFANTRY_UNIT_ID, 1, units, &"army_start")
+	if not bool(warningRecruit.get("accepted", false)):
+		result.addError("RecruitmentSimulation blocked a soft-cap food warning recruit.")
+	if not bool(warningRecruit.get("foodWarning", false)) or int(warningRecruit.get("projectedFoodNet", 0)) >= 0:
+		result.addError("RecruitmentSimulation did not report soft-cap food warning.")
 
 	runState.resources["food"] = 100
 	runState.economy["recruitmentBlocked"] = true
@@ -1473,6 +1496,10 @@ func _testRunStateViewCreatesSummaries() -> ValidationResult:
 		result.addError("RunStateView top bar gold is wrong.")
 	if int(topBarData.get("food", 0)) != NewRunFactory.START_FOOD:
 		result.addError("RunStateView top bar food is wrong.")
+	if int(topBarData.get("foodPerMonth", 0)) != 12:
+		result.addError("RunStateView top bar food net is wrong.")
+	if bool(topBarData.get("foodWarning", false)):
+		result.addError("RunStateView flagged healthy starting food as warning.")
 	if int(topBarData.get("armyStrength", 0)) != NewRunFactory.START_INFANTRY + NewRunFactory.START_CAVALRY + NewRunFactory.START_ARTILLERY:
 		result.addError("RunStateView army strength summary is wrong.")
 	if str(topBarData.get("dateText", "")) != "Y1 M1 W1":
@@ -1485,6 +1512,18 @@ func _testRunStateViewCreatesSummaries() -> ValidationResult:
 		result.addError("RunStateView stationed army count is wrong.")
 	if not bool(countryData.get("canRecruit", false)):
 		result.addError("RunStateView did not mark owned country as recruitable.")
+	var recruitmentPreviews: Dictionary = countryData.get("recruitmentPreviews", {})
+	var infantryPreview: Dictionary = recruitmentPreviews.get(GameIds.INFANTRY_UNIT_ID, {})
+	if int(infantryPreview.get("projectedFoodNet", 0)) != 11:
+		result.addError("RunStateView country panel projected wrong infantry food net.")
+
+	var usa := runState.countries[&"usa"] as CountryData
+	usa.foodPerMonth = ECONOMY_SIMULATION.calculateArmyFoodUpkeep(runState, PrototypeContentLoader.loadUnits())
+	var warningCountryData: Dictionary = RUN_STATE_VIEW.createCountryPanelData(runState, &"usa")
+	var warningPreviews: Dictionary = warningCountryData.get("recruitmentPreviews", {})
+	var warningInfantryPreview: Dictionary = warningPreviews.get(GameIds.INFANTRY_UNIT_ID, {})
+	if not bool(warningInfantryPreview.get("foodWarning", false)):
+		result.addError("RunStateView country panel did not expose food warning preview.")
 
 	var attackCountryData: Dictionary = RUN_STATE_VIEW.createCountryPanelData(runState, &"can", &"army_start")
 	var attackOptions: Array = attackCountryData.get("attackOptions", [])
@@ -1599,9 +1638,12 @@ func _testMainUiLayoutBindsStateAndCommands() -> ValidationResult:
 		return result
 
 	var goldLabel := main.get_node("GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer/GoldSection/GoldLabel") as Label
+	var foodLabel := main.get_node("GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer/FoodSection/FoodLabel") as Label
 	var startingGold := int(gameManager.getCurrentRunState().resources.get("gold", 0))
 	if not goldLabel.text.contains("Gold") or not goldLabel.text.contains(str(startingGold)) or not goldLabel.text.contains("/Monat"):
 		result.addError("TopBar did not bind starting gold.")
+	if not foodLabel.tooltip_text.contains("Unterhalt") or not foodLabel.text.contains("+12/Monat"):
+		result.addError("TopBar did not expose food projection details.")
 
 	var threatLabel := main.get_node("GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer/ThreatSection/ThreatLabel") as Label
 	gameManager.getCurrentRunState().resources["threat"] = 55
@@ -1616,6 +1658,8 @@ func _testMainUiLayoutBindsStateAndCommands() -> ValidationResult:
 		result.addError("ArmyPanel did not bind player country.")
 
 	var infantryButton := main.get_node("GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer/RecruitButtons/InfantryButton") as Button
+	if not infantryButton.tooltip_text.contains("Danach Nahrung/Monat"):
+		result.addError("Recruit button did not expose projected food net.")
 	infantryButton.emit_signal("pressed")
 	if not goldLabel.text.contains(str(startingGold - 10)):
 		result.addError("Recruit button did not update top bar gold.")

@@ -10,10 +10,11 @@ Responsibilities:
 
 - Calculate monthly gold and food income from player-owned countries.
 - Calculate food upkeep for player-owned armies from `UnitData.foodUpkeep` and `ArmyData.units`.
+- Expose central food projection helpers for recruitment previews.
 - Apply monthly income and upkeep to `RunState.resources`.
 - Maintain visible food-shortage state in `RunState.economy`.
 
-No trade routes, supply lines, recruitment, healing, rebellion, or UI-specific rules are implemented in Phase 11.
+No trade routes, supply lines, healing, rebellion, or UI-specific rules are implemented in Phase 11.
 
 ## Month Tick
 
@@ -30,6 +31,22 @@ The `monthTick` payload includes an `economy` dictionary with:
 - `isFoodShortage`
 - `foodShortageMonths`
 - `combatPowerMultiplier`
+- `foodWarning`
+
+## Food Balance
+
+New runs apply food-income floors in `NewRunFactory`:
+
+- Every country has at least `32` food per month in run state.
+- The start country has at least the starting army upkeep plus `12` food per month.
+- Unit gold costs and starting army composition are unchanged.
+
+Recruitment uses a soft food cap:
+
+- Gold is still a hard requirement.
+- Recruitment is blocked at `0` stored food.
+- Recruitment is allowed while stored food is above `0`, even if the projected monthly food net becomes negative.
+- Accepted recruitment results include `foodUpkeepAdded`, `projectedFoodUpkeep`, `projectedFoodNet`, and `foodWarning`.
 
 ## Food Shortage MVP
 
@@ -39,8 +56,8 @@ When food reaches `0`, `RunState.economy` exposes:
 - `recruitmentBlocked`
 - `healingBlocked`
 
-After two shortage months, `combatPowerMultiplier` becomes `0.8`. The later combat and recruitment systems can consume these flags; they are not applied to combat or recruitment yet.
+Starting with the first shortage month, `combatPowerMultiplier` becomes `0.7`.
 
-Phase 13 consumes `recruitmentBlocked` in `RecruitmentSimulation`, so food shortage can reject new recruitment. Combat still only reads the multiplier in later phases.
+Phase 13 consumes `recruitmentBlocked` in `RecruitmentSimulation`, so food shortage rejects new recruitment.
 
 Phase 15 applies `foodUpkeepMultiplier` from upgrades when calculating monthly army upkeep.

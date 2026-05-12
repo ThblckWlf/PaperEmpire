@@ -2,6 +2,9 @@ extends RefCounted
 class_name RecruitmentSimulation
 
 
+const ECONOMY_SIMULATION := preload("res://src/core/simulation/economy_simulation.gd")
+
+
 static func calculateRecruitmentCost(unitData: UnitData, amount: int, upgradeEffects: Dictionary = {}) -> Dictionary:
 	if unitData == null or amount <= 0:
 		return {
@@ -14,6 +17,17 @@ static func calculateRecruitmentCost(unitData: UnitData, amount: int, upgradeEff
 		"goldCost": maxi(1, int(ceil(float(unitData.cost * amount) * costMultiplier))),
 		"foodReserveRequired": unitData.foodUpkeep * amount,
 	}
+
+
+static func previewRecruitment(
+	runState: RunState,
+	countryId: StringName,
+	unitId: StringName,
+	amount: int,
+	units: Array[UnitData],
+	preferredArmyId: StringName = GameIds.EMPTY_ID
+) -> Dictionary:
+	return _validateRecruitment(runState, countryId, unitId, amount, units, preferredArmyId)
 
 
 static func applyRecruitment(
@@ -196,9 +210,19 @@ static func _validateRecruitment(
 		return result
 
 	var cost := calculateRecruitmentCost(unitData, amount, runState.upgradeEffects)
+	var rawFoodUpkeepAdded := unitData.foodUpkeep * amount
+	var foodProjection := ECONOMY_SIMULATION.calculateProjectedFoodStatus(runState, units, rawFoodUpkeepAdded)
 	result["armyId"] = targetArmy.id
 	result["goldCost"] = int(cost.get("goldCost", 0))
 	result["foodReserveRequired"] = int(cost.get("foodReserveRequired", 0))
+	result["foodUpkeepAdded"] = int(foodProjection.get("foodUpkeepAdded", 0))
+	result["projectedFoodUpkeep"] = int(foodProjection.get("projectedFoodUpkeep", 0))
+	result["projectedFoodNet"] = int(foodProjection.get("projectedFoodNet", 0))
+	result["foodWarning"] = bool(foodProjection.get("foodWarning", false))
+
+	if int(runState.resources.get("food", 0)) <= 0:
+		result["reason"] = "recruitment_blocked"
+		return result
 
 	if int(runState.resources.get("gold", 0)) < int(result["goldCost"]):
 		result["reason"] = "not_enough_gold"
@@ -253,7 +277,16 @@ static func _validateCompositionUpdate(
 			return result
 
 	var goldCost := _compositionGoldCost(army.units, normalizedUnits, units, runState.upgradeEffects)
+	var rawFoodUpkeepAdded := _compositionRawFoodUpkeepAdded(army.units, normalizedUnits, units)
+	var foodProjection := ECONOMY_SIMULATION.calculateProjectedFoodStatus(runState, units, rawFoodUpkeepAdded)
 	result["goldCost"] = goldCost
+	result["foodUpkeepAdded"] = int(foodProjection.get("foodUpkeepAdded", 0))
+	result["projectedFoodUpkeep"] = int(foodProjection.get("projectedFoodUpkeep", 0))
+	result["projectedFoodNet"] = int(foodProjection.get("projectedFoodNet", 0))
+	result["foodWarning"] = bool(foodProjection.get("foodWarning", false))
+	if int(runState.resources.get("food", 0)) <= 0:
+		result["reason"] = "recruitment_blocked"
+		return result
 	if int(runState.resources.get("gold", 0)) < goldCost:
 		result["reason"] = "not_enough_gold"
 		return result
@@ -329,6 +362,21 @@ static func _compositionGoldCost(
 		if unitData != null:
 			totalCost += int(ceil(float(unitData.cost * addedAmount) * costMultiplier))
 	return maxi(0, totalCost)
+
+
+static func _compositionRawFoodUpkeepAdded(
+	currentUnits: Dictionary,
+	targetUnits: Dictionary,
+	units: Array[UnitData]
+) -> int:
+	var addedUnits := {}
+	for unitId in targetUnits.keys():
+		var targetAmount := int(targetUnits.get(unitId, 0))
+		var currentAmount := int(currentUnits.get(unitId, 0))
+		var addedAmount := maxi(0, targetAmount - currentAmount)
+		if addedAmount > 0:
+			addedUnits[StringName(str(unitId))] = addedAmount
+	return ECONOMY_SIMULATION.calculateUnitFoodUpkeepRaw(addedUnits, units)
 
 
 static func _normalizedTargetUnits(targetUnits: Dictionary) -> Dictionary:

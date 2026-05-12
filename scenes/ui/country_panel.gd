@@ -32,6 +32,7 @@ var attackSourceUnits: Dictionary = {}
 var attackDraftUnits: Dictionary = {}
 var unitNames: Dictionary = {}
 var unitOrder: Array = []
+var recruitmentPreviews: Dictionary = {}
 var attackUnitRows: Dictionary = {}
 var statRows: Dictionary = {}
 
@@ -63,6 +64,7 @@ func setData(data: Dictionary) -> void:
 		canRecruit = false
 		canAttack = false
 		attackBlockedReason = ""
+		recruitmentPreviews = {}
 		_clearAttackData()
 		titleLabel.text = "Land auswählen"
 		ownerLabel.text = "Klicke auf ein Land auf der Karte."
@@ -88,6 +90,7 @@ func setData(data: Dictionary) -> void:
 	selectedAttackArmyId = StringName(str(data.get("selectedAttackArmyId", "")))
 	unitNames = (data.get("unitNames", {}) as Dictionary).duplicate(true)
 	unitOrder = (data.get("unitOrder", []) as Array).duplicate()
+	recruitmentPreviews = (data.get("recruitmentPreviews", {}) as Dictionary).duplicate(true)
 	if unitOrder.is_empty():
 		unitOrder = [
 			GameIds.INFANTRY_UNIT_ID,
@@ -173,6 +176,7 @@ func _updateCommandButtonStates() -> void:
 	createArmyButton.disabled = eventBus == null or currentCountryId == GameIds.EMPTY_ID or not isPlayerOwned
 	if attackButton != null:
 		attackButton.disabled = eventBus == null or currentCountryId == GameIds.EMPTY_ID or not canAttack or _attackDraftUnitCount() <= 0
+	_refreshRecruitmentButtons()
 	_refreshAttackControls()
 
 
@@ -207,6 +211,49 @@ func _applyRecruitButton(button: Button, iconPath: String, shortName: String, to
 	button.text = "%s +1" % shortName
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.custom_minimum_size = Vector2(96.0, 46.0)
+
+
+func _refreshRecruitmentButtons() -> void:
+	_refreshRecruitmentButton(infantryButton, GameIds.INFANTRY_UNIT_ID, UI_ASSET_THEME.ICON_INFANTRY_PATH, "Inf")
+	_refreshRecruitmentButton(cavalryButton, GameIds.CAVALRY_UNIT_ID, UI_ASSET_THEME.ICON_CAVALRY_PATH, "Kav")
+	_refreshRecruitmentButton(artilleryButton, GameIds.ARTILLERY_UNIT_ID, UI_ASSET_THEME.ICON_ARTILLERY_PATH, "Art")
+
+
+func _refreshRecruitmentButton(button: Button, unitId: StringName, iconPath: String, shortName: String) -> void:
+	if button == null:
+		return
+
+	var preview := _recruitmentPreviewForUnit(unitId)
+	var isRisky := canRecruit and bool(preview.get("foodWarning", false))
+	UI_ASSET_THEME.applyTextButton(button, isRisky, true)
+	UI_ASSET_THEME.applyButtonIcon(button, iconPath, _recruitmentTooltip(unitId, preview), 28)
+	button.text = "%s +1" % shortName
+
+
+func _recruitmentPreviewForUnit(unitId: StringName) -> Dictionary:
+	if recruitmentPreviews.has(unitId):
+		return recruitmentPreviews.get(unitId, {}) as Dictionary
+	if recruitmentPreviews.has(str(unitId)):
+		return recruitmentPreviews.get(str(unitId), {}) as Dictionary
+	return {}
+
+
+func _recruitmentTooltip(unitId: StringName, preview: Dictionary) -> String:
+	var unitName := str(unitNames.get(unitId, str(unitId).capitalize()))
+	if preview.is_empty():
+		return "%s rekrutieren (+1)" % unitName
+
+	var tooltipText := "%s rekrutieren\nKosten: %d Gold\nUnterhalt: +%d Nahrung/Monat\nDanach Nahrung/Monat: %s" % [
+		unitName,
+		int(preview.get("goldCost", 0)),
+		int(preview.get("foodUpkeepAdded", preview.get("foodReserveRequired", 0))),
+		_formatSigned(int(preview.get("projectedFoodNet", 0))),
+	]
+	if bool(preview.get("foodWarning", false)):
+		tooltipText += "\nWarnung: negatives Monatsnetto verbraucht deinen Vorrat."
+	if not bool(preview.get("accepted", false)) and str(preview.get("reason", "")) != "":
+		tooltipText += "\nBlockiert: %s" % str(preview.get("reason", ""))
+	return tooltipText
 
 
 func _ensureAttackButton() -> Button:

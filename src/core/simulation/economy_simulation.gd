@@ -2,8 +2,8 @@ extends RefCounted
 class_name EconomySimulation
 
 
-const FOOD_SHORTAGE_MALUS_MONTHS: int = 2
-const FOOD_SHORTAGE_COMBAT_MULTIPLIER: float = 0.8
+const FOOD_SHORTAGE_MALUS_MONTHS: int = 1
+const FOOD_SHORTAGE_COMBAT_MULTIPLIER: float = 0.7
 
 
 static func calculateMonthlyIncome(runState: RunState) -> Dictionary:
@@ -28,19 +28,62 @@ static func calculateArmyFoodUpkeep(runState: RunState, units: Array[UnitData]) 
 	if runState == null:
 		return 0
 
+	var rawUpkeep := _playerRawFoodUpkeep(runState, units)
+	var multiplier := float(runState.upgradeEffects.get("foodUpkeepMultiplier", 1.0))
+	return maxi(0, int(ceil(float(rawUpkeep) * multiplier)))
+
+
+static func calculateUnitFoodUpkeepRaw(unitCounts: Dictionary, units: Array[UnitData]) -> int:
 	var unitCatalog := _unitCatalogById(units)
 	var upkeep := 0
-	for armyId in runState.armies.keys():
-		var army := runState.armies[armyId] as ArmyData
-		if army == null or army.ownerId != GameIds.PLAYER_OWNER_ID:
-			continue
+	for unitIdValue in unitCounts.keys():
+		var unitId := StringName(str(unitIdValue))
+		var unit := unitCatalog.get(unitId, null) as UnitData
+		if unit != null:
+			upkeep += maxi(0, int(unitCounts.get(unitIdValue, 0))) * unit.foodUpkeep
+	return upkeep
 
-		for unitId in army.units.keys():
-			var unit := unitCatalog.get(unitId, null) as UnitData
-			if unit != null:
-				upkeep += int(army.units[unitId]) * unit.foodUpkeep
-	var multiplier := float(runState.upgradeEffects.get("foodUpkeepMultiplier", 1.0))
-	return maxi(0, int(ceil(float(upkeep) * multiplier)))
+
+static func calculateFoodStatus(runState: RunState, units: Array[UnitData]) -> Dictionary:
+	var income := calculateMonthlyIncome(runState)
+	var rawUpkeep := _playerRawFoodUpkeep(runState, units)
+	var multiplier := float(runState.upgradeEffects.get("foodUpkeepMultiplier", 1.0)) if runState != null else 1.0
+	var upkeep := maxi(0, int(ceil(float(rawUpkeep) * multiplier)))
+	var foodIncome := int(income.get("food", 0))
+	var netFood := foodIncome - upkeep
+	var currentFood := int(runState.resources.get("food", 0)) if runState != null else 0
+	return {
+		"food": currentFood,
+		"foodIncome": foodIncome,
+		"foodUpkeep": upkeep,
+		"netFood": netFood,
+		"foodWarning": netFood < 0,
+		"isFoodShortage": currentFood <= 0,
+	}
+
+
+static func calculateProjectedFoodStatus(
+	runState: RunState,
+	units: Array[UnitData],
+	rawFoodUpkeepAdded: int
+) -> Dictionary:
+	var income := calculateMonthlyIncome(runState)
+	var rawUpkeep := _playerRawFoodUpkeep(runState, units)
+	var multiplier := float(runState.upgradeEffects.get("foodUpkeepMultiplier", 1.0)) if runState != null else 1.0
+	var currentUpkeep := maxi(0, int(ceil(float(rawUpkeep) * multiplier)))
+	var projectedUpkeep := maxi(0, int(ceil(float(rawUpkeep + maxi(0, rawFoodUpkeepAdded)) * multiplier)))
+	var projectedFoodNet := int(income.get("food", 0)) - projectedUpkeep
+	var currentFood := int(runState.resources.get("food", 0)) if runState != null else 0
+	return {
+		"food": currentFood,
+		"foodIncome": int(income.get("food", 0)),
+		"foodUpkeep": currentUpkeep,
+		"netFood": int(income.get("food", 0)) - currentUpkeep,
+		"foodUpkeepAdded": maxi(0, projectedUpkeep - currentUpkeep),
+		"projectedFoodUpkeep": projectedUpkeep,
+		"projectedFoodNet": projectedFoodNet,
+		"foodWarning": projectedFoodNet < 0,
+	}
 
 
 static func applyMonthTick(runState: RunState, units: Array[UnitData]) -> Dictionary:
@@ -59,6 +102,7 @@ static func applyMonthTick(runState: RunState, units: Array[UnitData]) -> Dictio
 		"foodIncome": int(income["food"]),
 		"foodUpkeep": upkeep,
 		"netFood": int(income["food"]) - upkeep,
+		"foodWarning": int(income["food"]) - upkeep < 0,
 		"gold": nextGold,
 		"food": nextFood,
 		"isFoodShortage": bool(runState.economy.get("isFoodShortage", false)),
@@ -88,3 +132,17 @@ static func _unitCatalogById(units: Array[UnitData]) -> Dictionary:
 	for unit in units:
 		catalog[unit.id] = unit
 	return catalog
+
+
+static func _playerRawFoodUpkeep(runState: RunState, units: Array[UnitData]) -> int:
+	if runState == null:
+		return 0
+
+	var upkeep := 0
+	for armyId in runState.armies.keys():
+		var army := runState.armies[armyId] as ArmyData
+		if army == null or army.ownerId != GameIds.PLAYER_OWNER_ID:
+			continue
+
+		upkeep += calculateUnitFoodUpkeepRaw(army.units, units)
+	return upkeep
