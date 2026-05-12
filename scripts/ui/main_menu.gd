@@ -68,6 +68,12 @@ var settingsManager
 var saveManager: SaveManager
 var shopPanel: PanelContainer
 var settingsPanel: PanelContainer
+var countrySelectionPanel: PanelContainer
+var countrySelectionList: VBoxContainer
+var countrySelectionDetailsLabel: Label
+var startSelectedCountryButton: Button
+var selectedStartCountryId: StringName = NewRunFactory.DEFAULT_START_COUNTRY_ID
+var countrySelectionButtons: Dictionary = {}
 var modalPrimaryAction: Callable = Callable()
 var textureCache: Dictionary = {}
 
@@ -124,7 +130,7 @@ func refreshSaveStatus() -> void:
 		hintLabel.text = "Continue restores the last manual run."
 	else:
 		saveStatusLabel.text = "No save found"
-		hintLabel.text = "New Run uses the current Paperland placeholder."
+		hintLabel.text = "New Run opens the start region selection."
 
 
 func closeOpenPanel() -> bool:
@@ -135,18 +141,26 @@ func closeOpenPanel() -> bool:
 	return true
 
 
-func openCountrySelectionPlaceholder() -> void:
-	_showTextModal(
-		"Choose Start Country",
-		"Country selection is still a placeholder.\n\nFor now, start the normal prototype run from Paperland.",
-		"Start Paperland",
-		Callable(self, "_requestDefaultNewRun")
-	)
+func openCountrySelection() -> void:
+	_ensureCountrySelectionPanel()
+	_hideTextModalPanel()
+	if shopPanel != null:
+		shopPanel.visible = false
+	if settingsPanel != null:
+		_discardSettingsPanelChanges()
+		settingsPanel.visible = false
+
+	countrySelectionPanel.visible = true
+	modalLayer.visible = true
+	_refreshCountrySelectionPanel()
+	if startSelectedCountryButton != null:
+		startSelectedCountryButton.grab_focus()
 
 
 func openShopPlaceholder() -> void:
 	_ensureShopPanel()
 	_hideTextModalPanel()
+	_hideCountrySelectionPanel()
 	if settingsPanel != null:
 		_discardSettingsPanelChanges()
 		settingsPanel.visible = false
@@ -158,6 +172,7 @@ func openShopPlaceholder() -> void:
 func openSettingsPlaceholder() -> void:
 	_ensureSettingsPanel()
 	_hideTextModalPanel()
+	_hideCountrySelectionPanel()
 	if shopPanel != null:
 		shopPanel.visible = false
 	settingsPanel.visible = true
@@ -167,7 +182,7 @@ func openSettingsPlaceholder() -> void:
 
 func _connectButtons() -> void:
 	continueRunButton.pressed.connect(_onContinueRunPressed)
-	newRunButton.pressed.connect(openCountrySelectionPlaceholder)
+	newRunButton.pressed.connect(openCountrySelection)
 	shopButton.pressed.connect(openShopPlaceholder)
 	howToPlayButton.pressed.connect(_onHowToPlayPressed)
 	settingsButton.pressed.connect(openSettingsPlaceholder)
@@ -224,9 +239,9 @@ func _onQuitPressed() -> void:
 	quitGameRequested.emit()
 
 
-func _requestDefaultNewRun() -> void:
+func _requestSelectedNewRun() -> void:
 	_closeModal()
-	newRunRequested.emit(str(NewRunFactory.DEFAULT_START_COUNTRY_ID))
+	newRunRequested.emit(str(selectedStartCountryId))
 
 
 func _onPrimaryModalPressed() -> void:
@@ -237,6 +252,7 @@ func _onPrimaryModalPressed() -> void:
 
 
 func _showTextModal(titleText: String, bodyText: String, primaryText: String, primaryAction: Callable) -> void:
+	_hideCountrySelectionPanel()
 	if shopPanel != null:
 		shopPanel.visible = false
 	if settingsPanel != null:
@@ -264,6 +280,7 @@ func _hideTextModalPanel() -> void:
 
 func _closeModal() -> void:
 	_hideTextModalPanel()
+	_hideCountrySelectionPanel()
 	if shopPanel != null:
 		shopPanel.visible = false
 	if settingsPanel != null:
@@ -315,6 +332,172 @@ func _ensureSettingsPanel() -> void:
 	settingsPanel.closeRequested.connect(_closeModal)
 	_applyPanelStyle(settingsPanel, PANEL_MODAL_PATH)
 	_applyPaperControlTheme(settingsPanel)
+
+
+func _ensureCountrySelectionPanel() -> void:
+	if countrySelectionPanel != null:
+		return
+
+	countrySelectionPanel = PanelContainer.new()
+	countrySelectionPanel.name = "CountrySelectionPanel"
+	countrySelectionPanel.visible = false
+	modalLayer.add_child(countrySelectionPanel)
+	countrySelectionPanel.set_anchors_preset(Control.PRESET_CENTER)
+	countrySelectionPanel.offset_left = -470.0
+	countrySelectionPanel.offset_top = -330.0
+	countrySelectionPanel.offset_right = 470.0
+	countrySelectionPanel.offset_bottom = 330.0
+	_applyPanelStyle(countrySelectionPanel, PANEL_MODAL_PATH)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 34)
+	margin.add_theme_constant_override("margin_top", 30)
+	margin.add_theme_constant_override("margin_right", 34)
+	margin.add_theme_constant_override("margin_bottom", 30)
+	countrySelectionPanel.add_child(margin)
+
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", 18)
+	margin.add_child(content)
+
+	var titleLabel := Label.new()
+	titleLabel.name = "TitleLabel"
+	titleLabel.text = "Choose Start Region"
+	titleLabel.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	titleLabel.add_theme_font_size_override("font_size", 34)
+	content.add_child(titleLabel)
+
+	var body := HBoxContainer.new()
+	body.name = "CountrySelectionBody"
+	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	body.add_theme_constant_override("separation", 20)
+	content.add_child(body)
+
+	var scroll := ScrollContainer.new()
+	scroll.name = "CountryScroll"
+	scroll.custom_minimum_size = Vector2(430.0, 430.0)
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	body.add_child(scroll)
+
+	countrySelectionList = VBoxContainer.new()
+	countrySelectionList.name = "CountryList"
+	countrySelectionList.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	countrySelectionList.add_theme_constant_override("separation", 8)
+	scroll.add_child(countrySelectionList)
+
+	var detailColumn := VBoxContainer.new()
+	detailColumn.name = "CountryDetailColumn"
+	detailColumn.custom_minimum_size = Vector2(330.0, 0.0)
+	detailColumn.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	detailColumn.add_theme_constant_override("separation", 16)
+	body.add_child(detailColumn)
+
+	countrySelectionDetailsLabel = Label.new()
+	countrySelectionDetailsLabel.name = "CountryDetailsLabel"
+	countrySelectionDetailsLabel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	countrySelectionDetailsLabel.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	countrySelectionDetailsLabel.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	detailColumn.add_child(countrySelectionDetailsLabel)
+
+	var buttonRow := HBoxContainer.new()
+	buttonRow.name = "CountrySelectionButtons"
+	buttonRow.alignment = BoxContainer.ALIGNMENT_END
+	buttonRow.add_theme_constant_override("separation", 14)
+	detailColumn.add_child(buttonRow)
+
+	startSelectedCountryButton = Button.new()
+	startSelectedCountryButton.name = "StartSelectedCountryButton"
+	startSelectedCountryButton.custom_minimum_size = Vector2(180.0, 54.0)
+	startSelectedCountryButton.text = "Start Run"
+	startSelectedCountryButton.pressed.connect(_requestSelectedNewRun)
+	buttonRow.add_child(startSelectedCountryButton)
+
+	var backButton := Button.new()
+	backButton.name = "BackButton"
+	backButton.custom_minimum_size = Vector2(130.0, 54.0)
+	backButton.text = "Back"
+	backButton.pressed.connect(_closeModal)
+	buttonRow.add_child(backButton)
+
+	_applyPaperControlTheme(countrySelectionPanel)
+
+
+func _refreshCountrySelectionPanel() -> void:
+	if countrySelectionPanel == null or countrySelectionList == null:
+		return
+
+	for child in countrySelectionList.get_children():
+		child.queue_free()
+	countrySelectionButtons.clear()
+
+	var countries := PrototypeContentLoader.loadCountries()
+	countries.sort_custom(_sortCountriesByName)
+	if selectedStartCountryId == GameIds.EMPTY_ID and not countries.is_empty():
+		selectedStartCountryId = countries[0].id
+
+	for country in countries:
+		var countryButton := Button.new()
+		countryButton.name = "CountryButton_%s" % str(country.id)
+		countryButton.text = country.name
+		countryButton.toggle_mode = true
+		countryButton.button_pressed = country.id == selectedStartCountryId
+		countryButton.custom_minimum_size = Vector2(0.0, 44.0)
+		countryButton.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		countryButton.pressed.connect(Callable(self, "_selectStartCountry").bind(country.id))
+		countrySelectionList.add_child(countryButton)
+		countrySelectionButtons[country.id] = countryButton
+
+	_applyPaperControlTheme(countrySelectionList)
+	_updateCountrySelectionDetails()
+
+
+func _sortCountriesByName(left: CountryData, right: CountryData) -> bool:
+	return left.name.naturalnocasecmp_to(right.name) < 0
+
+
+func _selectStartCountry(countryId: StringName) -> void:
+	selectedStartCountryId = countryId
+	for buttonCountryId in countrySelectionButtons.keys():
+		var countryButton := countrySelectionButtons[buttonCountryId] as Button
+		if countryButton != null:
+			countryButton.button_pressed = buttonCountryId == selectedStartCountryId
+	_updateCountrySelectionDetails()
+
+
+func _updateCountrySelectionDetails() -> void:
+	if countrySelectionDetailsLabel == null:
+		return
+
+	var country := _countryById(selectedStartCountryId)
+	if country == null:
+		countrySelectionDetailsLabel.text = ""
+		if startSelectedCountryButton != null:
+			startSelectedCountryButton.disabled = true
+		return
+
+	if startSelectedCountryButton != null:
+		startSelectedCountryButton.disabled = false
+
+	countrySelectionDetailsLabel.text = "%s\n\nGold / month: %d\nFood / month: %d\nDefense: %d\nNeighbors: %d" % [
+		country.name,
+		country.goldPerMonth,
+		country.foodPerMonth,
+		country.defense,
+		country.neighbors.size(),
+	]
+
+
+func _countryById(countryId: StringName) -> CountryData:
+	for country in PrototypeContentLoader.loadCountries():
+		if country.id == countryId:
+			return country
+	return null
+
+
+func _hideCountrySelectionPanel() -> void:
+	if countrySelectionPanel != null:
+		countrySelectionPanel.visible = false
 
 
 func _refreshShopPanel() -> void:

@@ -2,13 +2,13 @@ extends Camera2D
 class_name MapCameraController
 
 
-const START_ZOOM: float = 1.2
-const MIN_ZOOM: float = 0.75
-const MAX_ZOOM: float = 2.2
+const START_ZOOM: float = 0.46
+const MIN_ZOOM: float = 0.42
+const MAX_ZOOM: float = 3.2
 const ZOOM_STEP: float = 0.15
-const KEYBOARD_PAN_SPEED: float = 520.0
-const BOUNDS_PADDING: float = 260.0
-const FALLBACK_BOUNDS := Rect2(Vector2(40.0, 170.0), Vector2(430.0, 330.0))
+const KEYBOARD_PAN_SPEED: float = 760.0
+const BOUNDS_PADDING: float = 460.0
+const FALLBACK_BOUNDS := Rect2(Vector2.ZERO, Vector2(4096.0, 2304.0))
 const INPUT_ACTIONS := preload("res://src/core/input/input_actions.gd")
 
 var mapBounds: Rect2 = FALLBACK_BOUNDS

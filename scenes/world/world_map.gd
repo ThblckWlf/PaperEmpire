@@ -18,10 +18,38 @@ var eventBus: EventBus
 var audioManager: AudioManager
 var countryNodes: Dictionary = {}
 var armyNodes: Dictionary = {}
+var countryHitShapes: Dictionary = {}
+var hoveredCountryId: StringName = GameIds.EMPTY_ID
 
 
 func _process(_delta: float) -> void:
 	_updateArmyNodesFromRunState()
+
+
+func _input(event: InputEvent) -> void:
+	if _isPointerOverUi():
+		_updateHoveredCountry(GameIds.EMPTY_ID)
+		return
+
+	var mouseMotion := event as InputEventMouseMotion
+	if mouseMotion != null:
+		_updateHoveredCountry(_countryAtWorldPosition(get_global_mouse_position()))
+		return
+
+	var mouseButton := event as InputEventMouseButton
+	if mouseButton == null or not mouseButton.pressed:
+		return
+
+	var countryId := _countryAtWorldPosition(get_global_mouse_position())
+	if countryId == GameIds.EMPTY_ID:
+		return
+
+	if mouseButton.button_index == MOUSE_BUTTON_LEFT:
+		_onCountryPressed(countryId)
+		get_viewport().set_input_as_handled()
+	elif mouseButton.button_index == MOUSE_BUTTON_RIGHT:
+		_onCountryMoveTargetPressed(countryId)
+		get_viewport().set_input_as_handled()
 
 
 func configure(newGameManager: GameManager, newEventBus: EventBus, newAudioManager: AudioManager = null) -> void:
@@ -50,13 +78,15 @@ func refreshFromRunState() -> void:
 		if country == null:
 			continue
 
+		var polygons := _shapeForCountry(mapShapes, country.id)
 		var node = COUNTRY_NODE_SCENE.instantiate()
 		countryLayer.add_child(node)
-		node.bindCountry(country, _shapeForCountry(mapShapes, country.id), country.id == selectedCountryId)
+		node.bindCountry(country, polygons, country.id == selectedCountryId)
 		node.countryPressed.connect(_onCountryPressed)
 		node.countryMoveTargetPressed.connect(_onCountryMoveTargetPressed)
 		node.countryHoverChanged.connect(_onCountryHoverChanged)
 		countryNodes[country.id] = node
+		_setCountryHitShapes(country.id, country.center, polygons)
 
 	_refreshArmyNodesFromRunState()
 	_configureMapCamera(runState, mapShapes)
@@ -202,6 +232,8 @@ func _clearCountryNodes() -> void:
 	for child in countryLayer.get_children():
 		child.queue_free()
 	countryNodes.clear()
+	countryHitShapes.clear()
+	hoveredCountryId = GameIds.EMPTY_ID
 
 
 func _clearArmyNodes() -> void:
@@ -210,12 +242,17 @@ func _clearArmyNodes() -> void:
 	armyNodes.clear()
 
 
-func _shapeForCountry(mapShapes: Dictionary, countryId: StringName) -> PackedVector2Array:
+func _shapeForCountry(mapShapes: Dictionary, countryId: StringName) -> Array[PackedVector2Array]:
+	var result: Array[PackedVector2Array] = []
 	if not mapShapes.has(countryId):
-		return PackedVector2Array()
+		return result
 
-	var points: PackedVector2Array = mapShapes[countryId]
-	return points
+	var shapeValue = mapShapes[countryId]
+	if shapeValue is Array:
+		for polygonValue in shapeValue:
+			if polygonValue is PackedVector2Array:
+				result.append(polygonValue as PackedVector2Array)
+	return result
 
 
 func _configureMapCamera(runState: RunState, mapShapes: Dictionary) -> void:
@@ -241,22 +278,120 @@ func _calculateMapBounds(runState: RunState, mapShapes: Dictionary) -> Rect2:
 		if country == null:
 			continue
 
-		var points := _shapeForCountry(mapShapes, country.id)
-		if points.is_empty():
+		var polygons := _shapeForCountry(mapShapes, country.id)
+		if polygons.is_empty():
 			continue
 
-		for point in points:
-			var worldPoint := country.center + point
-			if hasBounds:
-				bounds = bounds.expand(worldPoint)
-			else:
-				bounds = Rect2(worldPoint, Vector2.ZERO)
-				hasBounds = true
+		for points in polygons:
+			for point in points:
+				var worldPoint := country.center + point
+				if hasBounds:
+					bounds = bounds.expand(worldPoint)
+				else:
+					bounds = Rect2(worldPoint, Vector2.ZERO)
+					hasBounds = true
 
 	if not hasBounds:
-		return Rect2(Vector2(40.0, 170.0), Vector2(430.0, 330.0))
+		return Rect2(Vector2.ZERO, Vector2(4096.0, 2304.0))
 
 	return bounds
+
+
+func _setCountryHitShapes(countryId: StringName, center: Vector2, polygons: Array[PackedVector2Array]) -> void:
+	var hitShapes: Array[Dictionary] = []
+	for points in polygons:
+		if points.size() < 3:
+			continue
+
+		var worldPoints := PackedVector2Array()
+		for point in points:
+			worldPoints.append(center + point)
+		hitShapes.append({
+			"points": worldPoints,
+			"bounds": _polygonBounds(worldPoints),
+			"area": absf(_polygonArea(worldPoints)),
+		})
+	countryHitShapes[countryId] = hitShapes
+
+
+func _countryAtWorldPosition(worldPosition: Vector2) -> StringName:
+	var bestCountryId := GameIds.EMPTY_ID
+	var bestArea := INF
+	for countryId in countryHitShapes.keys():
+		var hitShapes: Array = countryHitShapes[countryId]
+		for shape in hitShapes:
+			if not (shape is Dictionary):
+				continue
+
+			var shapeData := shape as Dictionary
+			var bounds := shapeData.get("bounds", Rect2()) as Rect2
+			if not bounds.has_point(worldPosition):
+				continue
+
+			var points := shapeData.get("points", PackedVector2Array()) as PackedVector2Array
+			if not _pointInPolygon(worldPosition, points):
+				continue
+
+			var area := float(shapeData.get("area", INF))
+			if area < bestArea:
+				bestArea = area
+				bestCountryId = StringName(str(countryId))
+	return bestCountryId
+
+
+func _updateHoveredCountry(countryId: StringName) -> void:
+	if hoveredCountryId == countryId:
+		return
+
+	var previousCountryId := hoveredCountryId
+	if previousCountryId != GameIds.EMPTY_ID and countryNodes.has(previousCountryId):
+		var previousNode = countryNodes[previousCountryId]
+		if previousNode != null and previousNode.has_method("setHovered"):
+			previousNode.call("setHovered", false)
+		countryHoverChanged.emit(previousCountryId, false)
+
+	hoveredCountryId = countryId
+	if hoveredCountryId != GameIds.EMPTY_ID and countryNodes.has(hoveredCountryId):
+		var nextNode = countryNodes[hoveredCountryId]
+		if nextNode != null and nextNode.has_method("setHovered"):
+			nextNode.call("setHovered", true)
+		countryHoverChanged.emit(hoveredCountryId, true)
+
+
+func _polygonBounds(points: PackedVector2Array) -> Rect2:
+	var bounds := Rect2(points[0], Vector2.ZERO)
+	for point in points:
+		bounds = bounds.expand(point)
+	return bounds
+
+
+func _polygonArea(points: PackedVector2Array) -> float:
+	var area := 0.0
+	for index in range(points.size()):
+		var nextIndex := (index + 1) % points.size()
+		area += points[index].x * points[nextIndex].y
+		area -= points[nextIndex].x * points[index].y
+	return area * 0.5
+
+
+func _pointInPolygon(point: Vector2, points: PackedVector2Array) -> bool:
+	var inside := false
+	var previousIndex := points.size() - 1
+	for index in range(points.size()):
+		var currentPoint := points[index]
+		var previousPoint := points[previousIndex]
+		var crossesY := (currentPoint.y > point.y) != (previousPoint.y > point.y)
+		if crossesY:
+			var slopeX := (previousPoint.x - currentPoint.x) * (point.y - currentPoint.y) / (previousPoint.y - currentPoint.y) + currentPoint.x
+			if point.x < slopeX:
+				inside = not inside
+		previousIndex = index
+	return inside
+
+
+func _isPointerOverUi() -> bool:
+	var viewport := get_viewport()
+	return viewport != null and viewport.gui_get_hovered_control() != null
 
 
 func _connectEventBus() -> void:

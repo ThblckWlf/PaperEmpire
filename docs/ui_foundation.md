@@ -28,8 +28,8 @@ The menu exposes Continue Run, New Run, Shop, How To Play, Settings, Load Game, 
 Continue and Load use the current manual slot, `manual_1`. If no valid run save exists, both actions are
 disabled and the info panel reports `No save found`.
 
-Country selection and save-slot browsing are placeholders in this step. New Run starts the current Paperland
-prototype only after the placeholder modal is confirmed.
+New Run opens the start region selection. The selected country/region is passed to `GameManager.startNewRun()`.
+Save-slot browsing is still limited to the current manual slot.
 
 ## TopBar
 

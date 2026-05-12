@@ -6,22 +6,26 @@ signal countryPressed(countryId: StringName)
 signal countryMoveTargetPressed(countryId: StringName)
 signal countryHoverChanged(countryId: StringName, isHovered: bool)
 
-const PLAYER_COLOR: Color = Color(0.25, 0.56, 0.84, 1.0)
-const NEUTRAL_COLOR: Color = Color(0.74, 0.69, 0.58, 1.0)
-const WORLD_COLOR: Color = Color(0.63, 0.37, 0.34, 1.0)
-const UNKNOWN_COLOR: Color = Color(0.45, 0.48, 0.5, 1.0)
-const HOVER_TINT: Color = Color(1.18, 1.12, 0.9, 1.0)
-const SELECTED_OUTLINE_COLOR: Color = Color(1.0, 0.88, 0.34, 1.0)
-const NORMAL_OUTLINE_COLOR: Color = Color(0.1, 0.12, 0.14, 1.0)
+const PLAYER_COLOR: Color = Color(0.43, 0.56, 0.39, 0.30)
+const NEUTRAL_COLOR: Color = Color(0.0, 0.0, 0.0, 0.0)
+const WORLD_COLOR: Color = Color(0.64, 0.29, 0.25, 0.26)
+const UNKNOWN_COLOR: Color = Color(0.49, 0.61, 0.65, 0.18)
+const HOVER_COLOR: Color = Color(0.76, 0.58, 0.20, 0.24)
+const SELECTED_OUTLINE_COLOR: Color = Color("#C39535")
+const HOVER_OUTLINE_COLOR: Color = Color(0.18, 0.16, 0.12, 0.72)
 
-@onready var polygonNode: Polygon2D = $Polygon2D as Polygon2D
-@onready var outlineNode: Line2D = $Outline as Line2D
+@onready var polygonTemplate: Polygon2D = $Polygon2D as Polygon2D
+@onready var outlineTemplate: Line2D = $Outline as Line2D
+@onready var labelNode: Label = $NameLabel as Label
 @onready var areaNode: Area2D = $Area2D as Area2D
-@onready var collisionNode: CollisionPolygon2D = $Area2D/CollisionPolygon2D as CollisionPolygon2D
+@onready var collisionTemplate: CollisionPolygon2D = $Area2D/CollisionPolygon2D as CollisionPolygon2D
 
 var countryId: StringName = GameIds.EMPTY_ID
+var countryName: String = ""
 var ownerId: StringName = GameIds.NEUTRAL_OWNER_ID
-var shapePoints: PackedVector2Array = PackedVector2Array()
+var shapePolygons: Array[PackedVector2Array] = []
+var polygonNodes: Array[Polygon2D] = []
+var outlineNodes: Array[Line2D] = []
 var isSelected: bool = false
 var isHovered: bool = false
 
@@ -30,20 +34,28 @@ func _ready() -> void:
 	areaNode.input_event.connect(_onAreaInputEvent)
 	areaNode.mouse_entered.connect(_onMouseEntered)
 	areaNode.mouse_exited.connect(_onMouseExited)
-	if shapePoints.is_empty():
-		shapePoints = _defaultPoints()
+	polygonTemplate.visible = false
+	outlineTemplate.visible = false
+	labelNode.visible = false
+	collisionTemplate.polygon = PackedVector2Array()
+	if shapePolygons.is_empty():
+		shapePolygons = [_defaultPoints()]
+	_rebuildShapeNodes()
 	_applyVisualState()
 
 
-func bindCountry(country: CountryData, points: PackedVector2Array, selected: bool) -> void:
+func bindCountry(country: CountryData, polygons: Array[PackedVector2Array], selected: bool) -> void:
 	countryId = country.id
+	countryName = country.name
 	ownerId = country.ownerId
 	position = country.center
-	if points.size() >= 3:
-		shapePoints = points
+	if not polygons.is_empty():
+		shapePolygons = polygons
 	else:
-		shapePoints = _defaultPoints()
+		shapePolygons = [_defaultPoints()]
 	isSelected = selected
+	if is_node_ready():
+		_rebuildShapeNodes()
 	_applyVisualState()
 
 
@@ -60,6 +72,14 @@ func setOwner(newOwnerId: StringName) -> void:
 		return
 
 	ownerId = newOwnerId
+	_applyVisualState()
+
+
+func setHovered(hovered: bool) -> void:
+	if isHovered == hovered:
+		return
+
+	isHovered = hovered
 	_applyVisualState()
 
 
@@ -95,15 +115,14 @@ func _applyVisualState() -> void:
 	if not is_node_ready():
 		return
 
-	polygonNode.polygon = shapePoints
-	collisionNode.polygon = shapePoints
-	outlineNode.points = _closedOutlinePoints(shapePoints)
-	polygonNode.color = _ownerColor(ownerId)
-	if isHovered:
-		polygonNode.color *= HOVER_TINT
+	var fillColor := HOVER_COLOR if isHovered else _ownerColor(ownerId)
+	for polygonNode in polygonNodes:
+		polygonNode.color = fillColor
 
-	outlineNode.default_color = SELECTED_OUTLINE_COLOR if isSelected else NORMAL_OUTLINE_COLOR
-	outlineNode.width = 4.0 if isSelected else 2.0
+	for outlineNode in outlineNodes:
+		outlineNode.visible = isSelected or isHovered
+		outlineNode.default_color = SELECTED_OUTLINE_COLOR if isSelected else HOVER_OUTLINE_COLOR
+		outlineNode.width = 5.0 if isSelected else 2.4
 	z_index = 10 if isSelected else 0
 
 
@@ -127,6 +146,33 @@ func _closedOutlinePoints(points: PackedVector2Array) -> PackedVector2Array:
 	if points.size() > 0:
 		outline.append(points[0])
 	return outline
+
+
+func _rebuildShapeNodes() -> void:
+	for polygonNode in polygonNodes:
+		polygonNode.queue_free()
+	for outlineNode in outlineNodes:
+		outlineNode.queue_free()
+	polygonNodes.clear()
+	outlineNodes.clear()
+
+	for index in range(shapePolygons.size()):
+		var points := shapePolygons[index]
+
+		var polygonNode := Polygon2D.new()
+		polygonNode.name = "Fill%d" % index
+		polygonNode.polygon = points
+		add_child(polygonNode)
+		polygonNodes.append(polygonNode)
+
+		var outlineNode := Line2D.new()
+		outlineNode.name = "Outline%d" % index
+		outlineNode.points = _closedOutlinePoints(points)
+		outlineNode.joint_mode = Line2D.LINE_JOINT_ROUND
+		outlineNode.begin_cap_mode = Line2D.LINE_CAP_ROUND
+		outlineNode.end_cap_mode = Line2D.LINE_CAP_ROUND
+		add_child(outlineNode)
+		outlineNodes.append(outlineNode)
 
 
 func _defaultPoints() -> PackedVector2Array:

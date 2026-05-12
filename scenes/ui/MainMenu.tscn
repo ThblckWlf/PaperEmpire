@@ -142,7 +142,7 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.352941, 0.286275, 0.192157, 1)
 theme_override_font_sizes/font_size = 17
 autowrap_mode = 3
-text = "New Run uses the current Paperland placeholder."
+text = "New Run opens the start region selection."
 
 [node name="CornerTopLeft" type="TextureRect" parent="SafeArea"]
 layout_mode = 1

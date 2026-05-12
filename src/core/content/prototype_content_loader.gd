@@ -75,7 +75,12 @@ static func loadMapShapes() -> Dictionary:
 		if countryId == GameIds.EMPTY_ID:
 			continue
 
-		shapes[countryId] = _vector2Array(rowData.get("points", []))
+		var polygons := _polygonArray(rowData.get("polygons", []))
+		if polygons.is_empty():
+			var points := _vector2Array(rowData.get("points", []))
+			if points.size() >= 3:
+				polygons.append(points)
+		shapes[countryId] = polygons
 	return shapes
 
 
@@ -132,4 +137,16 @@ static func _vector2Array(value: Variant) -> PackedVector2Array:
 	for item in value:
 		if item is Dictionary:
 			result.append(_vector2Value(item as Dictionary))
+	return result
+
+
+static func _polygonArray(value: Variant) -> Array[PackedVector2Array]:
+	var result: Array[PackedVector2Array] = []
+	if not (value is Array):
+		return result
+
+	for item in value:
+		var points := _vector2Array(item)
+		if points.size() >= 3:
+			result.append(points)
 	return result

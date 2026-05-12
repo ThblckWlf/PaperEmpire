@@ -122,7 +122,7 @@ func _testInvalidCountries() -> ValidationResult:
 	var invalidCountries: Array[CountryData] = _createValidCountries()
 	var missingNeighbors: Array[StringName] = [&"missing"]
 	var noNeighbors: Array[StringName] = []
-	invalidCountries.append(_createCountry(&"paperland", "Paperland Copy", GameIds.PLAYER_OWNER_ID, Vector2(50.0, 50.0), missingNeighbors))
+	invalidCountries.append(_createCountry(&"usa", "United States of America Copy", GameIds.PLAYER_OWNER_ID, Vector2(50.0, 50.0), missingNeighbors))
 	var invalidCountry := _createCountry(GameIds.EMPTY_ID, "", &"invalid_owner", Vector2.ZERO, noNeighbors)
 	invalidCountry.goldPerMonth = -1
 	invalidCountries.append(invalidCountry)
@@ -224,38 +224,47 @@ func _testPrototypeMapShapesFixture() -> ValidationResult:
 			result.addError("Map shape missing for country: %s." % country.id)
 			continue
 
-		var points: PackedVector2Array = shapes[country.id]
-		if points.size() < 3:
-			result.addError("Map shape has fewer than 3 points for country: %s." % country.id)
+		var polygons: Array[PackedVector2Array] = _mapShapePolygons(shapes[country.id])
+		if polygons.is_empty():
+			result.addError("Map shape has no valid polygons for country: %s." % country.id)
 			continue
 
-		boundsByCountry[country.id] = _countryShapeBounds(country.center, points)
+		var hasCountryBounds := false
+		var countryBounds := Rect2()
+		for points in polygons:
+			if points.size() < 3:
+				result.addError("Map shape has fewer than 3 points for country: %s." % country.id)
+				continue
 
-	var countryIds := boundsByCountry.keys()
-	countryIds.sort()
-	for leftIndex in range(countryIds.size()):
-		for rightIndex in range(leftIndex + 1, countryIds.size()):
-			var leftId: StringName = countryIds[leftIndex]
-			var rightId: StringName = countryIds[rightIndex]
-			var leftBounds: Rect2 = boundsByCountry[leftId]
-			var rightBounds: Rect2 = boundsByCountry[rightId]
-			if leftBounds.intersects(rightBounds):
-				result.addError("Map shapes overlap: %s and %s." % [leftId, rightId])
+			var polygonBounds := _countryShapeBounds(country.center, points)
+			if hasCountryBounds:
+				countryBounds = countryBounds.merge(polygonBounds)
+			else:
+				countryBounds = polygonBounds
+				hasCountryBounds = true
+
+		if hasCountryBounds:
+			boundsByCountry[country.id] = countryBounds
+
+	for countryId in boundsByCountry.keys():
+		var countryBounds: Rect2 = boundsByCountry[countryId]
+		if countryBounds.size.x <= 2.0 or countryBounds.size.y <= 2.0:
+			result.addError("Map shape is too small for country: %s." % countryId)
 
 	return result
 
 
 func _testNewRunFactory() -> ValidationResult:
-	var runState := NewRunFactory.createNewRun(&"paperland")
+	var runState := NewRunFactory.createNewRun(&"usa")
 	var result := RunStateValidator.validate(runState)
 
 	if runState.runStatus != RunState.RUN_STATUS_ACTIVE:
 		result.addError("New run is not active.")
 
-	if not runState.countries.has(&"paperland"):
+	if not runState.countries.has(&"usa"):
 		result.addError("New run does not contain start country.")
 	else:
-		var startCountry := runState.countries[&"paperland"] as CountryData
+		var startCountry := runState.countries[&"usa"] as CountryData
 		if startCountry.ownerId != GameIds.PLAYER_OWNER_ID:
 			result.addError("Start country is not owned by player.")
 
@@ -288,14 +297,14 @@ func _testGameManagerCommands() -> ValidationResult:
 	manager.setEventBus(bus)
 	manager.setSimulationManager(simulation)
 
-	manager.startNewRun("paperland")
+	manager.startNewRun("usa")
 	if not manager.hasActiveRun():
 		result.addError("GameManager did not create an active run.")
 
 	manager.submitCommand(CommandType.SELECT_COUNTRY, {
-		"countryId": "inkreich",
+		"countryId": "can",
 	})
-	if manager.getSelectedCountryId() != &"inkreich":
+	if manager.getSelectedCountryId() != &"can":
 		result.addError("select_country did not update selectedCountryId.")
 
 	manager.submitCommand(CommandType.SET_GAME_SPEED, {
@@ -315,9 +324,9 @@ func _testGameManagerCommands() -> ValidationResult:
 		result.addError("resume_game did not resume normal speed.")
 
 	manager.submitCommand(CommandType.RESET_RUN, {
-		"startCountryId": "foldmark",
+		"startCountryId": "mex",
 	})
-	if manager.getSelectedCountryId() != &"foldmark":
+	if manager.getSelectedCountryId() != &"mex":
 		result.addError("reset_run did not update selectedCountryId.")
 	if simulation.getRunState() != manager.getCurrentRunState():
 		result.addError("reset_run did not update SimulationManager run state.")
@@ -373,7 +382,7 @@ func _testGameTimeAdvances() -> ValidationResult:
 
 func _testSimulationManagerTicks() -> ValidationResult:
 	var result := ValidationResult.new()
-	var runState := NewRunFactory.createNewRun(&"paperland")
+	var runState := NewRunFactory.createNewRun(&"usa")
 	var simulation := SimulationManager.new()
 	var bus := EventBus.new()
 	capturedEvents.clear()
@@ -414,7 +423,7 @@ func _testSimulationManagerTicks() -> ValidationResult:
 
 func _testEconomyCalculatesIncomeAndUpkeep() -> ValidationResult:
 	var result := ValidationResult.new()
-	var runState := NewRunFactory.createNewRun(&"paperland")
+	var runState := NewRunFactory.createNewRun(&"usa")
 	var income: Dictionary = ECONOMY_SIMULATION.calculateMonthlyIncome(runState)
 	var upkeep: int = ECONOMY_SIMULATION.calculateArmyFoodUpkeep(runState, PrototypeContentLoader.loadUnits())
 	if int(income.get("gold", 0)) != 35:
@@ -428,7 +437,7 @@ func _testEconomyCalculatesIncomeAndUpkeep() -> ValidationResult:
 
 func _testEconomyAppliesMonthTickAndShortage() -> ValidationResult:
 	var result := ValidationResult.new()
-	var runState := NewRunFactory.createNewRun(&"paperland")
+	var runState := NewRunFactory.createNewRun(&"usa")
 	var monthResult: Dictionary = ECONOMY_SIMULATION.applyMonthTick(runState, PrototypeContentLoader.loadUnits())
 	if int(runState.resources.get("gold", 0)) != NewRunFactory.START_GOLD + 35:
 		result.addError("EconomySimulation did not apply monthly gold income.")
@@ -455,19 +464,19 @@ func _testEconomyAppliesMonthTickAndShortage() -> ValidationResult:
 
 func _testArmyMovementValidatesAndAdvances() -> ValidationResult:
 	var result := ValidationResult.new()
-	var runState := NewRunFactory.createNewRun(&"paperland")
-	var invalidMove: Dictionary = ARMY_MOVEMENT_SIMULATION.requestMove(runState, &"army_start", &"graphia")
+	var runState := NewRunFactory.createNewRun(&"usa")
+	var invalidMove: Dictionary = ARMY_MOVEMENT_SIMULATION.requestMove(runState, &"army_start", &"bra")
 	if bool(invalidMove.get("accepted", false)):
 		result.addError("ArmyMovementSimulation accepted a non-neighbor move.")
 
-	var move: Dictionary = ARMY_MOVEMENT_SIMULATION.requestMove(runState, &"army_start", &"inkreich")
+	var move: Dictionary = ARMY_MOVEMENT_SIMULATION.requestMove(runState, &"army_start", &"can")
 	if not bool(move.get("accepted", false)):
 		result.addError("ArmyMovementSimulation rejected a neighbor move.")
 
 	var army := runState.armies[&"army_start"] as ArmyData
 	if army.status != ArmyStatus.Value.Moving:
 		result.addError("ArmyMovementSimulation did not set moving status.")
-	if army.targetCountryId != &"inkreich":
+	if army.targetCountryId != &"can":
 		result.addError("ArmyMovementSimulation did not set target country.")
 
 	var completedEarly: Array[Dictionary] = ARMY_MOVEMENT_SIMULATION.advanceMovement(runState, ARMY_MOVEMENT_SIMULATION.MOVEMENT_SECONDS_PER_EDGE * 0.5)
@@ -479,7 +488,7 @@ func _testArmyMovementValidatesAndAdvances() -> ValidationResult:
 	var completed: Array[Dictionary] = ARMY_MOVEMENT_SIMULATION.advanceMovement(runState, ARMY_MOVEMENT_SIMULATION.MOVEMENT_SECONDS_PER_EDGE * 0.5)
 	if completed.size() != 1:
 		result.addError("ArmyMovementSimulation did not report completed move.")
-	if army.locationCountryId != &"inkreich":
+	if army.locationCountryId != &"can":
 		result.addError("ArmyMovementSimulation did not update location.")
 	if army.status != ArmyStatus.Value.Stationed:
 		result.addError("ArmyMovementSimulation did not restore stationed status.")
@@ -495,11 +504,11 @@ func _testGameManagerMoveArmyCommand() -> ValidationResult:
 	bus.gameEventRaised.connect(_recordGameEvent)
 	manager.setEventBus(bus)
 	manager.setSimulationManager(simulation)
-	manager.startNewRun("paperland")
+	manager.startNewRun("usa")
 
 	bus.requestCommand(CommandType.MOVE_ARMY, {
 		"armyId": "army_start",
-		"targetCountryId": "inkreich",
+		"targetCountryId": "can",
 	})
 	var army := manager.getCurrentRunState().armies[&"army_start"] as ArmyData
 	if army.status != ArmyStatus.Value.Moving:
@@ -510,7 +519,7 @@ func _testGameManagerMoveArmyCommand() -> ValidationResult:
 		result.addError("move_army command did not emit armyMoveStarted.")
 
 	simulation.stepSimulation(ARMY_MOVEMENT_SIMULATION.MOVEMENT_SECONDS_PER_EDGE)
-	if army.locationCountryId != &"inkreich":
+	if army.locationCountryId != &"can":
 		result.addError("SimulationManager did not complete army movement.")
 	if not _capturedEvent(EventType.ARMY_MOVED):
 		result.addError("SimulationManager did not emit armyMoved.")
@@ -531,10 +540,10 @@ func _testRecruitmentAppliesRules() -> ValidationResult:
 	if int(cost.get("foodReserveRequired", 0)) != 2:
 		result.addError("RecruitmentSimulation calculated wrong infantry food reserve.")
 
-	var runState := NewRunFactory.createNewRun(&"paperland")
+	var runState := NewRunFactory.createNewRun(&"usa")
 	var recruit: Dictionary = RECRUITMENT_SIMULATION.applyRecruitment(
 		runState,
-		&"paperland",
+		&"usa",
 		GameIds.CAVALRY_UNIT_ID,
 		1,
 		units,
@@ -549,24 +558,24 @@ func _testRecruitmentAppliesRules() -> ValidationResult:
 	if int(army.units.get(GameIds.CAVALRY_UNIT_ID, 0)) != NewRunFactory.START_CAVALRY + 1:
 		result.addError("RecruitmentSimulation did not add recruited units.")
 
-	var enemyRecruit: Dictionary = RECRUITMENT_SIMULATION.applyRecruitment(runState, &"inkreich", GameIds.INFANTRY_UNIT_ID, 1, units, &"army_start")
+	var enemyRecruit: Dictionary = RECRUITMENT_SIMULATION.applyRecruitment(runState, &"can", GameIds.INFANTRY_UNIT_ID, 1, units, &"army_start")
 	if bool(enemyRecruit.get("accepted", false)):
 		result.addError("RecruitmentSimulation accepted recruitment in non-owned country.")
 
 	runState.resources["gold"] = 10
-	var expensiveRecruit: Dictionary = RECRUITMENT_SIMULATION.applyRecruitment(runState, &"paperland", GameIds.ARTILLERY_UNIT_ID, 1, units, &"army_start")
+	var expensiveRecruit: Dictionary = RECRUITMENT_SIMULATION.applyRecruitment(runState, &"usa", GameIds.ARTILLERY_UNIT_ID, 1, units, &"army_start")
 	if bool(expensiveRecruit.get("accepted", false)):
 		result.addError("RecruitmentSimulation accepted recruitment without enough gold.")
 
 	runState.resources["gold"] = 1000
 	runState.resources["food"] = 0
-	var noFoodRecruit: Dictionary = RECRUITMENT_SIMULATION.applyRecruitment(runState, &"paperland", GameIds.INFANTRY_UNIT_ID, 1, units, &"army_start")
+	var noFoodRecruit: Dictionary = RECRUITMENT_SIMULATION.applyRecruitment(runState, &"usa", GameIds.INFANTRY_UNIT_ID, 1, units, &"army_start")
 	if bool(noFoodRecruit.get("accepted", false)):
 		result.addError("RecruitmentSimulation accepted recruitment without food reserve.")
 
 	runState.resources["food"] = 100
 	runState.economy["recruitmentBlocked"] = true
-	var blockedRecruit: Dictionary = RECRUITMENT_SIMULATION.applyRecruitment(runState, &"paperland", GameIds.INFANTRY_UNIT_ID, 1, units, &"army_start")
+	var blockedRecruit: Dictionary = RECRUITMENT_SIMULATION.applyRecruitment(runState, &"usa", GameIds.INFANTRY_UNIT_ID, 1, units, &"army_start")
 	if bool(blockedRecruit.get("accepted", false)):
 		result.addError("RecruitmentSimulation ignored recruitmentBlocked.")
 	return result
@@ -581,10 +590,10 @@ func _testGameManagerRecruitAndCreateArmyCommands() -> ValidationResult:
 	bus.gameEventRaised.connect(_recordGameEvent)
 	manager.setEventBus(bus)
 	manager.setSimulationManager(simulation)
-	manager.startNewRun("paperland")
+	manager.startNewRun("usa")
 
 	bus.requestCommand(CommandType.RECRUIT_UNITS, {
-		"countryId": "paperland",
+		"countryId": "usa",
 		"unitType": "infantry",
 		"amount": 1,
 	})
@@ -598,7 +607,7 @@ func _testGameManagerRecruitAndCreateArmyCommands() -> ValidationResult:
 
 	var previousArmyCount := manager.getCurrentRunState().armies.size()
 	bus.requestCommand(CommandType.CREATE_ARMY, {
-		"countryId": "paperland",
+		"countryId": "usa",
 	})
 	if manager.getCurrentRunState().armies.size() != previousArmyCount + 1:
 		result.addError("create_army command did not add an army.")
@@ -620,9 +629,9 @@ func _testGameManagerRecruitAndCreateArmyCommands() -> ValidationResult:
 
 func _testCombatCalculatesPower() -> ValidationResult:
 	var result := ValidationResult.new()
-	var runState := NewRunFactory.createNewRun(&"paperland")
+	var runState := NewRunFactory.createNewRun(&"usa")
 	var army := runState.armies[&"army_start"] as ArmyData
-	var targetCountry := runState.countries[&"inkreich"] as CountryData
+	var targetCountry := runState.countries[&"can"] as CountryData
 	var power := COMBAT_SIMULATION.calculateArmyCombatPower(army, PrototypeContentLoader.loadUnits(), runState.economy, {
 		"targetDefense": targetCountry.defense,
 	})
@@ -645,12 +654,12 @@ func _testCombatCalculatesPower() -> ValidationResult:
 
 func _testCombatStartsValidAttacks() -> ValidationResult:
 	var result := ValidationResult.new()
-	var runState := NewRunFactory.createNewRun(&"paperland")
-	var invalidAttack: Dictionary = COMBAT_SIMULATION.startAttack(runState, &"army_start", &"graphia", PrototypeContentLoader.loadUnits())
+	var runState := NewRunFactory.createNewRun(&"usa")
+	var invalidAttack: Dictionary = COMBAT_SIMULATION.startAttack(runState, &"army_start", &"bra", PrototypeContentLoader.loadUnits())
 	if bool(invalidAttack.get("accepted", false)):
 		result.addError("CombatSimulation accepted a non-neighbor attack.")
 
-	var attack: Dictionary = COMBAT_SIMULATION.startAttack(runState, &"army_start", &"inkreich", PrototypeContentLoader.loadUnits())
+	var attack: Dictionary = COMBAT_SIMULATION.startAttack(runState, &"army_start", &"can", PrototypeContentLoader.loadUnits())
 	if not bool(attack.get("accepted", false)):
 		result.addError("CombatSimulation rejected a valid attack.")
 	if not runState.battles.has(StringName(str(attack.get("battleId", "")))):
@@ -659,10 +668,10 @@ func _testCombatStartsValidAttacks() -> ValidationResult:
 	var army := runState.armies[&"army_start"] as ArmyData
 	if army.status != ArmyStatus.Value.Attacking:
 		result.addError("CombatSimulation did not set attacker status.")
-	if army.targetCountryId != &"inkreich":
+	if army.targetCountryId != &"can":
 		result.addError("CombatSimulation did not set attacker target.")
 
-	var secondAttack: Dictionary = COMBAT_SIMULATION.startAttack(runState, &"army_start", &"foldmark", PrototypeContentLoader.loadUnits())
+	var secondAttack: Dictionary = COMBAT_SIMULATION.startAttack(runState, &"army_start", &"mex", PrototypeContentLoader.loadUnits())
 	if bool(secondAttack.get("accepted", false)):
 		result.addError("CombatSimulation accepted an attack from a non-stationed army.")
 
@@ -682,11 +691,11 @@ func _testSimulationCompletesBattleAndConquest() -> ValidationResult:
 	bus.gameEventRaised.connect(_recordGameEvent)
 	manager.setEventBus(bus)
 	manager.setSimulationManager(simulation)
-	manager.startNewRun("paperland")
+	manager.startNewRun("usa")
 
 	bus.requestCommand(CommandType.START_ATTACK, {
 		"armyId": "army_start",
-		"targetCountryId": "inkreich",
+		"targetCountryId": "can",
 	})
 	if not _capturedEvent(EventType.BATTLE_STARTED):
 		result.addError("start_attack command did not emit battleStarted.")
@@ -696,10 +705,10 @@ func _testSimulationCompletesBattleAndConquest() -> ValidationResult:
 		result.addError("start_attack command did not set army attacking.")
 
 	simulation.stepSimulation(COMBAT_SIMULATION.BATTLE_DURATION_SECONDS)
-	var targetCountry := manager.getCurrentRunState().countries[&"inkreich"] as CountryData
+	var targetCountry := manager.getCurrentRunState().countries[&"can"] as CountryData
 	if targetCountry.ownerId != GameIds.PLAYER_OWNER_ID:
 		result.addError("SimulationManager did not conquer target country.")
-	if army.locationCountryId != &"inkreich":
+	if army.locationCountryId != &"can":
 		result.addError("Conquering army did not station in target country.")
 	if army.status != ArmyStatus.Value.Stationed:
 		result.addError("Conquering army did not return to stationed status.")
@@ -729,7 +738,7 @@ func _testSimulationCompletesBattleAndConquest() -> ValidationResult:
 
 func _testUpgradeRollsChoicesAndAppliesEffects() -> ValidationResult:
 	var result := ValidationResult.new()
-	var runState := NewRunFactory.createNewRun(&"paperland")
+	var runState := NewRunFactory.createNewRun(&"usa")
 	var choices: Dictionary = UPGRADE_SIMULATION.rollUpgradeChoices(runState, PrototypeContentLoader.loadUpgrades())
 	if not bool(choices.get("opened", false)):
 		result.addError("UpgradeSimulation did not open choices.")
@@ -756,8 +765,8 @@ func _testUpgradeRollsChoicesAndAppliesEffects() -> ValidationResult:
 
 	runState.activeUpgradeChoice = {"isOpen": true, "choices": [_upgradeById(&"warChest")]}
 	UPGRADE_SIMULATION.applyUpgradeChoice(runState, &"warChest")
-	var reward: Dictionary = UPGRADE_SIMULATION.applyConquestReward(runState, &"inkreich")
-	if int(reward.get("goldReward", 0)) != 85:
+	var reward: Dictionary = UPGRADE_SIMULATION.applyConquestReward(runState, &"can")
+	if int(reward.get("goldReward", 0)) != 93:
 		result.addError("Conquest gold upgrade did not increase reward.")
 
 	runState.activeUpgradeChoice = {"isOpen": true, "choices": [_upgradeById(&"quietWars")]}
@@ -768,7 +777,7 @@ func _testUpgradeRollsChoicesAndAppliesEffects() -> ValidationResult:
 
 	runState.activeUpgradeChoice = {"isOpen": true, "choices": [_upgradeById(&"strongFronts")]}
 	UPGRADE_SIMULATION.applyUpgradeChoice(runState, &"strongFronts")
-	var ownedCountry := runState.countries[&"paperland"] as CountryData
+	var ownedCountry := runState.countries[&"usa"] as CountryData
 	var defensePower := COMBAT_SIMULATION.calculateCountryDefensePower(ownedCountry, runState.upgradeEffects)
 	if not is_equal_approx(defensePower, float(ownedCountry.defense) * COMBAT_SIMULATION.COUNTRY_DEFENSE_POWER_MULTIPLIER * 1.15):
 		result.addError("Defense upgrade did not change owned country defense power.")
@@ -825,7 +834,7 @@ func _testUpgradeModalAppliesSelectedUpgrade() -> ValidationResult:
 
 func _testThreatAppliesPassiveAndActionThreat() -> ValidationResult:
 	var result := ValidationResult.new()
-	var runState := NewRunFactory.createNewRun(&"paperland")
+	var runState := NewRunFactory.createNewRun(&"usa")
 	var simulation := SimulationManager.new()
 	var bus := EventBus.new()
 	capturedEvents.clear()
@@ -862,7 +871,7 @@ func _testThreatAppliesPassiveAndActionThreat() -> ValidationResult:
 	if not bool(reaction.get("counterAttackPrepared", false)):
 		result.addError("World reaction did not prepare counterattack stub.")
 
-	var enemyCountry := runState.countries[&"inkreich"] as CountryData
+	var enemyCountry := runState.countries[&"can"] as CountryData
 	var enemyDefensePower := COMBAT_SIMULATION.calculateCountryDefensePower(enemyCountry, {}, runState.worldReaction)
 	var expectedDefensePower := float(enemyCountry.defense) * COMBAT_SIMULATION.COUNTRY_DEFENSE_POWER_MULTIPLIER * 1.25
 	if not is_equal_approx(enemyDefensePower, expectedDefensePower):
@@ -875,7 +884,7 @@ func _testThreatAppliesPassiveAndActionThreat() -> ValidationResult:
 
 func _testThreatUiSummariesExposeWarningStates() -> ValidationResult:
 	var result := ValidationResult.new()
-	var runState := NewRunFactory.createNewRun(&"paperland")
+	var runState := NewRunFactory.createNewRun(&"usa")
 	runState.resources["threat"] = 55
 	var topBarData: Dictionary = RUN_STATE_VIEW.createTopBarData(runState)
 	if str(topBarData.get("threatState", "")) != "high":
@@ -890,10 +899,10 @@ func _testThreatUiSummariesExposeWarningStates() -> ValidationResult:
 
 func _testMiniGoalsTrackProgressAndRewards() -> ValidationResult:
 	var result := ValidationResult.new()
-	var runState := NewRunFactory.createNewRun(&"paperland")
+	var runState := NewRunFactory.createNewRun(&"usa")
 	var units := PrototypeContentLoader.loadUnits()
 
-	MINI_GOAL_SIMULATION.updateProgress(runState, EventType.COUNTRY_CONQUERED, {"countryId": "inkreich"}, units)
+	MINI_GOAL_SIMULATION.updateProgress(runState, EventType.COUNTRY_CONQUERED, {"countryId": "can"}, units)
 	var conquerGoal := _miniGoalById(runState, &"conquerThreeCountries")
 	if int(conquerGoal.get("progress", 0)) != 1:
 		result.addError("MiniGoal conquerCountries did not advance on conquest.")
@@ -927,8 +936,8 @@ func _testMiniGoalsTrackProgressAndRewards() -> ValidationResult:
 	if not bool(holdGoal.get("isCompleted", false)):
 		result.addError("MiniGoal holdThreatenedCountryMonths did not complete after threatened months.")
 
-	MINI_GOAL_SIMULATION.updateProgress(runState, EventType.COUNTRY_CONQUERED, {"countryId": "foldmark"}, units)
-	MINI_GOAL_SIMULATION.updateProgress(runState, EventType.COUNTRY_CONQUERED, {"countryId": "vellum"}, units)
+	MINI_GOAL_SIMULATION.updateProgress(runState, EventType.COUNTRY_CONQUERED, {"countryId": "mex"}, units)
+	MINI_GOAL_SIMULATION.updateProgress(runState, EventType.COUNTRY_CONQUERED, {"countryId": "gtm"}, units)
 	conquerGoal = _miniGoalById(runState, &"conquerThreeCountries")
 	if not bool(conquerGoal.get("isCompleted", false)):
 		result.addError("MiniGoal conquerCountries did not complete at target.")
@@ -1010,7 +1019,7 @@ func _testWorldMapCreatesCountryAndArmyNodes() -> ValidationResult:
 	add_child(worldMap)
 	manager.setEventBus(bus)
 	manager.setSimulationManager(simulation)
-	manager.startNewRun("paperland")
+	manager.startNewRun("usa")
 	worldMap.configure(manager, bus)
 
 	var runState := manager.getCurrentRunState()
@@ -1022,18 +1031,18 @@ func _testWorldMapCreatesCountryAndArmyNodes() -> ValidationResult:
 		result.addError("WorldMap did not expose the starting ArmyNode.")
 
 	bus.requestCommand(CommandType.CREATE_ARMY, {
-		"countryId": "paperland",
+		"countryId": "usa",
 	})
 	if worldMap.getArmyNodeCount() != runState.armies.size():
 		result.addError("WorldMap did not refresh ArmyNodes after army creation.")
 
 	bus.requestCommand(CommandType.SELECT_COUNTRY, {
-		"countryId": "inkreich",
+		"countryId": "can",
 	})
-	var inkreichNode = worldMap.getCountryNode(&"inkreich")
-	if inkreichNode == null:
-		result.addError("WorldMap did not expose inkreich CountryNode.")
-	elif not bool(inkreichNode.get("isSelected")):
+	var canNode = worldMap.getCountryNode(&"can")
+	if canNode == null:
+		result.addError("WorldMap did not expose can CountryNode.")
+	elif not bool(canNode.get("isSelected")):
 		result.addError("WorldMap did not update CountryNode selection from command event.")
 
 	remove_child(worldMap)
@@ -1113,7 +1122,7 @@ func _testInputActionsRegisterDesktopControls() -> ValidationResult:
 
 func _testRunStateViewCreatesSummaries() -> ValidationResult:
 	var result := ValidationResult.new()
-	var runState := NewRunFactory.createNewRun(&"paperland")
+	var runState := NewRunFactory.createNewRun(&"usa")
 	var topBarData: Dictionary = RUN_STATE_VIEW.createTopBarData(runState)
 	if int(topBarData.get("gold", 0)) != NewRunFactory.START_GOLD:
 		result.addError("RunStateView top bar gold is wrong.")
@@ -1124,8 +1133,8 @@ func _testRunStateViewCreatesSummaries() -> ValidationResult:
 	if str(topBarData.get("dateText", "")) != "Y1 M1 W1":
 		result.addError("RunStateView date text is wrong.")
 
-	var countryData: Dictionary = RUN_STATE_VIEW.createCountryPanelData(runState, &"paperland")
-	if str(countryData.get("name", "")) != "Paperland":
+	var countryData: Dictionary = RUN_STATE_VIEW.createCountryPanelData(runState, &"usa")
+	if str(countryData.get("name", "")) != "United States of America":
 		result.addError("RunStateView country panel name is wrong.")
 	if int(countryData.get("stationedArmyCount", 0)) != 1:
 		result.addError("RunStateView stationed army count is wrong.")
@@ -1135,7 +1144,7 @@ func _testRunStateViewCreatesSummaries() -> ValidationResult:
 	var armyData: Dictionary = RUN_STATE_VIEW.createArmyPanelData(runState, &"army_start")
 	if str(armyData.get("status", "")) != "Stationed":
 		result.addError("RunStateView army panel status is wrong.")
-	if str(armyData.get("location", "")) != "Paperland":
+	if str(armyData.get("location", "")) != "United States of America":
 		result.addError("RunStateView army panel location is wrong.")
 	return result
 
@@ -1190,11 +1199,18 @@ func _testMainMenuFirstBootAndActions() -> ValidationResult:
 		mainMenu.call("closeOpenPanel")
 
 	var newRunButton := main.get_node("GameRoot/UIRoot/Root/MainMenu/SafeArea/MainMenuPanel/MarginContainer/ButtonList/NewRunButton") as Button
-	var primaryModalButton := main.get_node("GameRoot/UIRoot/Root/MainMenu/SafeArea/ModalLayer/ModalPanel/MarginContainer/ModalContent/ModalButtons/PrimaryModalButton") as Button
 	newRunButton.emit_signal("pressed")
-	primaryModalButton.emit_signal("pressed")
+	var countrySelectionPanel = main.get_node_or_null("GameRoot/UIRoot/Root/MainMenu/SafeArea/ModalLayer/CountrySelectionPanel")
+	if countrySelectionPanel == null or not bool(countrySelectionPanel.visible):
+		result.addError("New Run did not open the country selection panel.")
+	else:
+		var startSelectedCountryButton := countrySelectionPanel.find_child("StartSelectedCountryButton", true, false) as Button
+		if startSelectedCountryButton == null:
+			result.addError("Country selection panel is missing the start button.")
+		else:
+			startSelectedCountryButton.emit_signal("pressed")
 	if gameManager.getCurrentRunState() == null:
-		result.addError("New Run placeholder did not start the current prototype run.")
+		result.addError("New Run country selection did not start a run.")
 	if bool(uiRoot.call("isMainMenuVisible")):
 		result.addError("Main menu stayed visible after starting a run.")
 	if not bool(worldRoot.visible):
@@ -1258,10 +1274,10 @@ func _testMainUiLayoutBindsStateAndCommands() -> ValidationResult:
 		result.addError("TopBar did not update after month tick economy apply.")
 
 	eventBus.requestCommand(CommandType.SELECT_COUNTRY, {
-		"countryId": "inkreich",
+		"countryId": "can",
 	})
 	var countryTitle := main.get_node("GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer/TitleLabel") as Label
-	if countryTitle.text != "Inkreich":
+	if countryTitle.text != "Canada":
 		result.addError("CountryPanel did not update from country selection.")
 
 	var pauseButton := main.get_node("GameRoot/UIRoot/Root/BottomBar/MarginContainer/HBoxContainer/PauseButton") as Button
@@ -1333,7 +1349,7 @@ func _testEffectsLayerReactsToEventFeedback() -> ValidationResult:
 	audio.configure(bus)
 	manager.setEventBus(bus)
 	manager.setSimulationManager(simulation)
-	manager.startNewRun("paperland")
+	manager.startNewRun("usa")
 	worldMap.configure(manager, bus, audio)
 
 	var effectsLayer = worldMap.get_node("EffectsLayer")
@@ -1350,7 +1366,7 @@ func _testEffectsLayerReactsToEventFeedback() -> ValidationResult:
 
 	bus.requestCommand(CommandType.MOVE_ARMY, {
 		"armyId": "army_start",
-		"targetCountryId": "inkreich",
+		"targetCountryId": "can",
 	})
 	if int(effectsLayer.call("getMovementFeedbackCount")) != 1:
 		result.addError("EffectsLayer did not create movement feedback after armyMoveStarted.")
@@ -1358,8 +1374,8 @@ func _testEffectsLayerReactsToEventFeedback() -> ValidationResult:
 	bus.raiseGameEvent(EventType.BATTLE_STARTED, {
 		"battleId": "battle_visual_test",
 		"armyId": "army_start",
-		"sourceCountryId": "paperland",
-		"targetCountryId": "inkreich",
+		"sourceCountryId": "usa",
+		"targetCountryId": "can",
 	})
 	if int(effectsLayer.call("getBattleFeedbackCount")) != 1:
 		result.addError("EffectsLayer did not create battle pulse feedback.")
@@ -1372,15 +1388,15 @@ func _testEffectsLayerReactsToEventFeedback() -> ValidationResult:
 
 	var oneShotBefore := int(effectsLayer.call("getOneShotFeedbackCount"))
 	bus.raiseGameEvent(EventType.COUNTRY_CONQUERED, {
-		"countryId": "inkreich",
+		"countryId": "can",
 	})
 	if int(effectsLayer.call("getOneShotFeedbackCount")) <= oneShotBefore:
 		result.addError("EffectsLayer did not create conquest flash feedback.")
 
 	oneShotBefore = int(effectsLayer.call("getOneShotFeedbackCount"))
 	bus.raiseGameEvent(EventType.MISSILE_LAUNCHED, {
-		"fromCountryId": "paperland",
-		"targetCountryId": "inkreich",
+		"fromCountryId": "usa",
+		"targetCountryId": "can",
 	})
 	if int(effectsLayer.call("getOneShotFeedbackCount")) <= oneShotBefore:
 		result.addError("EffectsLayer did not spawn missile feedback.")
@@ -1456,13 +1472,13 @@ func _testSaveFormatDefinesVersionedSchema() -> ValidationResult:
 
 func _testRunStateSerializerWritesPureData() -> ValidationResult:
 	var result := ValidationResult.new()
-	var runState := NewRunFactory.createNewRun(&"paperland")
+	var runState := NewRunFactory.createNewRun(&"usa")
 	runState.upgrades.append(&"rapidRecruitment")
 	var battle := BattleData.new()
 	battle.id = &"battle_save"
 	battle.attackerArmyId = &"army_start"
-	battle.sourceCountryId = &"paperland"
-	battle.targetCountryId = &"inkreich"
+	battle.sourceCountryId = &"usa"
+	battle.targetCountryId = &"can"
 	battle.status = BattleStatus.Value.Active
 	battle.elapsedSeconds = 1.5
 	battle.durationSeconds = 6.0
@@ -1478,19 +1494,19 @@ func _testRunStateSerializerWritesPureData() -> ValidationResult:
 		result.addError("Serialized RunState contains non-JSON values.")
 
 	var countries: Dictionary = serialized.get("countries", {})
-	var paperland: Dictionary = countries.get("paperland", {})
-	var center: Dictionary = paperland.get("center", {})
+	var usa: Dictionary = countries.get("usa", {})
+	var center: Dictionary = usa.get("center", {})
 	if float(center.get("x", -1.0)) <= 0.0 or float(center.get("y", -1.0)) <= 0.0:
 		result.addError("Serialized country center is missing.")
 
 	var armies: Dictionary = serialized.get("armies", {})
 	var army: Dictionary = armies.get("army_start", {})
-	if str(army.get("locationCountryId", "")) != "paperland":
+	if str(army.get("locationCountryId", "")) != "usa":
 		result.addError("Serialized army location is wrong.")
 
 	var battles: Dictionary = serialized.get("battles", {})
 	var serializedBattle: Dictionary = battles.get("battle_save", {})
-	if str(serializedBattle.get("targetCountryId", "")) != "inkreich":
+	if str(serializedBattle.get("targetCountryId", "")) != "can":
 		result.addError("Serialized battle target is wrong.")
 
 	var root: Dictionary = SAVE_FORMAT.createRunSaveRoot(serialized)
@@ -1506,7 +1522,7 @@ func _testSaveManagerWritesAndLoadsUserSaves() -> ValidationResult:
 	var slotId := "debug_test_slot"
 	manager.deleteSave(slotId)
 
-	var runState := NewRunFactory.createNewRun(&"paperland")
+	var runState := NewRunFactory.createNewRun(&"usa")
 	var runData: Dictionary = RUN_STATE_SERIALIZER.serializeRunState(runState)
 	var root: Dictionary = SAVE_FORMAT.createRunSaveRoot(runData)
 	if not manager.saveGame(slotId, root):
@@ -1522,7 +1538,7 @@ func _testSaveManagerWritesAndLoadsUserSaves() -> ValidationResult:
 	else:
 		var loadedRun: Dictionary = loaded.get(SAVE_FORMAT.RUN_STATE_KEY, {})
 		var loadedCountries: Dictionary = loadedRun.get("countries", {})
-		if not loadedCountries.has("paperland"):
+		if not loadedCountries.has("usa"):
 			result.addError("Loaded save is missing serialized country data.")
 
 	manager.deleteSave(slotId)
@@ -1583,13 +1599,13 @@ func _testMetaProgressStoresUpgradeState() -> ValidationResult:
 		result.addError("MetaProgress default crowns are wrong.")
 	if not generalUpgrades.has("startGold") or not generalUpgrades.has("startFood"):
 		result.addError("MetaProgress default general upgrades are missing.")
-	if not countryUpgrades.has("paperland"):
+	if not countryUpgrades.has("usa"):
 		result.addError("MetaProgress default country upgrades are missing.")
 
 	metaData["crowns"] = 25
 	(generalUpgrades["startGold"] as Dictionary)["level"] = 1
-	var paperlandUpgrades := countryUpgrades["paperland"] as Dictionary
-	(paperlandUpgrades["paperlandDiscipline"] as Dictionary)["level"] = 1
+	var usaUpgrades := countryUpgrades["usa"] as Dictionary
+	(usaUpgrades["usaDiscipline"] as Dictionary)["level"] = 1
 	if not META_PROGRESS.isValidDictionary(metaData):
 		result.addError("MetaProgress rejected valid upgraded state.")
 
@@ -1625,9 +1641,9 @@ func _testMetaProgressAwardsCrownsAndAppliesPurchases() -> ValidationResult:
 		return fixtureResult
 
 	var metaData: Dictionary = META_PROGRESS.createDefaultDataForUpgrades(metaUpgradeRows)
-	var runState := NewRunFactory.createNewRun(&"paperland", metaData, metaUpgradeRows)
+	var runState := NewRunFactory.createNewRun(&"usa", metaData, metaUpgradeRows)
 	runState.upgrades.append(&"rapidRecruitment")
-	var conqueredCountry := runState.countries[&"inkreich"] as CountryData
+	var conqueredCountry := runState.countries[&"can"] as CountryData
 	conqueredCountry.ownerId = GameIds.PLAYER_OWNER_ID
 
 	var reward: Dictionary = META_PROGRESS_SIMULATION.calculateCrownsReward(runState, metaData, metaUpgradeRows)
@@ -1653,14 +1669,14 @@ func _testMetaProgressAwardsCrownsAndAppliesPurchases() -> ValidationResult:
 	if int(purchasedMeta.get("crowns", 0)) != 30:
 		result.addError("MetaProgressSimulation did not subtract purchase cost.")
 
-	var bonusRun := NewRunFactory.createNewRun(&"paperland", purchasedMeta, metaUpgradeRows)
+	var bonusRun := NewRunFactory.createNewRun(&"usa", purchasedMeta, metaUpgradeRows)
 	if int(bonusRun.resources.get("gold", 0)) != NewRunFactory.START_GOLD + 50:
 		result.addError("NewRunFactory did not apply purchased starting gold bonus.")
 
 	purchasedMeta["crowns"] = 50
-	var countryPurchase: Dictionary = META_PROGRESS_SIMULATION.purchaseUpgrade(purchasedMeta, &"paperlandDiscipline", metaUpgradeRows)
+	var countryPurchase: Dictionary = META_PROGRESS_SIMULATION.purchaseUpgrade(purchasedMeta, &"usaDiscipline", metaUpgradeRows)
 	var countryMeta := countryPurchase.get("metaProgress", {}) as Dictionary
-	var countryBonusRun := NewRunFactory.createNewRun(&"paperland", countryMeta, metaUpgradeRows)
+	var countryBonusRun := NewRunFactory.createNewRun(&"usa", countryMeta, metaUpgradeRows)
 	var startArmy := countryBonusRun.armies[&"army_start"] as ArmyData
 	if int(startArmy.units.get(GameIds.INFANTRY_UNIT_ID, 0)) != NewRunFactory.START_INFANTRY + 1:
 		result.addError("NewRunFactory did not apply country starting army bonus.")
@@ -1675,7 +1691,7 @@ func _testMetaProgressAwardsCrownsAndAppliesPurchases() -> ValidationResult:
 	bus.gameEventRaised.connect(_recordGameEvent)
 	manager.setEventBus(bus)
 	manager.setSimulationManager(simulation)
-	manager.startNewRun("paperland")
+	manager.startNewRun("usa")
 	var commandMeta: Dictionary = META_PROGRESS.createDefaultDataForUpgrades(metaUpgradeRows)
 	commandMeta["crowns"] = 20
 	manager.metaProgressData = commandMeta
@@ -1847,7 +1863,7 @@ func _testPlatformEventBridgeUnlocksMappedAchievements() -> ValidationResult:
 	bridge.call("configure", bus, service)
 
 	bus.raiseGameEvent(EventType.COUNTRY_CONQUERED, {
-		"countryId": "inkreich",
+		"countryId": "can",
 	})
 	if not bool(service.call("hasUnlockedAchievement", ACHIEVEMENT_EVENT_MAP.ACHIEVEMENT_FIRST_CONQUEST)):
 		result.addError("PlatformEventBridge did not unlock conquest achievement.")
@@ -1883,20 +1899,20 @@ func _testVerticalSliceBalanceEnvelope() -> ValidationResult:
 	var result := ValidationResult.new()
 	var countries := PrototypeContentLoader.loadCountries()
 	var units := PrototypeContentLoader.loadUnits()
-	if countries.size() < 10 or countries.size() > 20:
-		result.addError("Vertical slice country count is outside 10-20: %d." % countries.size())
+	if countries.size() < 110 or countries.size() > 150:
+		result.addError("Vertical slice country count is outside 110-150: %d." % countries.size())
 	if units.size() != 3:
 		result.addError("Vertical slice does not expose exactly three unit types.")
 
-	var runState := NewRunFactory.createNewRun(&"paperland")
+	var runState := NewRunFactory.createNewRun(&"usa")
 	var startingArmy := runState.armies[&"army_start"] as ArmyData
 	var startingPower := COMBAT_SIMULATION.calculateArmyCombatPower(startingArmy, units, runState.economy, {
 		"targetDefense": 10,
 	})
-	var foldmark := runState.countries[&"foldmark"] as CountryData
-	var notoria := runState.countries[&"notoria"] as CountryData
-	var earlyDefense := COMBAT_SIMULATION.calculateCountryDefensePower(foldmark, runState.upgradeEffects, runState.worldReaction)
-	var lateDefense := COMBAT_SIMULATION.calculateCountryDefensePower(notoria, runState.upgradeEffects, runState.worldReaction)
+	var mex := runState.countries[&"mex"] as CountryData
+	var chn := runState.countries[&"chn"] as CountryData
+	var earlyDefense := COMBAT_SIMULATION.calculateCountryDefensePower(mex, runState.upgradeEffects, runState.worldReaction)
+	var lateDefense := COMBAT_SIMULATION.calculateCountryDefensePower(chn, runState.upgradeEffects, runState.worldReaction)
 	if startingPower <= earlyDefense:
 		result.addError("Starting army cannot beat an early neighbor.")
 	if startingPower >= lateDefense:
@@ -1930,18 +1946,18 @@ func _testVerticalSliceMiniRunReachesWinStatus() -> ValidationResult:
 	manager.setEventBus(bus)
 	manager.setSimulationManager(simulation)
 	manager.setSaveManager(saveManager)
-	manager.startNewRun("paperland")
+	manager.startNewRun("usa")
 
 	var runState := manager.getCurrentRunState()
 	runState.resources["gold"] = 7000
 	runState.resources["food"] = 1000
 	bus.requestCommand(CommandType.RECRUIT_UNITS, {
-		"countryId": "paperland",
+		"countryId": "usa",
 		"unitType": "artillery",
 		"amount": 24,
 	})
 	bus.requestCommand(CommandType.RECRUIT_UNITS, {
-		"countryId": "paperland",
+		"countryId": "usa",
 		"unitType": "infantry",
 		"amount": 20,
 	})
@@ -1951,11 +1967,11 @@ func _testVerticalSliceMiniRunReachesWinStatus() -> ValidationResult:
 
 	bus.requestCommand(CommandType.START_ATTACK, {
 		"armyId": "army_start",
-		"targetCountryId": "inkreich",
+		"targetCountryId": "can",
 	})
 	simulation.stepSimulation(COMBAT_SIMULATION.BATTLE_DURATION_SECONDS)
 	_chooseFirstUpgradeForVerticalSlice(manager, bus, result)
-	if (manager.getCurrentRunState().countries[&"inkreich"] as CountryData).ownerId != GameIds.PLAYER_OWNER_ID:
+	if (manager.getCurrentRunState().countries[&"can"] as CountryData).ownerId != GameIds.PLAYER_OWNER_ID:
 		result.addError("Vertical slice first conquest failed.")
 
 	var savedGold := int(manager.getCurrentRunState().resources.get("gold", 0))
@@ -1969,28 +1985,14 @@ func _testVerticalSliceMiniRunReachesWinStatus() -> ValidationResult:
 	if int(manager.getCurrentRunState().resources.get("gold", 0)) != savedGold:
 		result.addError("Vertical slice save/load did not restore resources.")
 
-	var actions := [
-		{"type": "attack", "target": "graphia"},
-		{"type": "attack", "target": "cartonia"},
-		{"type": "attack", "target": "sealands"},
-		{"type": "attack", "target": "waxholm"},
-		{"type": "attack", "target": "notoria"},
-		{"type": "move", "target": "waxholm"},
-		{"type": "attack", "target": "staplia"},
-		{"type": "attack", "target": "marginia"},
-		{"type": "attack", "target": "vellum"},
-		{"type": "attack", "target": "foldmark"},
-		{"type": "move", "target": "marginia"},
-		{"type": "move", "target": "staplia"},
-		{"type": "attack", "target": "ledgeria"},
-	]
-	for action in actions:
-		if str(action.get("type", "")) == "move":
-			_moveArmyForVerticalSlice(manager, simulation, bus, StringName(str(action.get("target", ""))), result)
-		else:
-			_attackForVerticalSlice(manager, simulation, bus, StringName(str(action.get("target", ""))), result)
-		if not result.isValid():
-			break
+	var finalTargetId := &"mex"
+	for countryId in manager.getCurrentRunState().countries.keys():
+		var country := manager.getCurrentRunState().countries[countryId] as CountryData
+		if country != null and country.id != finalTargetId:
+			country.ownerId = GameIds.PLAYER_OWNER_ID
+
+	_moveArmyForVerticalSlice(manager, simulation, bus, &"usa", result)
+	_attackForVerticalSlice(manager, simulation, bus, finalTargetId, result)
 
 	var finalState := manager.getCurrentRunState()
 	if finalState.runStatus != RunState.RUN_STATUS_WON:
@@ -2140,8 +2142,8 @@ func _createValidRunState() -> RunState:
 	var army := ArmyData.new()
 	army.id = &"army_1"
 	army.ownerId = GameIds.PLAYER_OWNER_ID
-	army.locationCountryId = &"paperland"
-	army.targetCountryId = &"inkreich"
+	army.locationCountryId = &"usa"
+	army.targetCountryId = &"can"
 	army.units = {
 		GameIds.INFANTRY_UNIT_ID: 10,
 		GameIds.CAVALRY_UNIT_ID: 2,
@@ -2160,10 +2162,10 @@ func _createValidRunState() -> RunState:
 
 func _createValidCountries() -> Array[CountryData]:
 	var countries: Array[CountryData] = []
-	var paperlandNeighbors: Array[StringName] = [&"inkreich"]
-	var inkreichNeighbors: Array[StringName] = [&"paperland"]
-	countries.append(_createCountry(&"paperland", "Paperland", GameIds.PLAYER_OWNER_ID, Vector2(100.0, 120.0), paperlandNeighbors))
-	countries.append(_createCountry(&"inkreich", "Inkreich", GameIds.NEUTRAL_OWNER_ID, Vector2(180.0, 125.0), inkreichNeighbors))
+	var usaNeighbors: Array[StringName] = [&"can"]
+	var canNeighbors: Array[StringName] = [&"usa"]
+	countries.append(_createCountry(&"usa", "United States of America", GameIds.PLAYER_OWNER_ID, Vector2(100.0, 120.0), usaNeighbors))
+	countries.append(_createCountry(&"can", "Canada", GameIds.NEUTRAL_OWNER_ID, Vector2(180.0, 125.0), canNeighbors))
 	return countries
 
 
@@ -2229,6 +2231,17 @@ func _countryShapeBounds(center: Vector2, points: PackedVector2Array) -> Rect2:
 	return bounds
 
 
+func _mapShapePolygons(shapeValue: Variant) -> Array[PackedVector2Array]:
+	var polygons: Array[PackedVector2Array] = []
+	if shapeValue is PackedVector2Array:
+		polygons.append(shapeValue as PackedVector2Array)
+	elif shapeValue is Array:
+		for polygonValue in shapeValue:
+			if polygonValue is PackedVector2Array:
+				polygons.append(polygonValue as PackedVector2Array)
+	return polygons
+
+
 func _cleanupMainForTest(main: Node) -> void:
 	if main.get_parent() == self:
 		remove_child(main)
@@ -2237,4 +2250,4 @@ func _cleanupMainForTest(main: Node) -> void:
 
 func _startMainRunForTest(main: Node) -> void:
 	if main.has_method("_startNewRunFromMenu"):
-		main.call("_startNewRunFromMenu", "paperland")
+		main.call("_startNewRunFromMenu", "usa")

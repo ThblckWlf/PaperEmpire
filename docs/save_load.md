@@ -18,7 +18,7 @@ Every save root contains:
 
 - `crowns`
 - `generalUpgrades`: levels for starting gold, starting food, and crown reward bonuses
-- `countryUpgrades`: levels for Paperland, Inkreich, and Foldmark start bonuses
+- `countryUpgrades`: levels for the current country-specific start bonuses
 
 The meta save uses the reserved `meta` slot through `SaveManager.saveMetaProgress()` and `loadMetaProgress()`. No Steam Cloud or binary saves are part of this step.
 

@@ -5,7 +5,7 @@ class_name NewRunFactory
 const MINI_GOAL_SIMULATION := preload("res://src/core/simulation/mini_goal_simulation.gd")
 const META_PROGRESS_SIMULATION := preload("res://src/core/simulation/meta_progress_simulation.gd")
 
-const DEFAULT_START_COUNTRY_ID: StringName = &"paperland"
+const DEFAULT_START_COUNTRY_ID: StringName = &"usa"
 const START_GOLD: int = 150
 const START_FOOD: int = 100
 const START_INFANTRY: int = 10

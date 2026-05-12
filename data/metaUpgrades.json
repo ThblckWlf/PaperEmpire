@@ -33,11 +33,11 @@
     "valuePerLevel": 0.05
   },
   {
-    "id": "paperlandDiscipline",
+    "id": "usaDiscipline",
     "scope": "country",
-    "countryId": "paperland",
-    "name": "Paperland Discipline",
-    "description": "Paperland starts future runs with better drilled troops.",
+    "countryId": "usa",
+    "name": "United States Discipline",
+    "description": "United States of America starts future runs with better drilled troops.",
     "maxLevel": 2,
     "baseCost": 22,
     "costPerLevel": 16,
@@ -45,11 +45,11 @@
     "valuePerLevel": 1
   },
   {
-    "id": "inkreichTreasury",
+    "id": "canTreasury",
     "scope": "country",
-    "countryId": "inkreich",
-    "name": "Inkreich Treasury",
-    "description": "Inkreich starts future runs with extra gold.",
+    "countryId": "can",
+    "name": "Canada Treasury",
+    "description": "Canada starts future runs with extra gold.",
     "maxLevel": 2,
     "baseCost": 22,
     "costPerLevel": 16,
@@ -57,11 +57,11 @@
     "valuePerLevel": 40
   },
   {
-    "id": "foldmarkGranaries",
+    "id": "mexGranaries",
     "scope": "country",
-    "countryId": "foldmark",
-    "name": "Foldmark Granaries",
-    "description": "Foldmark starts future runs with extra food.",
+    "countryId": "mex",
+    "name": "Mexico Granaries",
+    "description": "Mexico starts future runs with extra food.",
     "maxLevel": 2,
     "baseCost": 20,
     "costPerLevel": 14,

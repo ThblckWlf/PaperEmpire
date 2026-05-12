@@ -262,9 +262,37 @@ func _countryCenter(countryId: StringName) -> Vector2:
 func _countryShapeOrCircle(countryId: StringName) -> PackedVector2Array:
 	var mapShapes := PrototypeContentLoader.loadMapShapes()
 	if mapShapes.has(countryId):
-		return mapShapes[countryId] as PackedVector2Array
+		var shapeValue = mapShapes[countryId]
+		if shapeValue is PackedVector2Array:
+			return shapeValue as PackedVector2Array
+		if shapeValue is Array:
+			var largestPolygon := PackedVector2Array()
+			var largestArea := 0.0
+			for polygonValue in shapeValue:
+				if not (polygonValue is PackedVector2Array):
+					continue
+
+				var polygon := polygonValue as PackedVector2Array
+				var area := absf(_polygonArea(polygon))
+				if area > largestArea:
+					largestArea = area
+					largestPolygon = polygon
+			if largestPolygon.size() >= 3:
+				return largestPolygon
 
 	return _circlePoints(24, 24.0)
+
+
+func _polygonArea(points: PackedVector2Array) -> float:
+	if points.size() < 3:
+		return 0.0
+
+	var area := 0.0
+	for index in range(points.size()):
+		var nextIndex := (index + 1) % points.size()
+		area += points[index].x * points[nextIndex].y
+		area -= points[nextIndex].x * points[index].y
+	return area * 0.5
 
 
 func _circlePoints(count: int, radius: float) -> PackedVector2Array:
