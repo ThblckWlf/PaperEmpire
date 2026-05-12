@@ -5,6 +5,7 @@ signal settingChanged(settingKey: StringName, value: Variant)
 signal closeRequested
 
 const UI_ASSET_THEME := preload("res://scenes/ui/ui_asset_theme.gd")
+const USER_SETTINGS := preload("res://src/save/user_settings.gd")
 
 const INK_COLOR: Color = Color("#211d17")
 const MUTED_INK_COLOR: Color = Color("#4d422f")
@@ -14,17 +15,36 @@ const BUTTON_COLOR: Color = Color("#c99e55")
 const BUTTON_HOVER_COLOR: Color = Color("#d8af64")
 const BUTTON_PRESSED_COLOR: Color = Color("#ae8441")
 
+const RESOLUTION_OPTIONS: Array[Dictionary] = [
+	{"label": "1280 x 720", "value": "1280x720"},
+	{"label": "1600 x 900", "value": "1600x900"},
+	{"label": "1920 x 1080 (Full HD)", "value": "1920x1080"},
+	{"label": "2560 x 1440 (QHD)", "value": "2560x1440"},
+	{"label": "Native (Bildschirm)", "value": USER_SETTINGS.RESOLUTION_NATIVE},
+]
+
+const WINDOW_MODE_OPTIONS: Array[Dictionary] = [
+	{"label": "Fenster", "value": USER_SETTINGS.WINDOW_MODE_WINDOWED},
+	{"label": "Vollbild", "value": USER_SETTINGS.WINDOW_MODE_FULLSCREEN},
+	{"label": "Rahmenlos", "value": USER_SETTINGS.WINDOW_MODE_BORDERLESS},
+]
+
 var masterSlider: HSlider
 var musicSlider: HSlider
 var sfxSlider: HSlider
 var uiScaleSlider: HSlider
 var uiScaleValueLabel: Label
-var fullscreenCheck: CheckBox
+var resolutionDropdown: OptionButton
+var windowModeDropdown: OptionButton
 var closeButton: Button
 var acceptButton: Button
 var isUpdating: bool = false
-var committedUiScale: float = 1.0
+var committedUiScale: float = USER_SETTINGS.UI_SCALE_DEFAULT
 var pendingUiScaleChanged: bool = false
+var committedResolution: String = USER_SETTINGS.DEFAULT_RESOLUTION
+var pendingResolution: String = USER_SETTINGS.DEFAULT_RESOLUTION
+var committedWindowMode: String = USER_SETTINGS.WINDOW_MODE_WINDOWED
+var pendingWindowMode: String = USER_SETTINGS.WINDOW_MODE_WINDOWED
 
 
 func _ready() -> void:
@@ -37,10 +57,15 @@ func setData(data: Dictionary) -> void:
 	masterSlider.value = float(data.get("masterVolume", 1.0))
 	musicSlider.value = float(data.get("musicVolume", 0.8))
 	sfxSlider.value = float(data.get("sfxVolume", 0.8))
-	committedUiScale = float(data.get("uiScale", 1.0))
+	committedUiScale = float(data.get("uiScale", USER_SETTINGS.UI_SCALE_DEFAULT))
 	if not pendingUiScaleChanged:
 		uiScaleSlider.value = committedUiScale
-	fullscreenCheck.button_pressed = str(data.get("windowMode", "windowed")) == "fullscreen"
+	committedResolution = str(data.get("resolution", USER_SETTINGS.DEFAULT_RESOLUTION))
+	committedWindowMode = str(data.get("windowMode", USER_SETTINGS.WINDOW_MODE_WINDOWED))
+	pendingResolution = committedResolution
+	pendingWindowMode = committedWindowMode
+	_selectDropdownValue(resolutionDropdown, RESOLUTION_OPTIONS, committedResolution)
+	_selectDropdownValue(windowModeDropdown, WINDOW_MODE_OPTIONS, committedWindowMode)
 	isUpdating = false
 	_updateUiScaleValueLabel()
 	_refreshAcceptButton()
@@ -48,15 +73,19 @@ func setData(data: Dictionary) -> void:
 
 func discardPendingChanges() -> void:
 	pendingUiScaleChanged = false
+	pendingResolution = committedResolution
+	pendingWindowMode = committedWindowMode
 	isUpdating = true
 	uiScaleSlider.value = committedUiScale
+	_selectDropdownValue(resolutionDropdown, RESOLUTION_OPTIONS, committedResolution)
+	_selectDropdownValue(windowModeDropdown, WINDOW_MODE_OPTIONS, committedWindowMode)
 	isUpdating = false
 	_updateUiScaleValueLabel()
 	_refreshAcceptButton()
 
 
 func _buildPanel() -> void:
-	custom_minimum_size = Vector2(460.0, 340.0)
+	custom_minimum_size = Vector2(520.0, 460.0)
 
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 20)
@@ -80,12 +109,10 @@ func _buildPanel() -> void:
 	masterSlider = _addSliderRow(column, "Master", &"masterVolume", 0.0, 1.0, 0.05)
 	musicSlider = _addSliderRow(column, "Music", &"musicVolume", 0.0, 1.0, 0.05)
 	sfxSlider = _addSliderRow(column, "SFX", &"sfxVolume", 0.0, 1.0, 0.05)
-	uiScaleSlider = _addSliderRow(column, "UI Scale", &"uiScale", 0.8, 1.4, 0.1, true)
+	uiScaleSlider = _addSliderRow(column, "UI Scale", &"uiScale", USER_SETTINGS.UI_SCALE_MIN, USER_SETTINGS.UI_SCALE_MAX, 0.05, true)
 
-	fullscreenCheck = CheckBox.new()
-	fullscreenCheck.text = "Fullscreen"
-	fullscreenCheck.toggled.connect(_onFullscreenToggled)
-	column.add_child(fullscreenCheck)
+	resolutionDropdown = _addDropdownRow(column, "Auflösung", RESOLUTION_OPTIONS, _onResolutionSelected)
+	windowModeDropdown = _addDropdownRow(column, "Fenstermodus", WINDOW_MODE_OPTIONS, _onWindowModeSelected)
 
 	var actionRow := HBoxContainer.new()
 	actionRow.alignment = BoxContainer.ALIGNMENT_END
@@ -156,13 +183,18 @@ func _onSliderChanged(value: float, settingKey: StringName) -> void:
 	settingChanged.emit(settingKey, value)
 
 
-func _onFullscreenToggled(enabled: bool) -> void:
+func _onResolutionSelected(index: int) -> void:
 	if isUpdating:
 		return
-	var mode := "windowed"
-	if enabled:
-		mode = "fullscreen"
-	settingChanged.emit(&"windowMode", mode)
+	pendingResolution = str(RESOLUTION_OPTIONS[index]["value"])
+	_refreshAcceptButton()
+
+
+func _onWindowModeSelected(index: int) -> void:
+	if isUpdating:
+		return
+	pendingWindowMode = str(WINDOW_MODE_OPTIONS[index]["value"])
+	_refreshAcceptButton()
 
 
 func _onClosePressed() -> void:
@@ -175,8 +207,14 @@ func _onAcceptPressed() -> void:
 		var acceptedScale := float(uiScaleSlider.value)
 		committedUiScale = acceptedScale
 		pendingUiScaleChanged = false
-		_refreshAcceptButton()
 		settingChanged.emit(&"uiScale", acceptedScale)
+	if pendingWindowMode != committedWindowMode:
+		committedWindowMode = pendingWindowMode
+		settingChanged.emit(&"windowMode", committedWindowMode)
+	if pendingResolution != committedResolution:
+		committedResolution = pendingResolution
+		settingChanged.emit(&"resolution", committedResolution)
+	_refreshAcceptButton()
 	closeRequested.emit()
 
 
@@ -191,7 +229,40 @@ func _refreshAcceptButton() -> void:
 	if acceptButton == null:
 		return
 
-	acceptButton.disabled = not pendingUiScaleChanged
+	var pendingResolutionChanged := pendingResolution != committedResolution
+	var pendingWindowModeChanged := pendingWindowMode != committedWindowMode
+	acceptButton.disabled = not (pendingUiScaleChanged or pendingResolutionChanged or pendingWindowModeChanged)
+
+
+func _addDropdownRow(parent: VBoxContainer, labelText: String, options: Array, handler: Callable) -> OptionButton:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	parent.add_child(row)
+
+	var label := Label.new()
+	label.text = labelText
+	label.custom_minimum_size = Vector2(110.0, 0.0)
+	row.add_child(label)
+
+	var dropdown := OptionButton.new()
+	dropdown.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dropdown.clip_text = true
+	for index in range(options.size()):
+		dropdown.add_item(str(options[index]["label"]), index)
+	dropdown.item_selected.connect(handler)
+	row.add_child(dropdown)
+	return dropdown
+
+
+func _selectDropdownValue(dropdown: OptionButton, options: Array, value: String) -> void:
+	if dropdown == null:
+		return
+	for index in range(options.size()):
+		if str(options[index]["value"]) == value:
+			dropdown.select(index)
+			return
+	if dropdown.item_count > 0:
+		dropdown.select(0)
 
 
 func _applyReadableTheme() -> void:

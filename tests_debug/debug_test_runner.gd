@@ -1931,22 +1931,42 @@ func _testSettingsPanelSendsSettingChanges() -> ValidationResult:
 	else:
 		lastSettingKey = GameIds.EMPTY_ID
 		lastSettingValue = null
-		uiScaleSlider.value = 1.2
+		uiScaleSlider.value = 1.4
 		if lastSettingKey == &"uiScale":
 			result.addError("SettingsPanel emitted UI Scale before Accept.")
 		if acceptButton.disabled:
 			result.addError("SettingsPanel did not enable Accept for pending UI Scale.")
 		acceptButton.emit_signal("pressed")
-		if lastSettingKey != &"uiScale" or not is_equal_approx(float(lastSettingValue), 1.2):
+		if lastSettingKey != &"uiScale" or not is_equal_approx(float(lastSettingValue), 1.4):
 			result.addError("SettingsPanel did not emit UI Scale on Accept.")
 
-	var fullscreenCheck := panel.get("fullscreenCheck") as CheckBox
-	if fullscreenCheck == null:
-		result.addError("SettingsPanel did not create fullscreen checkbox.")
+	var windowModeDropdown := panel.get("windowModeDropdown") as OptionButton
+	if windowModeDropdown == null:
+		result.addError("SettingsPanel did not create window mode dropdown.")
 	else:
-		fullscreenCheck.emit_signal("toggled", true)
-		if lastSettingKey != &"windowMode" or str(lastSettingValue) != "fullscreen":
-			result.addError("SettingsPanel did not emit fullscreen mode change.")
+		lastSettingKey = GameIds.EMPTY_ID
+		lastSettingValue = null
+		windowModeDropdown.emit_signal("item_selected", 1)
+		if lastSettingKey == &"windowMode":
+			result.addError("SettingsPanel emitted window mode before Accept.")
+		if acceptButton != null:
+			acceptButton.emit_signal("pressed")
+			if lastSettingKey != &"windowMode" or str(lastSettingValue) != USER_SETTINGS.WINDOW_MODE_FULLSCREEN:
+				result.addError("SettingsPanel did not emit fullscreen mode change on Accept.")
+
+	var resolutionDropdown := panel.get("resolutionDropdown") as OptionButton
+	if resolutionDropdown == null:
+		result.addError("SettingsPanel did not create resolution dropdown.")
+	else:
+		lastSettingKey = GameIds.EMPTY_ID
+		lastSettingValue = null
+		resolutionDropdown.emit_signal("item_selected", 0)
+		if lastSettingKey == &"resolution":
+			result.addError("SettingsPanel emitted resolution before Accept.")
+		if acceptButton != null:
+			acceptButton.emit_signal("pressed")
+			if lastSettingKey != &"resolution" or str(lastSettingValue) != "1280x720":
+				result.addError("SettingsPanel did not emit resolution change on Accept.")
 
 	remove_child(panel)
 	panel.free()

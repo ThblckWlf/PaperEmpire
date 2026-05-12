@@ -80,19 +80,53 @@ func applySettings() -> void:
 		audioManager.setSfxVolume(float(settingsData.get("sfxVolume", 0.8)))
 
 	if uiRoot != null and uiRoot.has_method("setUiScale"):
-		uiRoot.call("setUiScale", float(settingsData.get("uiScale", 1.0)))
+		uiRoot.call("setUiScale", float(settingsData.get("uiScale", USER_SETTINGS.UI_SCALE_DEFAULT)))
 
-	_applyWindowMode(str(settingsData.get("windowMode", USER_SETTINGS.WINDOW_MODE_WINDOWED)))
+	_applyWindowAndResolution(
+		str(settingsData.get("windowMode", USER_SETTINGS.WINDOW_MODE_WINDOWED)),
+		str(settingsData.get("resolution", USER_SETTINGS.DEFAULT_RESOLUTION))
+	)
 
 
-func _applyWindowMode(windowMode: String) -> void:
+func _applyWindowAndResolution(windowMode: String, resolution: String) -> void:
 	if DisplayServer.get_name() == "headless":
 		return
 
-	if windowMode == USER_SETTINGS.WINDOW_MODE_FULLSCREEN:
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
-	else:
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+	match windowMode:
+		USER_SETTINGS.WINDOW_MODE_FULLSCREEN:
+			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, false)
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+		USER_SETTINGS.WINDOW_MODE_BORDERLESS:
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, true)
+			_applyWindowSize(DisplayServer.screen_get_size())
+		_:
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, false)
+			var targetSize := _resolveResolution(resolution)
+			if targetSize != Vector2i.ZERO:
+				_applyWindowSize(targetSize)
+
+
+func _resolveResolution(resolution: String) -> Vector2i:
+	if resolution == USER_SETTINGS.RESOLUTION_NATIVE:
+		return DisplayServer.screen_get_size()
+	var parts := resolution.split("x")
+	if parts.size() != 2:
+		return Vector2i.ZERO
+	var width := int(parts[0])
+	var height := int(parts[1])
+	if width <= 0 or height <= 0:
+		return Vector2i.ZERO
+	return Vector2i(width, height)
+
+
+func _applyWindowSize(size: Vector2i) -> void:
+	DisplayServer.window_set_size(size)
+	var screenSize := DisplayServer.screen_get_size()
+	var screenOrigin := DisplayServer.screen_get_position()
+	var topLeft := screenOrigin + ((screenSize - size) / 2)
+	DisplayServer.window_set_position(topLeft)
 
 
 func _ensureSaveDirectory() -> bool:
