@@ -99,13 +99,14 @@ func _applyWindowAndResolution(windowMode: String, resolution: String) -> void:
 		USER_SETTINGS.WINDOW_MODE_BORDERLESS:
 			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, true)
-			_applyWindowSize(DisplayServer.screen_get_size())
+			# Defer so the mode/flag change is applied before resizing the window.
+			call_deferred("_applyWindowSize", DisplayServer.screen_get_size())
 		_:
 			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, false)
 			var targetSize := _resolveResolution(resolution)
 			if targetSize != Vector2i.ZERO:
-				_applyWindowSize(targetSize)
+				call_deferred("_applyWindowSize", targetSize)
 
 
 func _resolveResolution(resolution: String) -> Vector2i:

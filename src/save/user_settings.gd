@@ -18,7 +18,7 @@ const ALLOWED_RESOLUTIONS: Array[String] = [
 
 const UI_SCALE_MIN: float = 0.8
 const UI_SCALE_MAX: float = 1.6
-const UI_SCALE_DEFAULT: float = 1.2
+const UI_SCALE_DEFAULT: float = 1.0
 const DEFAULT_RESOLUTION: String = "1920x1080"
 
 

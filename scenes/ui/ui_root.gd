@@ -226,11 +226,12 @@ func _handleQuitGameRequested() -> void:
 
 
 func setUiScale(uiScale: float) -> void:
-	if rootControl == null:
-		return
-
-	var clampedScale := clampf(uiScale, 0.8, 1.4)
-	rootControl.scale = Vector2(clampedScale, clampedScale)
+	var clampedScale := clampf(uiScale, 0.8, 1.6)
+	var window := get_window()
+	if window != null:
+		window.content_scale_factor = clampedScale
+	if rootControl != null:
+		rootControl.scale = Vector2.ONE
 
 
 func showMainMenu() -> void:
