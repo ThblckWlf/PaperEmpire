@@ -63,7 +63,9 @@ static func createCountryPanelData(
 	if stationedArmyRows.is_empty():
 		stationedArmyRows.append("Keine")
 
-	var canAttack := _canSelectedArmyAttack(runState, selectedArmyId, country.id)
+	var attackOptions := _attackOptionsForTarget(runState, country.id)
+	var selectedAttackArmyId := _selectedAttackArmyId(attackOptions, selectedArmyId)
+	var canAttack := not attackOptions.is_empty()
 
 	return {
 		"hasCountry": true,
@@ -81,8 +83,16 @@ static func createCountryPanelData(
 		"stationedArmySummary": "%d / %d" % [stationedArmyCount, stationedUnitCount],
 		"stationedArmyRows": stationedArmyRows,
 		"selectedArmyId": selectedArmyId,
+		"selectedAttackArmyId": selectedAttackArmyId,
 		"canAttack": canAttack,
 		"attackBlockedReason": "" if canAttack else _attackBlockedReason(runState, selectedArmyId, country.id),
+		"attackOptions": attackOptions,
+		"unitNames": _unitNamesById(),
+		"unitOrder": [
+			GameIds.INFANTRY_UNIT_ID,
+			GameIds.CAVALRY_UNIT_ID,
+			GameIds.ARTILLERY_UNIT_ID,
+		],
 	}
 
 
@@ -336,25 +346,54 @@ static func _canCreateArmyInCountry(runState: RunState, countryId: StringName) -
 	return country != null and country.ownerId == GameIds.PLAYER_OWNER_ID and not _isCountryUnderAttack(runState, country.id)
 
 
-static func _canSelectedArmyAttack(runState: RunState, armyId: StringName, targetCountryId: StringName) -> bool:
-	if runState == null or not runState.armies.has(armyId) or not runState.countries.has(targetCountryId):
-		return false
+static func _attackOptionsForTarget(runState: RunState, targetCountryId: StringName) -> Array[Dictionary]:
+	var options: Array[Dictionary] = []
+	if runState == null or not runState.countries.has(targetCountryId):
+		return options
 
-	var army := runState.armies[armyId] as ArmyData
 	var targetCountry := runState.countries[targetCountryId] as CountryData
-	if army == null or targetCountry == null:
-		return false
+	if targetCountry == null or targetCountry.ownerId == GameIds.PLAYER_OWNER_ID or targetCountry.isUnderAttack:
+		return options
 
-	if army.ownerId != GameIds.PLAYER_OWNER_ID or army.status != ArmyStatus.Value.Stationed:
-		return false
+	var armyIds := runState.armies.keys()
+	armyIds.sort()
+	for armyId in armyIds:
+		var army := runState.armies[armyId] as ArmyData
+		if army == null or army.ownerId != GameIds.PLAYER_OWNER_ID or army.status != ArmyStatus.Value.Stationed:
+			continue
+		if _unitCount(army.units) <= 0:
+			continue
 
-	if targetCountry.ownerId == GameIds.PLAYER_OWNER_ID or _unitCount(army.units) <= 0:
-		return false
-	if targetCountry.isUnderAttack:
-		return false
+		var sourceCountry := runState.countries.get(army.locationCountryId, null) as CountryData
+		if sourceCountry == null or not sourceCountry.neighbors.has(targetCountryId):
+			continue
+		if _hasActiveBattleFor(runState, army.id, targetCountryId):
+			continue
 
-	var sourceCountry := runState.countries.get(army.locationCountryId, null) as CountryData
-	return sourceCountry != null and sourceCountry.neighbors.has(targetCountryId) and not _hasActiveBattleFor(runState, armyId, targetCountryId)
+		var defaultSplit: Dictionary = COMBAT_SIMULATION.splitUnitsForAttack(army.units)
+		if not bool(defaultSplit.get("accepted", false)):
+			continue
+
+		options.append({
+			"id": army.id,
+			"name": str(army.id),
+			"sourceCountryId": army.locationCountryId,
+			"sourceCountryName": sourceCountry.name,
+			"units": _normalizedUnits(army.units),
+			"defaultAttackUnits": _normalizedUnits(defaultSplit.get("attackingUnits", {}) as Dictionary),
+			"unitCount": _unitCount(army.units),
+		})
+	return options
+
+
+static func _selectedAttackArmyId(attackOptions: Array[Dictionary], selectedArmyId: StringName) -> StringName:
+	for option in attackOptions:
+		if StringName(str(option.get("id", ""))) == selectedArmyId:
+			return selectedArmyId
+
+	if attackOptions.is_empty():
+		return GameIds.EMPTY_ID
+	return StringName(str(attackOptions[0].get("id", "")))
 
 
 static func _attackBlockedReason(runState: RunState, armyId: StringName, targetCountryId: StringName) -> String:

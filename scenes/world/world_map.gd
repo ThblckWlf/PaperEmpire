@@ -129,7 +129,10 @@ func _onCountryMoveTargetPressed(countryId: StringName) -> void:
 	if runState != null and runState.countries.has(countryId):
 		var targetCountry := runState.countries[countryId] as CountryData
 		if targetCountry != null and targetCountry.ownerId != GameIds.PLAYER_OWNER_ID:
-			commandName = CommandType.START_ATTACK
+			eventBus.requestCommand(CommandType.SELECT_COUNTRY, {
+				"countryId": str(countryId),
+			})
+			return
 
 	eventBus.requestCommand(commandName, {
 		"armyId": str(armyId),
@@ -157,8 +160,15 @@ func _onGameEventRaised(eventName: StringName, payload: Dictionary) -> void:
 			_updateArmySelection(selectedArmyId)
 			if bool(payload.get("focusCamera", false)) and selectedArmyId != GameIds.EMPTY_ID:
 				_focusCameraOnArmy(selectedArmyId)
-		EventType.ARMY_MOVE_STARTED, EventType.ARMY_MOVED, EventType.UNITS_RECRUITED, EventType.ARMY_UPDATED, EventType.BATTLE_STARTED, EventType.BATTLE_ENDED:
+		EventType.ARMY_MOVE_STARTED:
+			if bool(payload.get("isAttack", false)):
+				_refreshArmyNodesFromRunState()
+			else:
+				_updateArmyNodesFromRunState()
+		EventType.ARMY_MOVED, EventType.UNITS_RECRUITED, EventType.ARMY_UPDATED, EventType.BATTLE_STARTED:
 			_updateArmyNodesFromRunState()
+		EventType.BATTLE_ENDED:
+			_refreshArmyNodesFromRunState()
 		EventType.ARMY_CREATED, EventType.COUNTRY_CONQUERED:
 			_refreshArmyNodesFromRunState()
 			_updateCountryOwnersFromRunState()

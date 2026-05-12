@@ -689,6 +689,24 @@ func _testCombatStartsValidAttacks() -> ValidationResult:
 	if bool(smallAttack.get("accepted", false)):
 		result.addError("CombatSimulation accepted an attack from a too-small army.")
 
+	var customRunState := NewRunFactory.createNewRun(&"usa")
+	var customAttack: Dictionary = COMBAT_SIMULATION.startAttack(customRunState, &"army_start", &"can", PrototypeContentLoader.loadUnits(), {
+		GameIds.INFANTRY_UNIT_ID: 12,
+		GameIds.CAVALRY_UNIT_ID: 2,
+		GameIds.ARTILLERY_UNIT_ID: 1,
+	})
+	var customAttackArmy := customRunState.armies.get(StringName(str(customAttack.get("armyId", ""))), null) as ArmyData
+	var customReserveArmy := customRunState.armies.get(&"army_start", null) as ArmyData
+	if not bool(customAttack.get("accepted", false)):
+		result.addError("CombatSimulation rejected a custom attack split.")
+	elif customAttackArmy == null or customReserveArmy == null:
+		result.addError("CombatSimulation custom split did not keep attack and reserve armies.")
+	else:
+		if int(customAttackArmy.units.get(GameIds.INFANTRY_UNIT_ID, 0)) != 12:
+			result.addError("Custom attack split used wrong infantry count.")
+		if int(customReserveArmy.units.get(GameIds.INFANTRY_UNIT_ID, 0)) != NewRunFactory.START_INFANTRY - 12:
+			result.addError("Custom attack split used wrong reserve infantry count.")
+
 	var validation := RunStateValidator.validate(runState)
 	if not validation.isValid():
 		for error in validation.errors:
@@ -1139,6 +1157,21 @@ func _testWorldMapCreatesCountryAndArmyNodes() -> ValidationResult:
 	if worldMap.getArmyNodeCount() != runState.armies.size():
 		result.addError("WorldMap did not refresh ArmyNodes after army creation.")
 
+	bus.requestCommand(CommandType.START_ATTACK, {
+		"armyId": "army_start",
+		"targetCountryId": "can",
+		"attackingUnits": {
+			str(GameIds.INFANTRY_UNIT_ID): 12,
+			str(GameIds.CAVALRY_UNIT_ID): 2,
+			str(GameIds.ARTILLERY_UNIT_ID): 1,
+		},
+	})
+	var attackArmyId := manager.getSelectedArmyId()
+	if worldMap.getArmyNodeCount() != runState.armies.size():
+		result.addError("WorldMap did not refresh ArmyNodes after attack army creation.")
+	if worldMap.getArmyNode(attackArmyId) == null:
+		result.addError("WorldMap did not expose the moving attack ArmyNode.")
+
 	bus.requestCommand(CommandType.SELECT_COUNTRY, {
 		"countryId": "can",
 	})
@@ -1243,6 +1276,15 @@ func _testRunStateViewCreatesSummaries() -> ValidationResult:
 		result.addError("RunStateView stationed army count is wrong.")
 	if not bool(countryData.get("canRecruit", false)):
 		result.addError("RunStateView did not mark owned country as recruitable.")
+
+	var attackCountryData: Dictionary = RUN_STATE_VIEW.createCountryPanelData(runState, &"can", &"army_start")
+	var attackOptions: Array = attackCountryData.get("attackOptions", [])
+	if not bool(attackCountryData.get("canAttack", false)):
+		result.addError("RunStateView did not expose attack options for an enemy neighbor.")
+	if attackOptions.is_empty():
+		result.addError("RunStateView attack options are empty for an enemy neighbor.")
+	elif StringName(str((attackOptions[0] as Dictionary).get("id", ""))) != &"army_start":
+		result.addError("RunStateView attack options did not include the selected army.")
 
 	var armyData: Dictionary = RUN_STATE_VIEW.createArmyPanelData(runState, &"army_start")
 	if str(armyData.get("status", "")) != "Stationed":
@@ -1384,8 +1426,14 @@ func _testMainUiLayoutBindsStateAndCommands() -> ValidationResult:
 		result.addError("CountryPanel did not update from country selection.")
 
 	var attackButton := main.get_node_or_null("GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer/AttackButton") as Button
+	var attackControls := main.get_node_or_null("GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer/AttackControls") as Control
+	var attackArmyDropdown := main.get_node_or_null("GameRoot/UIRoot/Root/RightPanel/MarginContainer/VBoxContainer/AttackControls/AttackArmyDropdown") as OptionButton
 	if attackButton == null or not attackButton.visible or attackButton.disabled:
 		result.addError("CountryPanel did not expose a valid attack button.")
+	elif attackControls == null or not bool(attackControls.visible):
+		result.addError("CountryPanel did not expose attack unit controls.")
+	elif attackArmyDropdown == null or attackArmyDropdown.item_count <= 0:
+		result.addError("CountryPanel did not expose attack army selection.")
 	else:
 		attackButton.emit_signal("pressed")
 		var selectedArmy := gameManager.getCurrentRunState().armies.get(gameManager.getSelectedArmyId(), null) as ArmyData
@@ -1487,6 +1535,20 @@ func _testEffectsLayerReactsToEventFeedback() -> ValidationResult:
 	})
 	if int(effectsLayer.call("getMovementFeedbackCount")) != 1:
 		result.addError("EffectsLayer did not create movement feedback after armyMoveStarted.")
+
+	manager.resetRun(&"usa")
+	worldMap.configure(manager, bus, audio)
+	bus.requestCommand(CommandType.START_ATTACK, {
+		"armyId": "army_start",
+		"targetCountryId": "can",
+		"attackingUnits": {
+			str(GameIds.INFANTRY_UNIT_ID): 12,
+			str(GameIds.CAVALRY_UNIT_ID): 2,
+			str(GameIds.ARTILLERY_UNIT_ID): 1,
+		},
+	})
+	if int(effectsLayer.call("getMovementFeedbackCount")) != 1:
+		result.addError("EffectsLayer did not create movement feedback for an attack.")
 
 	bus.raiseGameEvent(EventType.BATTLE_STARTED, {
 		"battleId": "battle_visual_test",

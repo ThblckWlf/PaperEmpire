@@ -24,6 +24,15 @@ var canRecruit: bool = false
 var canAttack: bool = false
 var attackBlockedReason: String = ""
 var attackButton: Button
+var attackControls: VBoxContainer
+var attackArmyDropdown: OptionButton
+var attackOptions: Array[Dictionary] = []
+var selectedAttackArmyId: StringName = GameIds.EMPTY_ID
+var attackSourceUnits: Dictionary = {}
+var attackDraftUnits: Dictionary = {}
+var unitNames: Dictionary = {}
+var unitOrder: Array = []
+var attackUnitRows: Dictionary = {}
 var statRows: Dictionary = {}
 
 
@@ -35,6 +44,7 @@ func _ready() -> void:
 	attackButton = _ensureAttackButton()
 	if attackButton != null:
 		attackButton.pressed.connect(_onAttackPressed)
+	_ensureAttackControls()
 	_ensureStatRows()
 	_applyAssetTheme()
 	_updateCommandButtonStates()
@@ -53,6 +63,7 @@ func setData(data: Dictionary) -> void:
 		canRecruit = false
 		canAttack = false
 		attackBlockedReason = ""
+		_clearAttackData()
 		titleLabel.text = "Land auswählen"
 		ownerLabel.text = "Klicke auf ein Land auf der Karte."
 		_setCountryRowsVisible(false)
@@ -62,6 +73,8 @@ func setData(data: Dictionary) -> void:
 		createArmyButton.visible = false
 		if attackButton != null:
 			attackButton.visible = false
+		if attackControls != null:
+			attackControls.visible = false
 		_updateCommandButtonStates()
 		return
 
@@ -71,6 +84,17 @@ func setData(data: Dictionary) -> void:
 	canRecruit = bool(data.get("canRecruit", false))
 	canAttack = bool(data.get("canAttack", false))
 	attackBlockedReason = str(data.get("attackBlockedReason", ""))
+	attackOptions = _readAttackOptions(data.get("attackOptions", []))
+	selectedAttackArmyId = StringName(str(data.get("selectedAttackArmyId", "")))
+	unitNames = (data.get("unitNames", {}) as Dictionary).duplicate(true)
+	unitOrder = (data.get("unitOrder", []) as Array).duplicate()
+	if unitOrder.is_empty():
+		unitOrder = [
+			GameIds.INFANTRY_UNIT_ID,
+			GameIds.CAVALRY_UNIT_ID,
+			GameIds.ARTILLERY_UNIT_ID,
+		]
+	_setSelectedAttackOption(selectedAttackArmyId)
 
 	titleLabel.text = str(data.get("name", "Land"))
 	ownerLabel.text = "Besitzer: %s" % str(data.get("ownerText", data.get("ownerId", "")))
@@ -86,10 +110,12 @@ func setData(data: Dictionary) -> void:
 		recruitLabel.text = "Rekrutieren"
 		recruitLabel.visible = true
 	else:
-		recruitLabel.text = attackBlockedReason
-		recruitLabel.visible = attackBlockedReason != ""
+		recruitLabel.text = "Angriff vorbereiten" if canAttack else attackBlockedReason
+		recruitLabel.visible = canAttack or attackBlockedReason != ""
 	if attackButton != null:
 		attackButton.visible = not isPlayerOwned and canAttack
+	if attackControls != null:
+		attackControls.visible = not isPlayerOwned and canAttack
 	_updateCommandButtonStates()
 
 
@@ -115,12 +141,13 @@ func _onCreateArmyPressed() -> void:
 
 
 func _onAttackPressed() -> void:
-	if eventBus == null or currentCountryId == GameIds.EMPTY_ID or currentSelectedArmyId == GameIds.EMPTY_ID:
+	if eventBus == null or currentCountryId == GameIds.EMPTY_ID or selectedAttackArmyId == GameIds.EMPTY_ID:
 		return
 
 	eventBus.requestCommand(CommandType.START_ATTACK, {
-		"armyId": str(currentSelectedArmyId),
+		"armyId": str(selectedAttackArmyId),
 		"targetCountryId": str(currentCountryId),
+		"attackingUnits": _attackDraftPayload(),
 	})
 
 
@@ -145,7 +172,8 @@ func _updateCommandButtonStates() -> void:
 	artilleryButton.disabled = recruitDisabled
 	createArmyButton.disabled = eventBus == null or currentCountryId == GameIds.EMPTY_ID or not isPlayerOwned
 	if attackButton != null:
-		attackButton.disabled = eventBus == null or currentCountryId == GameIds.EMPTY_ID or not canAttack
+		attackButton.disabled = eventBus == null or currentCountryId == GameIds.EMPTY_ID or not canAttack or _attackDraftUnitCount() <= 0
+	_refreshAttackControls()
 
 
 func _applyAssetTheme() -> void:
@@ -170,6 +198,7 @@ func _applyAssetTheme() -> void:
 		UI_ASSET_THEME.applyButtonIcon(attackButton, UI_ASSET_THEME.ICON_ATTACK_PATH, "Angriff starten", 32)
 		attackButton.text = "Angriff starten"
 		attackButton.custom_minimum_size = Vector2(0.0, 52.0)
+	_applyAttackControlsTheme()
 
 
 func _applyRecruitButton(button: Button, iconPath: String, shortName: String, tooltipText: String) -> void:
@@ -192,6 +221,234 @@ func _ensureAttackButton() -> Button:
 		button.text = "Angriff starten"
 		column.add_child(button)
 	return button
+
+
+func _ensureAttackControls() -> void:
+	var column := titleLabel.get_parent() as VBoxContainer
+	if column == null:
+		return
+
+	attackControls = column.get_node_or_null("AttackControls") as VBoxContainer
+	if attackControls == null:
+		attackControls = VBoxContainer.new()
+		attackControls.name = "AttackControls"
+		attackControls.add_theme_constant_override("separation", 6)
+		column.add_child(attackControls)
+	if attackButton != null:
+		column.move_child(attackControls, attackButton.get_index())
+
+	attackArmyDropdown = attackControls.get_node_or_null("AttackArmyDropdown") as OptionButton
+	if attackArmyDropdown == null:
+		attackArmyDropdown = OptionButton.new()
+		attackArmyDropdown.name = "AttackArmyDropdown"
+		attackArmyDropdown.custom_minimum_size = Vector2(0.0, 42.0)
+		attackControls.add_child(attackArmyDropdown)
+	if not attackArmyDropdown.item_selected.is_connected(_onAttackArmySelected):
+		attackArmyDropdown.item_selected.connect(_onAttackArmySelected)
+
+	var rowsBox := attackControls.get_node_or_null("AttackUnitRows") as VBoxContainer
+	if rowsBox == null:
+		rowsBox = VBoxContainer.new()
+		rowsBox.name = "AttackUnitRows"
+		rowsBox.add_theme_constant_override("separation", 4)
+		attackControls.add_child(rowsBox)
+
+	for unitId in [GameIds.INFANTRY_UNIT_ID, GameIds.CAVALRY_UNIT_ID, GameIds.ARTILLERY_UNIT_ID]:
+		_ensureAttackUnitRow(rowsBox, unitId)
+	attackControls.visible = false
+
+
+func _ensureAttackUnitRow(parent: VBoxContainer, unitId: StringName) -> void:
+	var rowNode := parent.get_node_or_null("%sAttackRow" % str(unitId)) as HBoxContainer
+	if rowNode == null:
+		rowNode = HBoxContainer.new()
+		rowNode.name = "%sAttackRow" % str(unitId)
+		rowNode.add_theme_constant_override("separation", 4)
+		parent.add_child(rowNode)
+
+	if rowNode.get_node_or_null("UnitIcon") == null:
+		var icon := UI_ASSET_THEME.makeIcon(UI_ASSET_THEME.iconForUnit(unitId), Vector2(24.0, 24.0))
+		icon.name = "UnitIcon"
+		rowNode.add_child(icon)
+
+	var label := rowNode.get_node_or_null("CountLabel") as Label
+	if label == null:
+		label = Label.new()
+		label.name = "CountLabel"
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		rowNode.add_child(label)
+
+	var minusButton := rowNode.get_node_or_null("MinusButton") as Button
+	if minusButton == null:
+		minusButton = Button.new()
+		minusButton.name = "MinusButton"
+		minusButton.text = "-"
+		minusButton.custom_minimum_size = Vector2(40.0, 34.0)
+		rowNode.add_child(minusButton)
+	minusButton.pressed.connect(Callable(self, "_changeAttackDraftUnit").bind(unitId, -1))
+
+	var plusButton := rowNode.get_node_or_null("PlusButton") as Button
+	if plusButton == null:
+		plusButton = Button.new()
+		plusButton.name = "PlusButton"
+		plusButton.text = "+"
+		plusButton.custom_minimum_size = Vector2(40.0, 34.0)
+		rowNode.add_child(plusButton)
+	plusButton.pressed.connect(Callable(self, "_changeAttackDraftUnit").bind(unitId, 1))
+
+	attackUnitRows[unitId] = {
+		"label": label,
+		"minusButton": minusButton,
+		"plusButton": plusButton,
+	}
+
+
+func _applyAttackControlsTheme() -> void:
+	if attackArmyDropdown != null:
+		attackArmyDropdown.add_theme_font_size_override("font_size", 16)
+		attackArmyDropdown.add_theme_color_override("font_color", UI_ASSET_THEME.INK_COLOR)
+	for unitId in attackUnitRows.keys():
+		var row := attackUnitRows[unitId] as Dictionary
+		var label := row.get("label", null) as Label
+		var minusButton := row.get("minusButton", null) as Button
+		var plusButton := row.get("plusButton", null) as Button
+		if label != null:
+			UI_ASSET_THEME.applyLabel(label, 16)
+		if minusButton != null:
+			UI_ASSET_THEME.applyTextButton(minusButton, false, true)
+		if plusButton != null:
+			UI_ASSET_THEME.applyTextButton(plusButton, false, true)
+
+
+func _onAttackArmySelected(index: int) -> void:
+	if attackArmyDropdown == null or index < 0 or index >= attackArmyDropdown.item_count:
+		return
+
+	var armyId := StringName(str(attackArmyDropdown.get_item_metadata(index)))
+	_setSelectedAttackOption(armyId)
+	if eventBus != null and armyId != GameIds.EMPTY_ID:
+		eventBus.requestCommand(CommandType.SELECT_ARMY, {
+			"armyId": str(armyId),
+		})
+	_refreshAttackControls()
+
+
+func _changeAttackDraftUnit(unitId: StringName, amount: int) -> void:
+	if not canAttack:
+		return
+
+	var currentAmount := int(attackDraftUnits.get(unitId, 0))
+	var maximumAmount := int(attackSourceUnits.get(unitId, 0))
+	attackDraftUnits[unitId] = clampi(currentAmount + amount, 0, maximumAmount)
+	_updateCommandButtonStates()
+
+
+func _setSelectedAttackOption(armyId: StringName) -> void:
+	var option := _attackOptionById(armyId)
+	if option.is_empty() and not attackOptions.is_empty():
+		option = attackOptions[0]
+
+	if option.is_empty():
+		selectedAttackArmyId = GameIds.EMPTY_ID
+		attackSourceUnits = _emptyUnitCounts()
+		attackDraftUnits = _emptyUnitCounts()
+		return
+
+	selectedAttackArmyId = StringName(str(option.get("id", "")))
+	attackSourceUnits = (option.get("units", {}) as Dictionary).duplicate(true)
+	attackDraftUnits = (option.get("defaultAttackUnits", {}) as Dictionary).duplicate(true)
+
+
+func _attackOptionById(armyId: StringName) -> Dictionary:
+	for option in attackOptions:
+		if StringName(str(option.get("id", ""))) == armyId:
+			return option
+	return {}
+
+
+func _refreshAttackControls() -> void:
+	if not is_node_ready() or attackControls == null or attackArmyDropdown == null:
+		return
+
+	attackControls.visible = not isPlayerOwned and canAttack
+	attackArmyDropdown.clear()
+	var selectedIndex := -1
+	for index in range(attackOptions.size()):
+		var option := attackOptions[index]
+		var optionArmyId := StringName(str(option.get("id", "")))
+		var labelText := "%s (%d)" % [
+			str(option.get("sourceCountryName", optionArmyId)),
+			int(option.get("unitCount", 0)),
+		]
+		attackArmyDropdown.add_item(labelText)
+		attackArmyDropdown.set_item_metadata(index, optionArmyId)
+		if optionArmyId == selectedAttackArmyId:
+			selectedIndex = index
+	if selectedIndex >= 0:
+		attackArmyDropdown.select(selectedIndex)
+	attackArmyDropdown.disabled = attackOptions.size() <= 1
+
+	for unitId in attackUnitRows.keys():
+		var row := attackUnitRows[unitId] as Dictionary
+		var label := row.get("label", null) as Label
+		var minusButton := row.get("minusButton", null) as Button
+		var plusButton := row.get("plusButton", null) as Button
+		var rowNode: Control = null
+		if label != null:
+			rowNode = label.get_parent() as Control
+		var currentAmount := int(attackDraftUnits.get(unitId, 0))
+		var maximumAmount := int(attackSourceUnits.get(unitId, 0))
+		var unitName := str(unitNames.get(unitId, str(unitId).capitalize()))
+		if rowNode != null:
+			rowNode.visible = not isPlayerOwned and canAttack
+		if label != null:
+			label.text = "%s: %d/%d" % [unitName, currentAmount, maximumAmount]
+		if minusButton != null:
+			minusButton.disabled = not canAttack or currentAmount <= 0
+		if plusButton != null:
+			plusButton.disabled = not canAttack or currentAmount >= maximumAmount
+
+
+func _readAttackOptions(value: Variant) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	if not (value is Array):
+		return result
+
+	for option in value:
+		if option is Dictionary:
+			result.append(option as Dictionary)
+	return result
+
+
+func _clearAttackData() -> void:
+	attackOptions.clear()
+	selectedAttackArmyId = GameIds.EMPTY_ID
+	attackSourceUnits = _emptyUnitCounts()
+	attackDraftUnits = _emptyUnitCounts()
+	unitNames = {}
+
+
+func _attackDraftPayload() -> Dictionary:
+	return {
+		str(GameIds.INFANTRY_UNIT_ID): int(attackDraftUnits.get(GameIds.INFANTRY_UNIT_ID, 0)),
+		str(GameIds.CAVALRY_UNIT_ID): int(attackDraftUnits.get(GameIds.CAVALRY_UNIT_ID, 0)),
+		str(GameIds.ARTILLERY_UNIT_ID): int(attackDraftUnits.get(GameIds.ARTILLERY_UNIT_ID, 0)),
+	}
+
+
+func _attackDraftUnitCount() -> int:
+	var total := 0
+	for unitId in [GameIds.INFANTRY_UNIT_ID, GameIds.CAVALRY_UNIT_ID, GameIds.ARTILLERY_UNIT_ID]:
+		total += int(attackDraftUnits.get(unitId, 0))
+	return total
+
+
+func _emptyUnitCounts() -> Dictionary:
+	return {
+		GameIds.INFANTRY_UNIT_ID: 0,
+		GameIds.CAVALRY_UNIT_ID: 0,
+		GameIds.ARTILLERY_UNIT_ID: 0,
+	}
 
 
 func _ensureStatRows() -> void:

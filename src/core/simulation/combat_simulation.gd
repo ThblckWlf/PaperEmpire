@@ -69,14 +69,15 @@ static func startAttack(
 	runState: RunState,
 	armyId: StringName,
 	targetCountryId: StringName,
-	_units: Array[UnitData]
+	_units: Array[UnitData],
+	requestedAttackingUnits: Dictionary = {}
 ) -> Dictionary:
 	var result := _validateAttack(runState, armyId, targetCountryId)
 	if not bool(result.get("accepted", false)):
 		return result
 
 	var army := runState.armies[armyId] as ArmyData
-	var splitResult := splitUnitsForAttack(army.units)
+	var splitResult := splitUnitsForAttack(army.units) if requestedAttackingUnits.is_empty() else splitSpecificUnitsForAttack(army.units, requestedAttackingUnits)
 	if not bool(splitResult.get("accepted", false)):
 		result["accepted"] = false
 		result["reason"] = str(splitResult.get("reason", "invalid_attack_split"))
@@ -113,6 +114,45 @@ static func startAttack(
 	result["reserveUnits"] = army.units.duplicate(true)
 	result["attackingUnitCount"] = int(splitResult.get("attackingUnitCount", 0))
 	result["reserveUnitCount"] = int(splitResult.get("reserveUnitCount", 0))
+	return result
+
+
+static func splitSpecificUnitsForAttack(units: Dictionary, requestedAttackingUnits: Dictionary) -> Dictionary:
+	var result := {
+		"accepted": false,
+		"reason": "",
+		"attackingUnits": {},
+		"reserveUnits": {},
+		"attackingUnitCount": 0,
+		"reserveUnitCount": 0,
+	}
+	var sourceUnits := _normalizedUnitCounts(units)
+	var attackingUnits := _normalizedUnitCounts(requestedAttackingUnits)
+	var reserveUnits := {}
+	for unitId in sourceUnits.keys():
+		var sourceAmount := int(sourceUnits.get(unitId, 0))
+		var attackAmount := int(attackingUnits.get(unitId, 0))
+		if attackAmount > sourceAmount:
+			result["reason"] = "attack_units_unavailable"
+			return result
+
+		reserveUnits[unitId] = sourceAmount - attackAmount
+
+	var attackingUnitCount := _unitCount(attackingUnits)
+	var reserveUnitCount := _unitCount(reserveUnits)
+	result["attackingUnits"] = attackingUnits
+	result["reserveUnits"] = reserveUnits
+	result["attackingUnitCount"] = attackingUnitCount
+	result["reserveUnitCount"] = reserveUnitCount
+
+	if attackingUnitCount < MIN_ATTACK_ARMY_SIZE:
+		result["reason"] = "attack_army_too_small"
+		return result
+	if reserveUnitCount < MIN_RESERVE_ARMY_SIZE:
+		result["reason"] = "reserve_army_too_small"
+		return result
+
+	result["accepted"] = true
 	return result
 
 
@@ -641,6 +681,14 @@ static func _unitCount(units: Dictionary) -> int:
 	for unitId in units.keys():
 		total += maxi(0, int(units.get(unitId, 0)))
 	return total
+
+
+static func _normalizedUnitCounts(units: Dictionary) -> Dictionary:
+	return {
+		GameIds.INFANTRY_UNIT_ID: maxi(0, int(units.get(GameIds.INFANTRY_UNIT_ID, units.get(str(GameIds.INFANTRY_UNIT_ID), 0)))),
+		GameIds.CAVALRY_UNIT_ID: maxi(0, int(units.get(GameIds.CAVALRY_UNIT_ID, units.get(str(GameIds.CAVALRY_UNIT_ID), 0)))),
+		GameIds.ARTILLERY_UNIT_ID: maxi(0, int(units.get(GameIds.ARTILLERY_UNIT_ID, units.get(str(GameIds.ARTILLERY_UNIT_ID), 0)))),
+	}
 
 
 static func _nextBattleId(runState: RunState) -> StringName:

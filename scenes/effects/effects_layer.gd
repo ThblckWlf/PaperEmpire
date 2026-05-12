@@ -90,7 +90,7 @@ func _refreshMovementFeedback() -> void:
 	var activeArmyIds := {}
 	for armyId in runState.armies.keys():
 		var army := runState.armies[armyId] as ArmyData
-		if army == null or army.status != ArmyStatus.Value.Moving or army.targetCountryId == GameIds.EMPTY_ID:
+		if army == null or not _isMovementFeedbackStatus(army.status) or army.targetCountryId == GameIds.EMPTY_ID:
 			continue
 
 		activeArmyIds[army.id] = true
@@ -171,6 +171,10 @@ func _removeMovementFeedback(armyId: StringName) -> void:
 	movementFeedback.erase(armyId)
 	if feedbackNode != null:
 		feedbackNode.queue_free()
+
+
+func _isMovementFeedbackStatus(status: int) -> bool:
+	return status == ArmyStatus.Value.Moving or status == ArmyStatus.Value.Attacking
 
 
 func _startBattlePulse(payload: Dictionary) -> void:

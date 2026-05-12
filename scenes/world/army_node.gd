@@ -13,6 +13,7 @@ const TOKEN_SELECTED_TEXTURE: Texture2D = preload("res://assets/map/markers/army
 const PLAYER_COLOR: Color = Color(0.18, 0.35, 0.78, 1.0)
 const SELECTED_COLOR: Color = Color(1.0, 0.82, 0.24, 1.0)
 const MOVING_COLOR: Color = Color(0.16, 0.6, 0.46, 1.0)
+const TOKEN_SCALE: Vector2 = Vector2(0.038, 0.038)
 
 @onready var markerNode: Polygon2D = $Marker as Polygon2D
 @onready var outlineNode: Line2D = $Outline as Line2D
@@ -35,7 +36,7 @@ func _ready() -> void:
 	countLabel.add_theme_color_override("font_shadow_color", Color(1.0, 0.92, 0.72, 0.86))
 	countLabel.add_theme_constant_override("shadow_offset_x", 1)
 	countLabel.add_theme_constant_override("shadow_offset_y", 1)
-	countLabel.add_theme_font_size_override("font_size", 16)
+	countLabel.add_theme_font_size_override("font_size", 13)
 	areaNode.input_event.connect(_onAreaInputEvent)
 	_applyVisualState(false)
 
@@ -87,7 +88,7 @@ func _applyVisualState(isMoving: bool) -> void:
 	outlineNode.width = 3.0 if isSelected else 2.0
 	if tokenNode != null:
 		tokenNode.texture = _tokenTexture(isMoving)
-		tokenNode.scale = Vector2(0.05, 0.05)
+		tokenNode.scale = TOKEN_SCALE
 	z_index = 30 if isSelected else 20
 
 

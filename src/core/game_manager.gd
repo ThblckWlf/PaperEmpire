@@ -76,7 +76,8 @@ func submitCommand(commandName: StringName, payload: Dictionary = {}) -> void:
 		CommandType.START_ATTACK:
 			_startAttack(
 				StringName(str(payload.get("armyId", selectedArmyId))),
-				StringName(str(payload.get("targetCountryId", "")))
+				StringName(str(payload.get("targetCountryId", ""))),
+				payload.get("attackingUnits", {}) as Dictionary
 			)
 		CommandType.RECRUIT_UNITS:
 			_recruitUnits(
@@ -215,7 +216,7 @@ func _moveArmy(armyId: StringName, targetCountryId: StringName) -> void:
 	_raiseEvent(EventType.ARMY_MOVE_STARTED, moveResult)
 
 
-func _startAttack(armyId: StringName, targetCountryId: StringName) -> void:
+func _startAttack(armyId: StringName, targetCountryId: StringName, attackingUnits: Dictionary = {}) -> void:
 	if currentRunState == null:
 		_reportWarning("Cannot start attack without an active run.")
 		return
@@ -236,7 +237,8 @@ func _startAttack(armyId: StringName, targetCountryId: StringName) -> void:
 		currentRunState,
 		armyId,
 		targetCountryId,
-		PrototypeContentLoader.loadUnits()
+		PrototypeContentLoader.loadUnits(),
+		attackingUnits
 	)
 	if not bool(attackResult.get("accepted", false)):
 		_raiseEvent(EventType.INVALID_ATTACK, attackResult)
