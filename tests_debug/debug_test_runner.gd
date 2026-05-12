@@ -72,6 +72,7 @@ func runAll() -> void:
 	_runTest("AiWarSimulation starts adjacent NPC attacks", _testAiWarStartsAdjacentNpcAttack)
 	_runTest("AiWarSimulation can attack threatened player border", _testAiWarCanAttackThreatenedPlayerBorder)
 	_runTest("NPC conquest does not open upgrade choice", _testNpcConquestDoesNotOpenUpgradeChoice)
+	_runTest("Game over awards crowns and blocks commands", _testGameOverAwardsCrownsAndBlocksCommands)
 	_runTest("UpgradeSimulation rolls choices and applies effects", _testUpgradeRollsChoicesAndAppliesEffects)
 	_runTest("Upgrade modal applies one selected upgrade", _testUpgradeModalAppliesSelectedUpgrade)
 	_runTest("ThreatSimulation applies passive and action threat", _testThreatAppliesPassiveAndActionThreat)
@@ -832,6 +833,82 @@ func _testNpcConquestDoesNotOpenUpgradeChoice() -> ValidationResult:
 		for error in validation.errors:
 			result.addError("NPC conquest produced invalid RunState: %s" % error)
 
+	simulation.free()
+	bus.free()
+	return result
+
+
+func _testGameOverAwardsCrownsAndBlocksCommands() -> ValidationResult:
+	var result := ValidationResult.new()
+	var manager := GameManager.new()
+	var simulation := SimulationManager.new()
+	var bus := EventBus.new()
+	capturedEvents.clear()
+	bus.gameEventRaised.connect(_recordGameEvent)
+	manager.setEventBus(bus)
+	manager.setSimulationManager(simulation)
+	manager.startNewRun("usa")
+
+	var runState := manager.getCurrentRunState()
+	runState.runStats["monthsSurvived"] = 3
+	var startCountry := runState.countries[&"usa"] as CountryData
+	startCountry.ownerId = GameIds.npcOwnerIdForCountry(&"usa")
+	var playerArmy := runState.armies[&"army_start"] as ArmyData
+	if playerArmy == null or playerArmy.ownerId != GameIds.PLAYER_OWNER_ID:
+		result.addError("Game over fixture lost its player army.")
+
+	bus.raiseGameEvent(EventType.COUNTRY_CONQUERED, {
+		"countryId": "usa",
+		"newOwnerId": str(startCountry.ownerId),
+		"previousOwnerId": str(GameIds.PLAYER_OWNER_ID),
+	})
+
+	if runState.runStatus != RunState.RUN_STATUS_LOST:
+		result.addError("Run did not enter lost status after all countries were lost.")
+	if int(runState.speed) != GameSpeed.Value.Paused:
+		result.addError("Lost run was not paused.")
+	if not bool(runState.runStats.get("crownsAwarded", false)):
+		result.addError("RunStats did not record crown payout.")
+	if not _capturedEvent(EventType.RUN_LOST):
+		result.addError("Game over did not emit runLost.")
+	if not _capturedEvent(EventType.GAME_OVER_TRIGGERED):
+		result.addError("Game over did not emit gameOverTriggered.")
+	if not _capturedEvent(EventType.CROWNS_AWARDED):
+		result.addError("Game over did not emit crownsAwarded.")
+
+	var expectedCrowns := 43
+	var metaData := manager.getMetaProgressData()
+	if int(metaData.get("crowns", 0)) != expectedCrowns:
+		result.addError("Game over awarded wrong crowns: %d." % int(metaData.get("crowns", 0)))
+
+	var previousGold := int(runState.resources.get("gold", 0))
+	var previousInfantry := int(playerArmy.units.get(GameIds.INFANTRY_UNIT_ID, 0))
+	bus.requestCommand(CommandType.RECRUIT_UNITS, {
+		"countryId": "usa",
+		"unitType": "infantry",
+		"amount": 1,
+		"armyId": "army_start",
+	})
+	if int(runState.resources.get("gold", 0)) != previousGold:
+		result.addError("Recruit command changed gold after game over.")
+	if int(playerArmy.units.get(GameIds.INFANTRY_UNIT_ID, 0)) != previousInfantry:
+		result.addError("Recruit command changed army units after game over.")
+
+	bus.requestCommand(CommandType.SET_GAME_SPEED, {
+		"speed": GameSpeed.Value.Normal,
+	})
+	if int(runState.speed) != GameSpeed.Value.Paused:
+		result.addError("Lost run resumed through speed command.")
+
+	bus.raiseGameEvent(EventType.COUNTRY_CONQUERED, {
+		"countryId": "usa",
+		"newOwnerId": str(startCountry.ownerId),
+		"previousOwnerId": str(GameIds.PLAYER_OWNER_ID),
+	})
+	if int(manager.getMetaProgressData().get("crowns", 0)) != expectedCrowns:
+		result.addError("Game over awarded crowns more than once.")
+
+	manager.free()
 	simulation.free()
 	bus.free()
 	return result
@@ -1749,16 +1826,25 @@ func _testMetaProgressAwardsCrownsAndAppliesPurchases() -> ValidationResult:
 	runState.upgrades.append(&"rapidRecruitment")
 	var conqueredCountry := runState.countries[&"can"] as CountryData
 	conqueredCountry.ownerId = GameIds.PLAYER_OWNER_ID
+	runState.runStatus = RunState.RUN_STATUS_LOST
+	runState.runStats["countriesConquered"] = 1
+	runState.runStats["maxCountriesOwned"] = 2
+	runState.runStats["monthsSurvived"] = 4
+	runState.runStats["battlesWon"] = 1
+	runState.runStats["highestThreatReached"] = 75.0
 
 	var reward: Dictionary = META_PROGRESS_SIMULATION.calculateCrownsReward(runState, metaData, metaUpgradeRows)
 	if not bool(reward.get("accepted", false)):
 		result.addError("MetaProgressSimulation rejected valid run reward.")
-	if int(reward.get("crowns", 0)) != 14:
+	if int(reward.get("crowns", 0)) != 76:
 		result.addError("MetaProgressSimulation calculated wrong crown reward.")
 
 	var awarded: Dictionary = META_PROGRESS_SIMULATION.awardRunEndCrowns(metaData, runState, metaUpgradeRows)
-	if int(awarded.get("totalCrowns", 0)) != 14:
+	if int(awarded.get("totalCrowns", 0)) != 76:
 		result.addError("MetaProgressSimulation did not add rewarded crowns.")
+	var secondAward: Dictionary = META_PROGRESS_SIMULATION.awardRunEndCrowns(metaData, runState, metaUpgradeRows)
+	if bool(secondAward.get("accepted", false)):
+		result.addError("MetaProgressSimulation allowed duplicate crown payout.")
 
 	metaData["crowns"] = 50
 	var purchaseResult: Dictionary = META_PROGRESS_SIMULATION.purchaseUpgrade(metaData, &"startGold", metaUpgradeRows)

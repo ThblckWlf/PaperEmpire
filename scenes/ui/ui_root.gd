@@ -10,6 +10,7 @@ signal gameplayVisibilityChanged(isVisible: bool)
 const RUN_STATE_VIEW := preload("res://src/core/view/run_state_view.gd")
 const SETTINGS_PANEL_SCRIPT := preload("res://scenes/ui/settings_panel.gd")
 const DEBUG_ERROR_OVERLAY_SCRIPT := preload("res://scenes/ui/debug_error_overlay.gd")
+const GAME_OVER_MODAL_SCRIPT := preload("res://scenes/ui/game_over_modal.gd")
 const INPUT_ACTIONS := preload("res://src/core/input/input_actions.gd")
 const MAIN_MENU_SCENE: PackedScene = preload("res://scenes/ui/MainMenu.tscn")
 
@@ -30,6 +31,7 @@ var saveManager: SaveManager
 var speedBeforePause: int = GameSpeed.Value.Normal
 var settingsPanel: PanelContainer
 var debugErrorOverlay: PanelContainer
+var gameOverModal: PanelContainer
 var mainMenu: Control
 var gameplayVisible: bool = true
 
@@ -45,7 +47,9 @@ func _ready() -> void:
 	_ensureMainMenu()
 	_ensureSettingsPanel()
 	_ensureDebugErrorOverlay()
+	_ensureGameOverModal()
 	upgradeModal.visible = false
+	gameOverModal.visible = false
 	settingsPanel.visible = false
 	modalLayer.visible = false
 
@@ -60,6 +64,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			if bool(mainMenu.call("closeOpenPanel")):
 				get_viewport().set_input_as_handled()
 		elif not gameplayVisible:
+			pass
+		elif gameOverModal != null and gameOverModal.visible:
 			pass
 		elif upgradeModal.visible:
 			pass
@@ -123,17 +129,24 @@ func _refreshAll() -> void:
 
 func _onGameEventRaised(eventName: StringName, payload: Dictionary) -> void:
 	match eventName:
+		EventType.GAME_OVER_TRIGGERED:
+			_openGameOverModal(payload)
 		EventType.UPGRADE_CHOICE_OPENED:
 			_openUpgradeModal(payload)
 		EventType.UPGRADE_CHOSEN:
 			_closeUpgradeModal()
 			_refreshAll()
-		EventType.RUN_STARTED, EventType.RUN_RESET, EventType.RUN_WON, EventType.COUNTRY_SELECTED, EventType.ARMY_SELECTED, EventType.ARMY_MOVE_STARTED, EventType.ARMY_MOVED, EventType.UNITS_RECRUITED, EventType.ARMY_UPDATED, EventType.ARMY_CREATED, EventType.BATTLE_STARTED, EventType.BATTLE_ENDED, EventType.COUNTRY_CONQUERED, EventType.MINI_GOAL_REWARD_CLAIMED, EventType.META_PROGRESS_CHANGED, EventType.META_UPGRADE_PURCHASED, EventType.CROWNS_REWARDED, EventType.THREAT_CHANGED, EventType.WORLD_REACTION_UPDATED, EventType.GAME_SPEED_CHANGED, EventType.MONTH_TICK, EventType.NOT_ENOUGH_GOLD, EventType.INVALID_ATTACK:
+		EventType.RUN_STARTED, EventType.RUN_RESET:
+			_closeGameOverModal()
+			_refreshAll()
+		EventType.RUN_WON, EventType.RUN_LOST, EventType.COUNTRY_SELECTED, EventType.ARMY_SELECTED, EventType.ARMY_MOVE_STARTED, EventType.ARMY_MOVED, EventType.UNITS_RECRUITED, EventType.ARMY_UPDATED, EventType.ARMY_CREATED, EventType.BATTLE_STARTED, EventType.BATTLE_ENDED, EventType.COUNTRY_CONQUERED, EventType.MINI_GOAL_REWARD_CLAIMED, EventType.META_PROGRESS_CHANGED, EventType.META_UPGRADE_PURCHASED, EventType.CROWNS_AWARDED, EventType.CROWNS_REWARDED, EventType.THREAT_CHANGED, EventType.WORLD_REACTION_UPDATED, EventType.GAME_SPEED_CHANGED, EventType.MONTH_TICK, EventType.NOT_ENOUGH_GOLD, EventType.INVALID_ATTACK:
 			_refreshAll()
 
 
 func _openEscMenu() -> void:
 	if not gameplayVisible:
+		return
+	if gameOverModal != null and gameOverModal.visible:
 		return
 	if upgradeModal.visible:
 		return
@@ -177,7 +190,8 @@ func _loadFromEscMenu() -> void:
 			"slotId": "manual_1",
 		})
 	escMenu.visible = false
-	modalLayer.visible = false
+	if gameOverModal == null or not gameOverModal.visible:
+		modalLayer.visible = false
 	_refreshAll()
 
 
@@ -201,6 +215,8 @@ func showMainMenu() -> void:
 	_ensureMainMenu()
 	escMenu.visible = false
 	upgradeModal.visible = false
+	if gameOverModal != null:
+		gameOverModal.visible = false
 	if settingsPanel != null:
 		_discardSettingsPanelChanges()
 		settingsPanel.visible = false
@@ -271,7 +287,7 @@ func _closeSettingsPanel() -> void:
 
 	_discardSettingsPanelChanges()
 	settingsPanel.visible = false
-	if not escMenu.visible and not upgradeModal.visible:
+	if not escMenu.visible and not upgradeModal.visible and (gameOverModal == null or not gameOverModal.visible):
 		modalLayer.visible = false
 
 
@@ -285,6 +301,8 @@ func _changeSetting(settingKey: StringName, value: Variant) -> void:
 
 func _openUpgradeModal(data: Dictionary) -> void:
 	escMenu.visible = false
+	if gameOverModal != null:
+		gameOverModal.visible = false
 	if settingsPanel != null:
 		_discardSettingsPanelChanges()
 		settingsPanel.visible = false
@@ -296,7 +314,29 @@ func _openUpgradeModal(data: Dictionary) -> void:
 
 func _closeUpgradeModal() -> void:
 	upgradeModal.visible = false
-	if not escMenu.visible and (settingsPanel == null or not settingsPanel.visible):
+	if not escMenu.visible and (settingsPanel == null or not settingsPanel.visible) and (gameOverModal == null or not gameOverModal.visible):
+		modalLayer.visible = false
+
+
+func _openGameOverModal(data: Dictionary) -> void:
+	_ensureGameOverModal()
+	escMenu.visible = false
+	upgradeModal.visible = false
+	if settingsPanel != null:
+		_discardSettingsPanelChanges()
+		settingsPanel.visible = false
+	gameOverModal.visible = true
+	gameOverModal.call("setData", data)
+	modalLayer.visible = true
+	_refreshAll()
+
+
+func _closeGameOverModal() -> void:
+	if gameOverModal == null:
+		return
+
+	gameOverModal.visible = false
+	if not escMenu.visible and not upgradeModal.visible and (settingsPanel == null or not settingsPanel.visible):
 		modalLayer.visible = false
 
 
@@ -318,6 +358,18 @@ func _ensureSettingsPanel() -> void:
 	settingsPanel.connect("closeRequested", Callable(self, "_closeSettingsPanel"))
 
 
+func _ensureGameOverModal() -> void:
+	if gameOverModal != null:
+		return
+
+	gameOverModal = GAME_OVER_MODAL_SCRIPT.new() as PanelContainer
+	gameOverModal.name = "GameOverModal"
+	gameOverModal.visible = false
+	modalLayer.add_child(gameOverModal)
+	_positionGameOverModal()
+	gameOverModal.connect("returnToMainMenuRequested", Callable(self, "_handleGameOverReturnToMainMenuRequested"))
+
+
 func _positionSettingsPanel() -> void:
 	if settingsPanel == null:
 		return
@@ -327,6 +379,22 @@ func _positionSettingsPanel() -> void:
 	settingsPanel.offset_top = -150.0
 	settingsPanel.offset_right = 210.0
 	settingsPanel.offset_bottom = 150.0
+
+
+func _positionGameOverModal() -> void:
+	if gameOverModal == null:
+		return
+
+	gameOverModal.set_anchors_preset(Control.PRESET_CENTER)
+	gameOverModal.offset_left = -260.0
+	gameOverModal.offset_top = -220.0
+	gameOverModal.offset_right = 260.0
+	gameOverModal.offset_bottom = 220.0
+
+
+func _handleGameOverReturnToMainMenuRequested() -> void:
+	_closeGameOverModal()
+	returnToMainMenuRequested.emit()
 
 
 func _ensureDebugErrorOverlay() -> void:

@@ -25,6 +25,7 @@ static func serializeRunState(runState: RunState) -> Dictionary:
 		"upgradeEffects": _serializeValue(runState.upgradeEffects),
 		"miniGoalState": _serializeValue(runState.miniGoalState),
 		"miniGoals": _serializeValue(runState.miniGoals),
+		"runStats": _serializeValue(runState.runStats),
 		"runStatus": str(runState.runStatus),
 	}
 
@@ -46,6 +47,7 @@ static func deserializeRunState(data: Dictionary) -> RunState:
 	runState.upgradeEffects = _dictionaryValue(data.get("upgradeEffects", runState.upgradeEffects)).duplicate(true)
 	runState.miniGoalState = _dictionaryValue(data.get("miniGoalState", runState.miniGoalState)).duplicate(true)
 	runState.miniGoals = _deserializeDictionaryArray(data.get("miniGoals", []))
+	runState.runStats = _dictionaryValue(data.get("runStats", runState.runStats)).duplicate(true)
 	runState.runStatus = StringName(str(data.get("runStatus", RunState.RUN_STATUS_NOT_STARTED)))
 	return runState
 

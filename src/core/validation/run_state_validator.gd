@@ -14,6 +14,7 @@ static func validate(runState: RunState) -> ValidationResult:
 	_validateAiGold(runState.aiGoldByCountry, result)
 	_validateUpgrades(runState, result)
 	_validateMiniGoalState(runState, result)
+	_validateRunStats(runState.runStats, result)
 	_validateSpeed(runState.speed, result)
 	_validateArmyLocations(runState, result)
 	_validateBattles(runState, result)
@@ -235,6 +236,30 @@ static func _validateMiniGoalState(runState: RunState, result: ValidationResult)
 		for key in ["isCompleted", "isRewardClaimed", "isFailed"]:
 			if goal.has(key) and typeof(goal.get(key)) != TYPE_BOOL:
 				result.addError("Mini goal %s %s is not bool." % [goalId, key])
+
+
+static func _validateRunStats(runStats: Dictionary, result: ValidationResult) -> void:
+	for key in ["countriesConquered", "maxCountriesOwned", "monthsSurvived", "miniGoalsCompleted", "battlesWon", "battlesLost"]:
+		if not runStats.has(key):
+			result.addError("RunStats missing key: %s." % key)
+			continue
+
+		if not _isNumeric(runStats.get(key, 0)):
+			result.addError("RunStats %s is not numeric." % key)
+		elif int(runStats.get(key, 0)) < 0:
+			result.addError("RunStats %s is negative." % key)
+
+	if not runStats.has("highestThreatReached"):
+		result.addError("RunStats missing key: highestThreatReached.")
+	elif not _isNumeric(runStats.get("highestThreatReached", 0.0)):
+		result.addError("RunStats highestThreatReached is not numeric.")
+	elif float(runStats.get("highestThreatReached", 0.0)) < 0.0 or is_nan(float(runStats.get("highestThreatReached", 0.0))):
+		result.addError("RunStats highestThreatReached is invalid.")
+
+	if not runStats.has("crownsAwarded"):
+		result.addError("RunStats missing key: crownsAwarded.")
+	elif typeof(runStats.get("crownsAwarded", false)) != TYPE_BOOL:
+		result.addError("RunStats crownsAwarded is not bool.")
 
 
 static func _validateAiGold(aiGoldByCountry: Dictionary, result: ValidationResult) -> void:

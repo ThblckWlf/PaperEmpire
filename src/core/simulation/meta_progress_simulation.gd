@@ -3,12 +3,40 @@ class_name MetaProgressSimulation
 
 
 const META_PROGRESS := preload("res://src/save/meta_progress.gd")
+const RUN_STATS_SIMULATION := preload("res://src/core/simulation/run_stats_simulation.gd")
 
-const BASE_CROWNS_FOR_RUN_END: int = 8
-const CROWNS_PER_CONQUERED_COUNTRY: int = 4
-const CROWNS_PER_CHOSEN_UPGRADE: int = 2
-const CROWNS_FOR_WIN: int = 20
+const BASE_CROWNS_MIN_MONTHS: int = 3
+const BASE_CROWNS_FOR_RUN_END: int = 10
+const CROWNS_PER_CONQUERED_COUNTRY: int = 12
+const CROWNS_PER_MAX_COUNTRY_OWNED: int = 5
+const MAX_MONTH_CROWNS: int = 180
+const CROWNS_PER_COMPLETED_MINI_GOAL: int = 25
+const CROWNS_PER_BATTLE_WON: int = 5
 const CROWN_MULTIPLIER_EFFECT: String = "crownRewardMultiplier"
+
+
+static func calculateCrownsForRun(runState: RunState) -> int:
+	if runState == null:
+		return 0
+
+	var stats := RUN_STATS_SIMULATION.ensureStats(runState)
+	var monthsSurvived := maxi(0, int(stats.get("monthsSurvived", 0)))
+	var crowns := BASE_CROWNS_FOR_RUN_END if monthsSurvived >= BASE_CROWNS_MIN_MONTHS else 0
+	crowns += maxi(0, int(stats.get("countriesConquered", 0))) * CROWNS_PER_CONQUERED_COUNTRY
+	crowns += maxi(0, int(stats.get("maxCountriesOwned", 0))) * CROWNS_PER_MAX_COUNTRY_OWNED
+	crowns += mini(monthsSurvived, MAX_MONTH_CROWNS)
+	crowns += maxi(0, int(stats.get("miniGoalsCompleted", 0))) * CROWNS_PER_COMPLETED_MINI_GOAL
+	crowns += maxi(0, int(stats.get("battlesWon", 0))) * CROWNS_PER_BATTLE_WON
+
+	var highestThreatReached := float(stats.get("highestThreatReached", 0.0))
+	if highestThreatReached >= 50.0:
+		crowns += 10
+	if highestThreatReached >= 75.0:
+		crowns += 25
+	if highestThreatReached >= 100.0:
+		crowns += 50
+
+	return maxi(crowns, 0)
 
 
 static func calculateCrownsReward(runState: RunState, metaProgressData: Dictionary, metaUpgradeRows: Array[Dictionary]) -> Dictionary:
@@ -19,21 +47,14 @@ static func calculateCrownsReward(runState: RunState, metaProgressData: Dictiona
 			"crowns": 0,
 		}
 
-	var conqueredCountries := _playerOwnedCountryCount(runState) - 1
-	var chosenUpgrades := runState.upgrades.size()
-	var crowns := BASE_CROWNS_FOR_RUN_END
-	crowns += maxi(conqueredCountries, 0) * CROWNS_PER_CONQUERED_COUNTRY
-	crowns += chosenUpgrades * CROWNS_PER_CHOSEN_UPGRADE
-	if runState.runStatus == RunState.RUN_STATUS_WON:
-		crowns += CROWNS_FOR_WIN
-
+	var stats := RUN_STATS_SIMULATION.statsSnapshot(runState)
+	var crowns := calculateCrownsForRun(runState)
 	var multiplier := 1.0 + _effectValue(metaProgressData, metaUpgradeRows, CROWN_MULTIPLIER_EFFECT)
 	crowns = int(round(float(crowns) * multiplier))
 	return {
 		"accepted": true,
 		"crowns": maxi(crowns, 0),
-		"conqueredCountries": maxi(conqueredCountries, 0),
-		"chosenUpgrades": chosenUpgrades,
+		"runStats": stats,
 		"runStatus": str(runState.runStatus),
 	}
 
@@ -42,9 +63,23 @@ static func awardRunEndCrowns(metaProgressData: Dictionary, runState: RunState, 
 	var reward := calculateCrownsReward(runState, metaProgressData, metaUpgradeRows)
 	if not bool(reward.get("accepted", false)):
 		return reward
+	if runState.runStatus == RunState.RUN_STATUS_ACTIVE:
+		reward["accepted"] = false
+		reward["reason"] = "run_not_finished"
+		return reward
+
+	var stats := RUN_STATS_SIMULATION.ensureStats(runState)
+	if bool(stats.get("crownsAwarded", false)):
+		reward["accepted"] = false
+		reward["reason"] = "crowns_already_awarded"
+		reward["crowns"] = 0
+		reward["runStats"] = RUN_STATS_SIMULATION.statsSnapshot(runState)
+		return reward
 
 	var nextMeta := _normalizedMetaProgress(metaProgressData, metaUpgradeRows)
 	nextMeta["crowns"] = int(nextMeta.get("crowns", 0)) + int(reward.get("crowns", 0))
+	stats["crownsAwarded"] = true
+	reward["runStats"] = RUN_STATS_SIMULATION.statsSnapshot(runState)
 	reward["metaProgress"] = nextMeta
 	reward["totalCrowns"] = int(nextMeta.get("crowns", 0))
 	return reward

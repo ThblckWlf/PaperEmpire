@@ -22,6 +22,9 @@ static func achievementsForEvent(eventName: StringName, payload: Dictionary = {}
 			achievements.append(ACHIEVEMENT_FIRST_META_PURCHASE)
 		EventType.RUN_WON:
 			achievements.append(ACHIEVEMENT_RUN_WON)
+		EventType.CROWNS_AWARDED:
+			if str(payload.get("runStatus", "")) == RunState.RUN_STATUS_WON:
+				achievements.append(ACHIEVEMENT_RUN_WON)
 		EventType.CROWNS_REWARDED:
 			if str(payload.get("runStatus", "")) == RunState.RUN_STATUS_WON:
 				achievements.append(ACHIEVEMENT_RUN_WON)

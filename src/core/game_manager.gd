@@ -9,6 +9,8 @@ const UPGRADE_SIMULATION := preload("res://src/core/simulation/upgrade_simulatio
 const THREAT_SIMULATION := preload("res://src/core/simulation/threat_simulation.gd")
 const MINI_GOAL_SIMULATION := preload("res://src/core/simulation/mini_goal_simulation.gd")
 const META_PROGRESS_SIMULATION := preload("res://src/core/simulation/meta_progress_simulation.gd")
+const RUN_STATS_SIMULATION := preload("res://src/core/simulation/run_stats_simulation.gd")
+const RUN_END_SIMULATION := preload("res://src/core/simulation/run_end_simulation.gd")
 const SAVE_FORMAT := preload("res://src/save/save_format.gd")
 const RUN_STATE_SERIALIZER := preload("res://src/save/run_state_serializer.gd")
 const META_PROGRESS := preload("res://src/save/meta_progress.gd")
@@ -21,6 +23,7 @@ var simulationManager: SimulationManager
 var saveManager: SaveManager
 var selectedCountryId: StringName = GameIds.EMPTY_ID
 var selectedArmyId: StringName = GameIds.EMPTY_ID
+var gameOverTriggeredForRun: bool = false
 
 
 func setEventBus(newEventBus: EventBus) -> void:
@@ -43,6 +46,7 @@ func setSaveManager(newSaveManager: SaveManager) -> void:
 
 func startNewRun(startCountryId: String) -> void:
 	currentRunState = NewRunFactory.createNewRun(StringName(startCountryId), metaProgressData, PrototypeContentLoader.loadMetaUpgrades())
+	gameOverTriggeredForRun = false
 	selectedCountryId = StringName(startCountryId)
 	selectedArmyId = _firstArmyId()
 	_configureSimulationManager()
@@ -53,6 +57,9 @@ func startNewRun(startCountryId: String) -> void:
 
 
 func submitCommand(commandName: StringName, payload: Dictionary = {}) -> void:
+	if _isCommandBlockedAfterGameOver(commandName, payload):
+		return
+
 	match commandName:
 		CommandType.SELECT_COUNTRY:
 			_selectCountry(StringName(str(payload.get("countryId", ""))))
@@ -115,6 +122,7 @@ func resetRun(startCountryId: StringName = GameIds.EMPTY_ID) -> void:
 		nextStartCountryId = NewRunFactory.DEFAULT_START_COUNTRY_ID
 
 	currentRunState = NewRunFactory.createNewRun(nextStartCountryId, metaProgressData, PrototypeContentLoader.loadMetaUpgrades())
+	gameOverTriggeredForRun = false
 	selectedCountryId = nextStartCountryId
 	selectedArmyId = _firstArmyId()
 	_configureSimulationManager()
@@ -279,6 +287,8 @@ func _loadGame(slotId: String) -> void:
 		return
 
 	currentRunState = loadedRunState
+	RUN_STATS_SIMULATION.ensureStats(currentRunState)
+	gameOverTriggeredForRun = bool(currentRunState.runStats.get("crownsAwarded", false)) and currentRunState.runStatus == RunState.RUN_STATUS_LOST
 	selectedCountryId = _firstPlayerCountryId()
 	selectedArmyId = _firstArmyId()
 	_configureSimulationManager()
@@ -287,6 +297,7 @@ func _loadGame(slotId: String) -> void:
 		"selectedArmyId": selectedArmyId,
 		"source": "load",
 	})
+	_triggerGameOverIfNoCountries(RUN_END_SIMULATION.REASON_NO_COUNTRIES_REMAINING)
 
 
 func _purchaseMetaUpgrade(upgradeId: StringName) -> void:
@@ -308,21 +319,28 @@ func _purchaseMetaUpgrade(upgradeId: StringName) -> void:
 
 
 func _awardRunEndCrowns() -> void:
+	_awardRunEndCrownsForCurrentRun(true)
+
+
+func _awardRunEndCrownsForCurrentRun(reportWarnings: bool) -> Dictionary:
 	var rewardResult: Dictionary = META_PROGRESS_SIMULATION.awardRunEndCrowns(
 		metaProgressData,
 		currentRunState,
 		PrototypeContentLoader.loadMetaUpgrades()
 	)
 	if not bool(rewardResult.get("accepted", false)):
-		_reportWarning("Cannot award crowns: %s" % str(rewardResult.get("reason", "unknown_reason")))
-		return
+		if reportWarnings and str(rewardResult.get("reason", "")) != "crowns_already_awarded":
+			_reportWarning("Cannot award crowns: %s" % str(rewardResult.get("reason", "unknown_reason")))
+		return rewardResult
 
 	metaProgressData = (rewardResult.get("metaProgress", {}) as Dictionary).duplicate(true)
 	_saveMetaProgress()
+	_raiseEvent(EventType.CROWNS_AWARDED, rewardResult)
 	_raiseEvent(EventType.CROWNS_REWARDED, rewardResult)
 	_raiseEvent(EventType.META_PROGRESS_CHANGED, {
 		"metaProgress": metaProgressData,
 	})
+	return rewardResult
 
 
 func _recruitUnits(
@@ -392,6 +410,9 @@ func _setGameSpeed(speed: int) -> void:
 	if currentRunState == null:
 		_reportWarning("Cannot set speed without an active run.")
 		return
+	if currentRunState.runStatus == RunState.RUN_STATUS_LOST and speed != GameSpeed.Value.Paused:
+		_reportWarning("Cannot resume a lost run.")
+		return
 
 	var validSpeeds := [
 		GameSpeed.Value.Paused,
@@ -415,11 +436,16 @@ func _setGameSpeed(speed: int) -> void:
 
 
 func _raiseEvent(eventType: StringName, payload: Dictionary = {}) -> void:
+	var miniGoalResult := {}
 	if eventBus == null:
+		if currentRunState != null:
+			miniGoalResult = MINI_GOAL_SIMULATION.updateProgress(currentRunState, eventType, payload, PrototypeContentLoader.loadUnits())
+			RUN_STATS_SIMULATION.updateForEvent(currentRunState, eventType, payload, miniGoalResult)
 		return
 
 	if currentRunState != null:
-		MINI_GOAL_SIMULATION.updateProgress(currentRunState, eventType, payload, PrototypeContentLoader.loadUnits())
+		miniGoalResult = MINI_GOAL_SIMULATION.updateProgress(currentRunState, eventType, payload, PrototypeContentLoader.loadUnits())
+		RUN_STATS_SIMULATION.updateForEvent(currentRunState, eventType, payload, miniGoalResult)
 
 	var gameEvent := GameEvent.new()
 	gameEvent.type = eventType
@@ -428,6 +454,82 @@ func _raiseEvent(eventType: StringName, payload: Dictionary = {}) -> void:
 		gameEvent.occurredAtSeconds = float(currentRunState.time.get("elapsedSeconds", 0.0))
 
 	eventBus.raiseEvent(gameEvent)
+
+
+func _onGameEventRaised(eventName: StringName, payload: Dictionary) -> void:
+	match eventName:
+		EventType.RUN_LOST:
+			_handleRunLost(payload)
+		EventType.COUNTRY_CONQUERED, EventType.MONTH_TICK:
+			_triggerGameOverIfNoCountries(RUN_END_SIMULATION.REASON_NO_COUNTRIES_REMAINING)
+
+
+func _handleRunLost(payload: Dictionary) -> void:
+	var reason := str(payload.get("reason", RUN_END_SIMULATION.REASON_NO_COUNTRIES_REMAINING))
+	_triggerGameOver(reason, payload)
+
+
+func _triggerGameOverIfNoCountries(reason: String) -> void:
+	var lossResult: Dictionary = RUN_END_SIMULATION.markRunLostIfNeeded(currentRunState, reason)
+	if bool(lossResult.get("triggered", false)):
+		_raiseEvent(EventType.RUN_LOST, lossResult)
+		_triggerGameOver(reason, lossResult)
+
+
+func _triggerGameOver(reason: String, lossPayload: Dictionary = {}) -> void:
+	if currentRunState == null or gameOverTriggeredForRun:
+		return
+	if currentRunState.runStatus == RunState.RUN_STATUS_WON:
+		return
+	if currentRunState.runStatus != RunState.RUN_STATUS_LOST:
+		var lossResult: Dictionary = RUN_END_SIMULATION.markRunLostIfNeeded(currentRunState, reason)
+		if not bool(lossResult.get("triggered", false)):
+			return
+		lossPayload = lossResult
+
+	gameOverTriggeredForRun = true
+	currentRunState.speed = GameSpeed.Value.Paused
+	currentRunState.activeUpgradeChoice = {}
+	var rewardResult := _awardRunEndCrownsForCurrentRun(false)
+	var crownsEarned := int(rewardResult.get("crowns", 0)) if bool(rewardResult.get("accepted", false)) else 0
+	var gameOverPayload := {
+		"reason": reason,
+		"crownsEarned": crownsEarned,
+		"playerCountryCount": RUN_STATS_SIMULATION.playerCountryCount(currentRunState),
+		"runStats": RUN_STATS_SIMULATION.statsSnapshot(currentRunState),
+		"loss": lossPayload.duplicate(true),
+	}
+	_raiseEvent(EventType.GAME_OVER_TRIGGERED, gameOverPayload)
+
+
+func _isCommandBlockedAfterGameOver(commandName: StringName, payload: Dictionary) -> bool:
+	if currentRunState == null or currentRunState.runStatus != RunState.RUN_STATUS_LOST:
+		return false
+
+	if commandName == CommandType.SET_GAME_SPEED:
+		var requestedSpeed := int(payload.get("speed", GameSpeed.Value.Paused))
+		if requestedSpeed == GameSpeed.Value.Paused:
+			return false
+		_reportWarning("Cannot resume a lost run.")
+		return true
+
+	if commandName == CommandType.PAUSE_GAME:
+		return false
+
+	if [
+		CommandType.MOVE_ARMY,
+		CommandType.START_ATTACK,
+		CommandType.RECRUIT_UNITS,
+		CommandType.CREATE_ARMY,
+		CommandType.UPDATE_ARMY_COMPOSITION,
+		CommandType.CHOOSE_UPGRADE,
+		CommandType.CLAIM_MINI_GOAL_REWARD,
+		CommandType.RESUME_GAME,
+	].has(commandName):
+		_reportWarning("Cannot use gameplay command after game over: %s" % str(commandName))
+		return true
+
+	return false
 
 
 func _reportWarning(message: String) -> void:
@@ -502,6 +604,10 @@ func _connectEventBusCommands() -> void:
 	if not eventBus.commandRequested.is_connected(commandCallable):
 		eventBus.commandRequested.connect(commandCallable)
 
+	var eventCallable := Callable(self, "_onGameEventRaised")
+	if not eventBus.gameEventRaised.is_connected(eventCallable):
+		eventBus.gameEventRaised.connect(eventCallable)
+
 
 func _disconnectEventBusCommands() -> void:
 	if eventBus == null:
@@ -510,3 +616,7 @@ func _disconnectEventBusCommands() -> void:
 	var commandCallable := Callable(self, "submitCommand")
 	if eventBus.commandRequested.is_connected(commandCallable):
 		eventBus.commandRequested.disconnect(commandCallable)
+
+	var eventCallable := Callable(self, "_onGameEventRaised")
+	if eventBus.gameEventRaised.is_connected(eventCallable):
+		eventBus.gameEventRaised.disconnect(eventCallable)

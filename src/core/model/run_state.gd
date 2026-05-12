@@ -50,4 +50,14 @@ var miniGoalState: Dictionary = {
 	"upgradeRarityBoost": 0,
 }
 var miniGoals: Array[Dictionary] = []
+var runStats: Dictionary = {
+	"countriesConquered": 0,
+	"maxCountriesOwned": 0,
+	"monthsSurvived": 0,
+	"miniGoalsCompleted": 0,
+	"battlesWon": 0,
+	"battlesLost": 0,
+	"highestThreatReached": 0.0,
+	"crownsAwarded": false,
+}
 var runStatus: StringName = RUN_STATUS_NOT_STARTED

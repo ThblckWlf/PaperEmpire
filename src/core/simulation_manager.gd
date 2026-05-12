@@ -14,6 +14,8 @@ const AI_WAR_SIMULATION := preload("res://src/core/simulation/ai_war_simulation.
 const UPGRADE_SIMULATION := preload("res://src/core/simulation/upgrade_simulation.gd")
 const THREAT_SIMULATION := preload("res://src/core/simulation/threat_simulation.gd")
 const MINI_GOAL_SIMULATION := preload("res://src/core/simulation/mini_goal_simulation.gd")
+const RUN_STATS_SIMULATION := preload("res://src/core/simulation/run_stats_simulation.gd")
+const RUN_END_SIMULATION := preload("res://src/core/simulation/run_end_simulation.gd")
 
 var fixedStepSeconds: float = DEFAULT_FIXED_STEP_SECONDS
 var accumulatedSeconds: float = 0.0
@@ -55,6 +57,9 @@ func stepSimulation(deltaSeconds: float) -> void:
 	if runState == null or runState.runStatus != RunState.RUN_STATUS_ACTIVE:
 		return
 
+	if _updateRunLostIfNoCountries():
+		return
+
 	if fixedStepSeconds <= 0.0:
 		push_warning("Simulation fixedStepSeconds must be greater than zero.")
 		return
@@ -67,6 +72,8 @@ func stepSimulation(deltaSeconds: float) -> void:
 	while accumulatedSeconds + GameTime.FLOAT_EPSILON >= fixedStepSeconds:
 		_advanceFixedStep(fixedStepSeconds)
 		accumulatedSeconds -= fixedStepSeconds
+		if runState.runStatus != RunState.RUN_STATUS_ACTIVE:
+			return
 
 
 func setGameSpeed(speed: int) -> bool:
@@ -111,13 +118,20 @@ func _advanceFixedStep(deltaSeconds: float) -> void:
 	var battleEvents: Array[Dictionary] = COMBAT_SIMULATION.advanceBattles(runState, deltaSeconds, units)
 	for battleEvent in battleEvents:
 		_handleBattleEvent(battleEvent)
+		if runState.runStatus != RunState.RUN_STATUS_ACTIVE:
+			return
 
 	var monthTickCount := GameTime.advance(runState.time, deltaSeconds)
 	for _index in range(monthTickCount):
 		_raiseMonthTick()
+		if runState.runStatus != RunState.RUN_STATUS_ACTIVE:
+			return
 
 
 func _raiseMonthTick() -> void:
+	if _updateRunLostIfNoCountries():
+		return
+
 	var units := PrototypeContentLoader.loadUnits()
 	var economyResult: Dictionary = ECONOMY_SIMULATION.applyMonthTick(runState, units)
 	var aiRecruitmentEvents: Array[Dictionary] = AI_RECRUITMENT_SIMULATION.applyMonthTick(runState, units)
@@ -140,6 +154,7 @@ func _raiseMonthTick() -> void:
 	for aiWarEvent in aiWarEvents:
 		_raiseEvent(StringName(str(aiWarEvent.get("eventType", ""))), aiWarEvent.get("payload", {}) as Dictionary)
 	_raiseEvent(EventType.MONTH_TICK, payload)
+	_updateRunLostIfNoCountries()
 
 
 func _beginBattleForCompletedAttack(movePayload: Dictionary, units: Array[UnitData]) -> void:
@@ -174,6 +189,8 @@ func _handleBattleEvent(battleEvent: Dictionary) -> void:
 	if StringName(str(payload.get("newOwnerId", GameIds.EMPTY_ID))) != GameIds.PLAYER_OWNER_ID:
 		_raiseEvent(EventType.COUNTRY_CONQUERED, payload)
 		_raiseEvent(EventType.AI_COUNTRY_CONQUERED, payload)
+		if _updateRunLostIfNoCountries():
+			return
 		if _updateRunWonIfComplete():
 			return
 		return
@@ -198,8 +215,10 @@ func _handleBattleEvent(battleEvent: Dictionary) -> void:
 
 
 func _raiseEvent(eventType: StringName, payload: Dictionary = {}) -> void:
+	var miniGoalResult := {}
 	if runState != null:
-		MINI_GOAL_SIMULATION.updateProgress(runState, eventType, payload, PrototypeContentLoader.loadUnits())
+		miniGoalResult = MINI_GOAL_SIMULATION.updateProgress(runState, eventType, payload, PrototypeContentLoader.loadUnits())
+		RUN_STATS_SIMULATION.updateForEvent(runState, eventType, payload, miniGoalResult)
 
 	var gameEvent := GameEvent.new()
 	gameEvent.type = eventType
@@ -220,6 +239,8 @@ func _raiseWorldReactionIfChanged(threatResult: Dictionary) -> void:
 func _updateRunWonIfComplete() -> bool:
 	if runState == null:
 		return false
+	if runState.runStatus != RunState.RUN_STATUS_ACTIVE:
+		return false
 
 	for countryId in runState.countries.keys():
 		var country := runState.countries[countryId] as CountryData
@@ -233,6 +254,15 @@ func _updateRunWonIfComplete() -> bool:
 		"runStatus": RunState.RUN_STATUS_WON,
 		"ownedCountryCount": runState.countries.size(),
 	})
+	return true
+
+
+func _updateRunLostIfNoCountries() -> bool:
+	var lossResult: Dictionary = RUN_END_SIMULATION.markRunLostIfNeeded(runState)
+	if not bool(lossResult.get("triggered", false)):
+		return false
+
+	_raiseEvent(EventType.RUN_LOST, lossResult)
 	return true
 
 
