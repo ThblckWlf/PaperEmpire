@@ -11,9 +11,11 @@ const COUNTRY_CONQUERED_THREAT: int = 2
 const LARGE_ARMY_THRESHOLD: int = 25
 const LARGE_ARMY_STEP_UNITS: int = 10
 
+const MAX_THREAT: int = 100
 const CAUTION_THRESHOLD: int = 25
 const HIGH_THRESHOLD: int = 50
 const CRITICAL_THRESHOLD: int = 75
+const COALITION_THRESHOLD: int = 100
 
 
 static func applyMonthlyThreat(runState: RunState) -> Dictionary:
@@ -63,6 +65,8 @@ static func calculateLargeArmyThreat(runState: RunState) -> int:
 
 
 static func threatState(threat: int) -> String:
+	if threat >= COALITION_THRESHOLD:
+		return "coalition"
 	if threat >= CRITICAL_THRESHOLD:
 		return "critical"
 	if threat >= HIGH_THRESHOLD:
@@ -103,16 +107,25 @@ static func _applyThreat(runState: RunState, threatAdded: int) -> Dictionary:
 	if runState == null:
 		return result
 
-	runState.resources["threat"] = maxi(0, int(runState.resources.get("threat", 0)) + threatAdded)
+	var previousThreat := int(runState.resources.get("threat", 0))
+	var nextThreat := clampi(previousThreat + threatAdded, 0, MAX_THREAT)
+	runState.resources["threat"] = nextThreat
+	var appliedThreat := nextThreat - previousThreat
 	var reaction := updateWorldReaction(runState)
-	result["threatAdded"] = threatAdded
-	result["threat"] = int(runState.resources.get("threat", 0))
-	result["threatState"] = threatState(int(result["threat"]))
+	result["threatAdded"] = appliedThreat
+	result["threat"] = nextThreat
+	result["threatState"] = threatState(nextThreat)
 	result["worldReaction"] = reaction
 	return result
 
 
 static func _reactionForThreat(threat: int) -> Dictionary:
+	if threat >= COALITION_THRESHOLD:
+		return {
+			"level": "coalition",
+			"enemyStrengthMultiplier": 1.35,
+			"counterAttackPrepared": true,
+		}
 	if threat >= CRITICAL_THRESHOLD:
 		return {
 			"level": "mobilized",

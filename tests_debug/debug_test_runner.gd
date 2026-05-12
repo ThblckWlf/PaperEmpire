@@ -66,8 +66,8 @@ func runAll() -> void:
 	_runTest("CombatSimulation calculates combat power", _testCombatCalculatesPower)
 	_runTest("CombatSimulation starts valid attacks only", _testCombatStartsValidAttacks)
 	_runTest("SimulationManager completes battle and conquest", _testSimulationCompletesBattleAndConquest)
-	_runTest("AiWarSimulation starts adjacent NPC attacks", _testAiWarStartsAdjacentNpcAttack)
-	_runTest("AiWarSimulation can attack threatened player border", _testAiWarCanAttackThreatenedPlayerBorder)
+	_runTest("AiWarSimulation stays peaceful below coalition threshold", _testAiWarStaysPeacefulBelowCoalition)
+	_runTest("AiWarSimulation attacks player at coalition threat", _testAiWarAttacksPlayerAtCoalition)
 	_runTest("NPC conquest does not open upgrade choice", _testNpcConquestDoesNotOpenUpgradeChoice)
 	_runTest("Game over awards crowns and blocks commands", _testGameOverAwardsCrownsAndBlocksCommands)
 	_runTest("UpgradeSimulation rolls choices and applies effects", _testUpgradeRollsChoicesAndAppliesEffects)
@@ -765,38 +765,26 @@ func _testSimulationCompletesBattleAndConquest() -> ValidationResult:
 	return result
 
 
-func _testAiWarStartsAdjacentNpcAttack() -> ValidationResult:
+func _testAiWarStaysPeacefulBelowCoalition() -> ValidationResult:
 	var result := ValidationResult.new()
-	var runState := _createAiWarTestRunState()
+	var runState := _createAiVsPlayerWarTestRunState()
+	runState.resources["threat"] = THREAT_SIMULATION.COALITION_THRESHOLD - 1
 	var events: Array[Dictionary] = AI_WAR_SIMULATION.applyMonthTick(runState, PrototypeContentLoader.loadUnits())
-	var sourceCountry := runState.countries[&"aiSource"] as CountryData
-	var targetCountry := runState.countries[&"aiTarget"] as CountryData
-	var sourceArmy := runState.armies[&"army_ai_source"] as ArmyData
-	var attackArmy := _attackingArmyForTarget(runState, targetCountry.id, sourceCountry.ownerId)
 
-	if not _eventRowsContain(events, EventType.AI_ATTACK_STARTED):
-		result.addError("AiWarSimulation did not emit aiAttackStarted.")
-	if not _eventRowsContain(events, EventType.ARMY_MOVE_STARTED):
-		result.addError("AiWarSimulation did not reuse armyMoveStarted for movement visuals.")
-	if attackArmy == null or attackArmy.status != ArmyStatus.Value.Attacking:
-		result.addError("AI attack army did not enter attacking status.")
-	if attackArmy != null and attackArmy.targetCountryId != targetCountry.id:
-		result.addError("AI army did not choose the adjacent target.")
-	if sourceArmy.status != ArmyStatus.Value.Stationed or _unitCount(sourceArmy.units) < COMBAT_SIMULATION.MIN_RESERVE_ARMY_SIZE:
-		result.addError("AI attack did not leave a stationed reserve.")
-	if sourceCountry.aiCooldownMonths < AI_WAR_SIMULATION.NPC_ATTACK_COOLDOWN_MONTHS:
-		result.addError("AI attack did not apply source cooldown.")
-	if not targetCountry.isUnderAttack:
-		result.addError("AI attack did not mark target as under attack.")
+	if _eventRowsContain(events, EventType.AI_ATTACK_STARTED):
+		result.addError("AiWarSimulation attacked despite threat below coalition threshold.")
+	if _eventRowsContain(events, EventType.PLAYER_ATTACKED):
+		result.addError("AiWarSimulation attacked the player below coalition threshold.")
 
-	var validation := RunStateValidator.validate(runState)
-	if not validation.isValid():
-		for error in validation.errors:
-			result.addError("AI attack produced invalid RunState: %s" % error)
+	var npcRunState := _createAiWarTestRunState()
+	npcRunState.resources["threat"] = THREAT_SIMULATION.COALITION_THRESHOLD
+	var npcEvents: Array[Dictionary] = AI_WAR_SIMULATION.applyMonthTick(npcRunState, PrototypeContentLoader.loadUnits())
+	if _eventRowsContain(npcEvents, EventType.AI_ATTACK_STARTED):
+		result.addError("AiWarSimulation attacked another NPC even at coalition threshold.")
 	return result
 
 
-func _testAiWarCanAttackThreatenedPlayerBorder() -> ValidationResult:
+func _testAiWarAttacksPlayerAtCoalition() -> ValidationResult:
 	var result := ValidationResult.new()
 	var runState := _createAiVsPlayerWarTestRunState()
 	var events: Array[Dictionary] = AI_WAR_SIMULATION.applyMonthTick(runState, PrototypeContentLoader.loadUnits())
@@ -806,22 +794,20 @@ func _testAiWarCanAttackThreatenedPlayerBorder() -> ValidationResult:
 	var attackArmy := _attackingArmyForTarget(runState, playerCountry.id, sourceCountry.ownerId)
 
 	if not _eventRowsContain(events, EventType.PLAYER_ATTACKED):
-		result.addError("AiWarSimulation did not emit playerAttacked.")
+		result.addError("AiWarSimulation did not emit playerAttacked at coalition threat.")
 	if not _eventRowsContain(events, EventType.AI_ATTACK_STARTED):
-		result.addError("AiWarSimulation did not emit aiAttackStarted for player attack.")
+		result.addError("AiWarSimulation did not emit aiAttackStarted at coalition threat.")
 	if attackArmy == null or attackArmy.status != ArmyStatus.Value.Attacking:
-		result.addError("AI army did not attack the player border.")
+		result.addError("AI army did not attack the player border at coalition threat.")
 	if attackArmy != null and attackArmy.targetCountryId != playerCountry.id:
-		result.addError("AI army targeted the wrong player country.")
+		result.addError("AI army targeted the wrong country at coalition threat.")
 	if sourceArmy.status != ArmyStatus.Value.Stationed or _unitCount(sourceArmy.units) < COMBAT_SIMULATION.MIN_RESERVE_ARMY_SIZE:
-		result.addError("AI player attack did not leave a stationed reserve.")
-	if sourceCountry.aiCooldownMonths < AI_WAR_SIMULATION.PLAYER_ATTACK_COOLDOWN_MONTHS:
-		result.addError("AI player attack did not apply the longer cooldown.")
+		result.addError("AI coalition attack did not leave a stationed reserve.")
 
 	var validation := RunStateValidator.validate(runState)
 	if not validation.isValid():
 		for error in validation.errors:
-			result.addError("AI player attack produced invalid RunState: %s" % error)
+			result.addError("AI coalition attack produced invalid RunState: %s" % error)
 	return result
 
 
@@ -1082,6 +1068,17 @@ func _testThreatAppliesPassiveAndActionThreat() -> ValidationResult:
 	if not is_equal_approx(enemyDefensePower, expectedDefensePower):
 		result.addError("World reaction did not boost enemy defense power.")
 
+	runState.resources["threat"] = THREAT_SIMULATION.MAX_THREAT - 5
+	var capResult: Dictionary = THREAT_SIMULATION._applyThreat(runState, 50)
+	if int(capResult.get("threat", 0)) != THREAT_SIMULATION.MAX_THREAT:
+		result.addError("Threat exceeded MAX_THREAT cap.")
+	if int(capResult.get("threatAdded", 0)) != 5:
+		result.addError("Threat cap did not adjust reported threatAdded.")
+	if str(capResult.get("threatState", "")) != "coalition":
+		result.addError("Threat at MAX_THREAT did not reach coalition state.")
+	if str(runState.worldReaction.get("level", "")) != "coalition":
+		result.addError("World reaction did not reach coalition level at MAX_THREAT.")
+
 	simulation.free()
 	bus.free()
 	return result
@@ -1099,6 +1096,11 @@ func _testThreatUiSummariesExposeWarningStates() -> ValidationResult:
 	topBarData = RUN_STATE_VIEW.createTopBarData(runState)
 	if str(topBarData.get("threatState", "")) != "critical":
 		result.addError("RunStateView did not expose critical threat state.")
+
+	runState.resources["threat"] = THREAT_SIMULATION.COALITION_THRESHOLD
+	topBarData = RUN_STATE_VIEW.createTopBarData(runState)
+	if str(topBarData.get("threatState", "")) != "coalition":
+		result.addError("RunStateView did not expose coalition threat state.")
 	return result
 
 
@@ -2393,7 +2395,7 @@ func _createAiVsPlayerWarTestRunState() -> RunState:
 	runState.resources = {
 		"gold": 0,
 		"food": 0,
-		"threat": AI_WAR_SIMULATION.HIGH_PLAYER_THREAT,
+		"threat": THREAT_SIMULATION.COALITION_THRESHOLD,
 	}
 	runState.speed = GameSpeed.Value.Normal
 	runState.runStatus = RunState.RUN_STATUS_ACTIVE

@@ -8,6 +8,7 @@ const THREAT_COLORS := {
 	"caution": Color(1.0, 0.82, 0.32, 1.0),
 	"high": Color(1.0, 0.52, 0.24, 1.0),
 	"critical": Color(1.0, 0.28, 0.24, 1.0),
+	"coalition": Color(1.0, 0.08, 0.06, 1.0),
 }
 
 @onready var goldSection: HBoxContainer = $MarginContainer/HBoxContainer/GoldSection as HBoxContainer
@@ -68,7 +69,7 @@ func _applyAssetTheme() -> void:
 	goldLabel.tooltip_text = "Wird monatlich durch eigene Länder produziert."
 	foodLabel.tooltip_text = "Wird monatlich produziert und von Armeen verbraucht."
 	armyLabel.tooltip_text = "Gesamtzahl deiner Einheiten."
-	threatLabel.tooltip_text = "Steigt durch Zeit, Kriege, Eroberungen und große Armeen."
+	threatLabel.tooltip_text = "Steigt durch Zeit, Kriege, Eroberungen und große Armeen. Bei 100% greifen alle Nachbarn an."
 	UI_ASSET_THEME.applyLabel(goldLabel, 19)
 	UI_ASSET_THEME.applyLabel(foodLabel, 19)
 	UI_ASSET_THEME.applyLabel(armyLabel, 19)

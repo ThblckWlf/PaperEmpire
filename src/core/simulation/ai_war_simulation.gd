@@ -3,20 +3,20 @@ class_name AiWarSimulation
 
 
 const COMBAT_SIMULATION := preload("res://src/core/simulation/combat_simulation.gd")
+const THREAT_SIMULATION := preload("res://src/core/simulation/threat_simulation.gd")
 
-const MAX_AI_ATTACKS_PER_DECISION_TICK: int = 3
-const ATTACK_CONFIDENCE_THRESHOLD: float = 1.25
-const PLAYER_STRONG_CONFIDENCE_THRESHOLD: float = 1.35
-const PLAYER_HIGH_THREAT_CONFIDENCE_THRESHOLD: float = 1.10
-const PLAYER_WEAK_BORDER_CONFIDENCE_THRESHOLD: float = 1.10
-const HIGH_PLAYER_THREAT: int = 60
-const NPC_ATTACK_COOLDOWN_MONTHS: int = 2
-const PLAYER_ATTACK_COOLDOWN_MONTHS: int = 3
+const MAX_AI_ATTACKS_PER_DECISION_TICK: int = 64
+const NPC_ATTACK_COOLDOWN_MONTHS: int = 0
+const PLAYER_ATTACK_COOLDOWN_MONTHS: int = 0
 
 
 static func applyMonthTick(runState: RunState, units: Array[UnitData]) -> Array[Dictionary]:
 	var events: Array[Dictionary] = []
 	if runState == null:
+		return events
+
+	if int(runState.resources.get("threat", 0)) < THREAT_SIMULATION.COALITION_THRESHOLD:
+		_tickCooldowns(runState)
 		return events
 
 	_tickCooldowns(runState)
@@ -186,6 +186,9 @@ static func _armyPowerForUnits(
 
 
 static func _isValidTarget(runState: RunState, sourceCountry: CountryData, targetCountry: CountryData) -> bool:
+	if targetCountry.ownerId != GameIds.PLAYER_OWNER_ID:
+		return false
+
 	if targetCountry.ownerId == sourceCountry.ownerId:
 		return false
 
@@ -205,44 +208,20 @@ static func _isValidTarget(runState: RunState, sourceCountry: CountryData, targe
 
 
 static func _passesConfidenceGate(
-	runState: RunState,
-	targetCountry: CountryData,
+	_runState: RunState,
+	_targetCountry: CountryData,
 	attackerPower: float,
-	defenderPower: float
+	_defenderPower: float
 ) -> bool:
-	if defenderPower <= 0.0:
-		return attackerPower > 0.0
-
-	if targetCountry.ownerId != GameIds.PLAYER_OWNER_ID:
-		return attackerPower >= defenderPower * ATTACK_CONFIDENCE_THRESHOLD
-
-	var threat := int(runState.resources.get("threat", 0))
-	if attackerPower >= defenderPower * PLAYER_STRONG_CONFIDENCE_THRESHOLD:
-		return true
-
-	if threat >= HIGH_PLAYER_THREAT and attackerPower >= defenderPower * PLAYER_HIGH_THREAT_CONFIDENCE_THRESHOLD:
-		return true
-
-	var weakBorderPower := maxf(180.0, attackerPower * 0.70)
-	if defenderPower <= weakBorderPower and attackerPower >= defenderPower * PLAYER_WEAK_BORDER_CONFIDENCE_THRESHOLD:
-		return true
-
-	return false
+	return attackerPower > 0.0
 
 
-static func _attackChance(sourceCountry: CountryData, targetCountry: CountryData, runState: RunState) -> float:
-	if sourceCountry.aiAggression >= 1.0 and sourceCountry.aiExpansionDesire >= 1.0:
-		return 1.0
-
-	var chance := 0.18 + sourceCountry.aiAggression * 0.45 + sourceCountry.aiExpansionDesire * 0.25
-	if targetCountry.ownerId == GameIds.PLAYER_OWNER_ID and int(runState.resources.get("threat", 0)) >= HIGH_PLAYER_THREAT:
-		chance += 0.15
-	return clampf(chance, 0.05, 0.80)
+static func _attackChance(_sourceCountry: CountryData, _targetCountry: CountryData, _runState: RunState) -> float:
+	return 1.0
 
 
-static func _cooldownMonthsForAttack(sourceCountry: CountryData, targetWasPlayer: bool) -> int:
-	var minimumCooldown := PLAYER_ATTACK_COOLDOWN_MONTHS if targetWasPlayer else NPC_ATTACK_COOLDOWN_MONTHS
-	return maxi(minimumCooldown, sourceCountry.aiAttackCooldownMonths)
+static func _cooldownMonthsForAttack(_sourceCountry: CountryData, _targetWasPlayer: bool) -> int:
+	return 0
 
 
 static func _targetScore(
