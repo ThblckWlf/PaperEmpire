@@ -563,6 +563,20 @@ func _testRecruitmentAppliesRules() -> ValidationResult:
 	var blockedRecruit: Dictionary = RECRUITMENT_SIMULATION.applyRecruitment(runState, &"usa", GameIds.INFANTRY_UNIT_ID, 1, units, &"army_start")
 	if bool(blockedRecruit.get("accepted", false)):
 		result.addError("RecruitmentSimulation ignored recruitmentBlocked.")
+	runState.economy["recruitmentBlocked"] = false
+	var usa := runState.countries[&"usa"] as CountryData
+	usa.isUnderAttack = true
+	var underAttackRecruit: Dictionary = RECRUITMENT_SIMULATION.applyRecruitment(runState, &"usa", GameIds.INFANTRY_UNIT_ID, 1, units, &"army_start")
+	if bool(underAttackRecruit.get("accepted", false)) or str(underAttackRecruit.get("reason", "")) != "country_under_attack":
+		result.addError("RecruitmentSimulation allowed recruitment in an attacked country.")
+	var underAttackCreate: Dictionary = RECRUITMENT_SIMULATION.createArmy(runState, &"usa")
+	if bool(underAttackCreate.get("accepted", false)) or str(underAttackCreate.get("reason", "")) != "country_under_attack":
+		result.addError("RecruitmentSimulation allowed new army creation in an attacked country.")
+	var underAttackEdit: Dictionary = RECRUITMENT_SIMULATION.updateArmyComposition(runState, &"army_start", {
+		GameIds.INFANTRY_UNIT_ID: NewRunFactory.START_INFANTRY + 2,
+	}, units)
+	if bool(underAttackEdit.get("accepted", false)) or str(underAttackEdit.get("reason", "")) != "country_under_attack":
+		result.addError("RecruitmentSimulation allowed army editing in an attacked country.")
 	return result
 
 
@@ -650,15 +664,30 @@ func _testCombatStartsValidAttacks() -> ValidationResult:
 	if not runState.battles.is_empty():
 		result.addError("CombatSimulation created BattleData before the attacker arrived.")
 
-	var army := runState.armies[&"army_start"] as ArmyData
-	if army.status != ArmyStatus.Value.Attacking:
-		result.addError("CombatSimulation did not set attacker status.")
-	if army.targetCountryId != &"can":
-		result.addError("CombatSimulation did not set attacker target.")
+	var reserveArmy := runState.armies[&"army_start"] as ArmyData
+	var attackArmyId := StringName(str(attack.get("armyId", "")))
+	var attackArmy := runState.armies.get(attackArmyId, null) as ArmyData
+	if attackArmy == null:
+		result.addError("CombatSimulation did not create a separate attack army.")
+	elif attackArmy.status != ArmyStatus.Value.Attacking:
+		result.addError("CombatSimulation did not set attack army status.")
+	elif attackArmy.targetCountryId != &"can":
+		result.addError("CombatSimulation did not set attack army target.")
+	if reserveArmy.status != ArmyStatus.Value.Stationed:
+		result.addError("CombatSimulation did not keep reserve stationed.")
+	if _unitCount(reserveArmy.units) != int(attack.get("reserveUnitCount", -1)):
+		result.addError("CombatSimulation reserve count does not match payload.")
+	if attackArmy != null and _unitCount(attackArmy.units) + _unitCount(reserveArmy.units) != NewRunFactory.START_INFANTRY + NewRunFactory.START_CAVALRY + NewRunFactory.START_ARTILLERY:
+		result.addError("CombatSimulation lost units while splitting attack and reserve.")
 
-	var secondAttack: Dictionary = COMBAT_SIMULATION.startAttack(runState, &"army_start", &"mex", PrototypeContentLoader.loadUnits())
-	if bool(secondAttack.get("accepted", false)):
-		result.addError("CombatSimulation accepted an attack from a non-stationed army.")
+	var smallRunState := NewRunFactory.createNewRun(&"usa")
+	var smallArmy := smallRunState.armies[&"army_start"] as ArmyData
+	smallArmy.units = {
+		GameIds.INFANTRY_UNIT_ID: 6,
+	}
+	var smallAttack: Dictionary = COMBAT_SIMULATION.startAttack(smallRunState, &"army_start", &"can", PrototypeContentLoader.loadUnits())
+	if bool(smallAttack.get("accepted", false)):
+		result.addError("CombatSimulation accepted an attack from a too-small army.")
 
 	var validation := RunStateValidator.validate(runState)
 	if not validation.isValid():
@@ -677,15 +706,28 @@ func _testSimulationCompletesBattleAndConquest() -> ValidationResult:
 	manager.setEventBus(bus)
 	manager.setSimulationManager(simulation)
 	manager.startNewRun("usa")
+	var startingArmy := manager.getCurrentRunState().armies[&"army_start"] as ArmyData
+	startingArmy.units = {
+		GameIds.INFANTRY_UNIT_ID: 160,
+		GameIds.CAVALRY_UNIT_ID: 20,
+		GameIds.ARTILLERY_UNIT_ID: 10,
+	}
 
 	bus.requestCommand(CommandType.START_ATTACK, {
 		"armyId": "army_start",
 		"targetCountryId": "can",
 	})
 
-	var army := manager.getCurrentRunState().armies[&"army_start"] as ArmyData
-	if army.status != ArmyStatus.Value.Attacking:
-		result.addError("start_attack command did not set army attacking.")
+	var reserveArmy := manager.getCurrentRunState().armies[&"army_start"] as ArmyData
+	var army := _attackingArmyForTarget(manager.getCurrentRunState(), &"can", GameIds.PLAYER_OWNER_ID)
+	if army == null:
+		result.addError("start_attack command did not create an attack army.")
+	elif army.status != ArmyStatus.Value.Attacking:
+		result.addError("start_attack command did not set attack army attacking.")
+	if reserveArmy == null or reserveArmy.status != ArmyStatus.Value.Stationed or reserveArmy.locationCountryId != &"usa":
+		result.addError("start_attack command did not leave a stationed reserve.")
+	elif _unitCount(reserveArmy.units) < COMBAT_SIMULATION.MIN_RESERVE_ARMY_SIZE:
+		result.addError("start_attack command left too small a reserve.")
 
 	simulation.stepSimulation(ARMY_MOVEMENT_SIMULATION.MOVEMENT_SECONDS_PER_EDGE * 1.5 + COMBAT_SIMULATION.BATTLE_DURATION_SECONDS)
 	if not _capturedEvent(EventType.BATTLE_STARTED):
@@ -693,11 +735,13 @@ func _testSimulationCompletesBattleAndConquest() -> ValidationResult:
 	var targetCountry := manager.getCurrentRunState().countries[&"can"] as CountryData
 	if targetCountry.ownerId != GameIds.PLAYER_OWNER_ID:
 		result.addError("SimulationManager did not conquer target country.")
-	if army.locationCountryId != &"can":
+	if army != null and army.locationCountryId != &"can":
 		result.addError("Conquering army did not station in target country.")
-	if army.status != ArmyStatus.Value.Stationed:
+	if army != null and army.status != ArmyStatus.Value.Stationed:
 		result.addError("Conquering army did not return to stationed status.")
-	if _unitCount(army.units) < 0:
+	if reserveArmy != null and (reserveArmy.locationCountryId != &"usa" or reserveArmy.status != ArmyStatus.Value.Stationed):
+		result.addError("Reserve army did not stay in the source country.")
+	if army != null and _unitCount(army.units) < 0:
 		result.addError("Combat casualties produced negative unit count.")
 	if not _capturedEvent(EventType.BATTLE_ENDED):
 		result.addError("SimulationManager did not emit battleEnded.")
@@ -728,15 +772,18 @@ func _testAiWarStartsAdjacentNpcAttack() -> ValidationResult:
 	var sourceCountry := runState.countries[&"aiSource"] as CountryData
 	var targetCountry := runState.countries[&"aiTarget"] as CountryData
 	var sourceArmy := runState.armies[&"army_ai_source"] as ArmyData
+	var attackArmy := _attackingArmyForTarget(runState, targetCountry.id, sourceCountry.ownerId)
 
 	if not _eventRowsContain(events, EventType.AI_ATTACK_STARTED):
 		result.addError("AiWarSimulation did not emit aiAttackStarted.")
 	if not _eventRowsContain(events, EventType.ARMY_MOVE_STARTED):
 		result.addError("AiWarSimulation did not reuse armyMoveStarted for movement visuals.")
-	if sourceArmy.status != ArmyStatus.Value.Attacking:
-		result.addError("AI army did not enter attacking status.")
-	if sourceArmy.targetCountryId != targetCountry.id:
+	if attackArmy == null or attackArmy.status != ArmyStatus.Value.Attacking:
+		result.addError("AI attack army did not enter attacking status.")
+	if attackArmy != null and attackArmy.targetCountryId != targetCountry.id:
 		result.addError("AI army did not choose the adjacent target.")
+	if sourceArmy.status != ArmyStatus.Value.Stationed or _unitCount(sourceArmy.units) < COMBAT_SIMULATION.MIN_RESERVE_ARMY_SIZE:
+		result.addError("AI attack did not leave a stationed reserve.")
 	if sourceCountry.aiCooldownMonths < AI_WAR_SIMULATION.NPC_ATTACK_COOLDOWN_MONTHS:
 		result.addError("AI attack did not apply source cooldown.")
 	if not targetCountry.isUnderAttack:
@@ -756,15 +803,18 @@ func _testAiWarCanAttackThreatenedPlayerBorder() -> ValidationResult:
 	var sourceCountry := runState.countries[&"aiSource"] as CountryData
 	var playerCountry := runState.countries[&"playerBorder"] as CountryData
 	var sourceArmy := runState.armies[&"army_ai_source"] as ArmyData
+	var attackArmy := _attackingArmyForTarget(runState, playerCountry.id, sourceCountry.ownerId)
 
 	if not _eventRowsContain(events, EventType.PLAYER_ATTACKED):
 		result.addError("AiWarSimulation did not emit playerAttacked.")
 	if not _eventRowsContain(events, EventType.AI_ATTACK_STARTED):
 		result.addError("AiWarSimulation did not emit aiAttackStarted for player attack.")
-	if sourceArmy.status != ArmyStatus.Value.Attacking:
+	if attackArmy == null or attackArmy.status != ArmyStatus.Value.Attacking:
 		result.addError("AI army did not attack the player border.")
-	if sourceArmy.targetCountryId != playerCountry.id:
+	if attackArmy != null and attackArmy.targetCountryId != playerCountry.id:
 		result.addError("AI army targeted the wrong player country.")
+	if sourceArmy.status != ArmyStatus.Value.Stationed or _unitCount(sourceArmy.units) < COMBAT_SIMULATION.MIN_RESERVE_ARMY_SIZE:
+		result.addError("AI player attack did not leave a stationed reserve.")
 	if sourceCountry.aiCooldownMonths < AI_WAR_SIMULATION.PLAYER_ATTACK_COOLDOWN_MONTHS:
 		result.addError("AI player attack did not apply the longer cooldown.")
 
@@ -1336,9 +1386,12 @@ func _testMainUiLayoutBindsStateAndCommands() -> ValidationResult:
 		result.addError("CountryPanel did not expose a valid attack button.")
 	else:
 		attackButton.emit_signal("pressed")
-		var selectedArmy := gameManager.getCurrentRunState().armies.get(&"army_start", null) as ArmyData
+		var selectedArmy := gameManager.getCurrentRunState().armies.get(gameManager.getSelectedArmyId(), null) as ArmyData
 		if selectedArmy == null or selectedArmy.status != ArmyStatus.Value.Attacking:
-			result.addError("Attack button did not start the selected army attack.")
+			result.addError("Attack button did not start an attack army.")
+		var reserveArmy := gameManager.getCurrentRunState().armies.get(&"army_start", null) as ArmyData
+		if reserveArmy == null or reserveArmy.status != ArmyStatus.Value.Stationed:
+			result.addError("Attack button did not leave the source reserve stationed.")
 
 	var pauseButton := main.get_node("GameRoot/UIRoot/Root/BottomBar/MarginContainer/HBoxContainer/PauseButton") as Button
 	pauseButton.emit_signal("pressed")
@@ -2057,6 +2110,13 @@ func _testVerticalSliceMiniRunReachesWinStatus() -> ValidationResult:
 		result.addError("Vertical slice save/load did not restore resources.")
 
 	var finalTargetId := &"mex"
+	var finalArmy := manager.getCurrentRunState().armies.get(manager.getSelectedArmyId(), null) as ArmyData
+	if finalArmy != null:
+		finalArmy.units = {
+			GameIds.INFANTRY_UNIT_ID: 180,
+			GameIds.CAVALRY_UNIT_ID: 24,
+			GameIds.ARTILLERY_UNIT_ID: 12,
+		}
 	for countryId in manager.getCurrentRunState().countries.keys():
 		var country := manager.getCurrentRunState().countries[countryId] as CountryData
 		if country != null and country.id != finalTargetId:
@@ -2375,6 +2435,16 @@ func _unitCount(units: Dictionary) -> int:
 	for unitId in units.keys():
 		total += int(units.get(unitId, 0))
 	return total
+
+
+func _attackingArmyForTarget(runState: RunState, targetCountryId: StringName, ownerId: StringName) -> ArmyData:
+	for armyId in runState.armies.keys():
+		var army := runState.armies[armyId] as ArmyData
+		if army == null:
+			continue
+		if army.ownerId == ownerId and army.status == ArmyStatus.Value.Attacking and army.targetCountryId == targetCountryId:
+			return army
+	return null
 
 
 func _countryDefenseWithLocalArmies(runState: RunState, country: CountryData, units: Array[UnitData]) -> float:

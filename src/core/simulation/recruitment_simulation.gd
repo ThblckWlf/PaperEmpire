@@ -80,6 +80,10 @@ static func createArmy(runState: RunState, countryId: StringName) -> Dictionary:
 		result["reason"] = "country_not_owned"
 		return result
 
+	if _isCountryUnderAttack(runState, countryId):
+		result["reason"] = "country_under_attack"
+		return result
+
 	var army := ArmyData.new()
 	army.id = _nextArmyId(runState)
 	army.ownerId = GameIds.PLAYER_OWNER_ID
@@ -113,6 +117,10 @@ static func createArmyForOwner(
 
 	if not runState.countries.has(countryId):
 		result["reason"] = "unknown_country"
+		return result
+
+	if _isCountryUnderAttack(runState, countryId):
+		result["reason"] = "country_under_attack"
 		return result
 
 	var army := ArmyData.new()
@@ -173,6 +181,10 @@ static func _validateRecruitment(
 		result["reason"] = "country_not_owned"
 		return result
 
+	if _isCountryUnderAttack(runState, countryId):
+		result["reason"] = "country_under_attack"
+		return result
+
 	var unitData := _unitById(units, unitId)
 	if unitData == null:
 		result["reason"] = "unknown_unit"
@@ -226,6 +238,10 @@ static func _validateCompositionUpdate(
 		result["reason"] = "army_not_owned"
 		return result
 
+	if _isCountryUnderAttack(runState, army.locationCountryId):
+		result["reason"] = "country_under_attack"
+		return result
+
 	if army.status != ArmyStatus.Value.Stationed:
 		result["reason"] = "army_not_stationed"
 		return result
@@ -275,6 +291,23 @@ static func _canRecruitIntoArmy(army: ArmyData, countryId: StringName) -> bool:
 		and army.locationCountryId == countryId
 		and army.status == ArmyStatus.Value.Stationed
 	)
+
+
+static func _isCountryUnderAttack(runState: RunState, countryId: StringName) -> bool:
+	var country := runState.countries.get(countryId, null) as CountryData
+	if country != null and country.isUnderAttack:
+		return true
+
+	for armyId in runState.armies.keys():
+		var army := runState.armies[armyId] as ArmyData
+		if army != null and army.status == ArmyStatus.Value.Attacking and army.targetCountryId == countryId:
+			return true
+
+	for battleId in runState.battles.keys():
+		var battle = runState.battles[battleId]
+		if battle != null and battle.status == BattleStatus.Value.Active and StringName(str(battle.get("targetCountryId"))) == countryId:
+			return true
+	return false
 
 
 static func _compositionGoldCost(

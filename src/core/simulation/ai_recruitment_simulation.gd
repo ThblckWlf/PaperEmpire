@@ -24,6 +24,8 @@ static func applyMonthTick(runState: RunState, units: Array[UnitData]) -> Array[
 		var country := runState.countries[countryId] as CountryData
 		if country == null or country.ownerId == GameIds.PLAYER_OWNER_ID:
 			continue
+		if country.isUnderAttack:
+			continue
 
 		var storedGold := int(runState.aiGoldByCountry.get(country.id, 0))
 		storedGold += maxi(0, country.goldPerMonth)

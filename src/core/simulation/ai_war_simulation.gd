@@ -12,8 +12,6 @@ const PLAYER_WEAK_BORDER_CONFIDENCE_THRESHOLD: float = 1.10
 const HIGH_PLAYER_THREAT: int = 60
 const NPC_ATTACK_COOLDOWN_MONTHS: int = 2
 const PLAYER_ATTACK_COOLDOWN_MONTHS: int = 3
-const MIN_SOURCE_DEFENSE_AFTER_ATTACK: int = 1
-const RESERVE_POWER_RATIO: float = 0.30
 
 
 static func applyMonthTick(runState: RunState, units: Array[UnitData]) -> Array[Dictionary]:
@@ -38,7 +36,7 @@ static func applyMonthTick(runState: RunState, units: Array[UnitData]) -> Array[
 		if sourceCountry == null or targetCountry == null:
 			continue
 
-		if sourceCountry.aiCooldownMonths > 0 or targetCountry.isUnderAttack:
+		if sourceCountry.aiCooldownMonths > 0 or sourceCountry.isUnderAttack or targetCountry.isUnderAttack:
 			continue
 
 		var attackResult: Dictionary = COMBAT_SIMULATION.startAttack(
@@ -112,6 +110,8 @@ static func _collectAttackCandidates(runState: RunState, units: Array[UnitData])
 
 		if sourceCountry.aiCooldownMonths > 0:
 			continue
+		if sourceCountry.isUnderAttack:
+			continue
 
 		var readyArmies := _readyArmiesAtCountry(runState, sourceCountry)
 		if readyArmies.is_empty():
@@ -126,19 +126,23 @@ static func _collectAttackCandidates(runState: RunState, units: Array[UnitData])
 				continue
 
 			var defenderUnits := _stationedDefenderUnits(runState, targetCountry.id, sourceCountry.ownerId)
-			var attackerPower := _attackerPower(runState, sourceCountry, readyArmies, targetCountry, defenderUnits, units)
 			var attackerArmy := _primaryAttackArmy(runState, sourceCountry, readyArmies, targetCountry, defenderUnits, units)
 			if attackerArmy == null:
 				continue
 
-			var selectedArmyPower := COMBAT_SIMULATION.calculateArmyCombatPower(attackerArmy, units, {}, {
-				"targetDefense": targetCountry.defense,
-				"opposingUnits": defenderUnits,
-			})
-			if not _sourceCanSendArmy(sourceCountry, readyArmies, selectedArmyPower, attackerPower):
+			var splitResult: Dictionary = COMBAT_SIMULATION.splitUnitsForAttack(attackerArmy.units)
+			if not bool(splitResult.get("accepted", false)):
 				continue
 
-			var defenderPower := _targetDefensePower(runState, targetCountry, sourceCountry.ownerId, units, _combinedUnitsForArmies(readyArmies))
+			var attackingUnits := splitResult.get("attackingUnits", {}) as Dictionary
+			var reserveUnits := splitResult.get("reserveUnits", {}) as Dictionary
+			var attackerPower := _armyPowerForUnits(runState, sourceCountry.ownerId, attackingUnits, targetCountry, defenderUnits, units)
+			var reservePower := _armyPowerForUnits(runState, sourceCountry.ownerId, reserveUnits, sourceCountry, {}, units)
+			if reservePower <= 0.0:
+				print("AI skipped attack: not enough reserve.")
+				continue
+
+			var defenderPower := _targetDefensePower(runState, targetCountry, sourceCountry.ownerId, units, attackingUnits)
 			if not _passesConfidenceGate(runState, targetCountry, attackerPower, defenderPower):
 				continue
 
@@ -154,10 +158,31 @@ static func _collectAttackCandidates(runState: RunState, units: Array[UnitData])
 				"targetOwnerId": targetCountry.ownerId,
 				"attackerPower": attackerPower,
 				"defenderPower": defenderPower,
+				"reservePower": reservePower,
+				"attackingUnitCount": int(splitResult.get("attackingUnitCount", 0)),
+				"reserveUnitCount": int(splitResult.get("reserveUnitCount", 0)),
 				"score": _targetScore(sourceCountry, targetCountry, attackerPower, defenderPower, rng),
 				"targetIsPlayer": targetCountry.ownerId == GameIds.PLAYER_OWNER_ID,
 			})
 	return candidates
+
+
+static func _armyPowerForUnits(
+	runState: RunState,
+	ownerId: StringName,
+	armyUnits: Dictionary,
+	targetCountry: CountryData,
+	defenderUnits: Dictionary,
+	units: Array[UnitData]
+) -> float:
+	var projectedArmy := ArmyData.new()
+	projectedArmy.ownerId = ownerId
+	projectedArmy.units = armyUnits
+	var economy := runState.economy if ownerId == GameIds.PLAYER_OWNER_ID else {}
+	return COMBAT_SIMULATION.calculateArmyCombatPower(projectedArmy, units, economy, {
+		"targetDefense": targetCountry.defense,
+		"opposingUnits": defenderUnits,
+	})
 
 
 static func _isValidTarget(runState: RunState, sourceCountry: CountryData, targetCountry: CountryData) -> bool:
@@ -291,34 +316,23 @@ static func _primaryAttackArmy(
 ) -> ArmyData:
 	var bestArmy: ArmyData = null
 	var bestPower := -1.0
-	var economy := runState.economy if sourceCountry.ownerId == GameIds.PLAYER_OWNER_ID else {}
 	for army in readyArmies:
-		var power := COMBAT_SIMULATION.calculateArmyCombatPower(army, units, economy, {
-			"targetDefense": targetCountry.defense,
-			"opposingUnits": defenderUnits,
-		})
+		var splitResult: Dictionary = COMBAT_SIMULATION.splitUnitsForAttack(army.units)
+		if not bool(splitResult.get("accepted", false)):
+			continue
+
+		var power := _armyPowerForUnits(
+			runState,
+			sourceCountry.ownerId,
+			splitResult.get("attackingUnits", {}) as Dictionary,
+			targetCountry,
+			defenderUnits,
+			units
+		)
 		if power > bestPower:
 			bestPower = power
 			bestArmy = army
 	return bestArmy
-
-
-static func _attackerPower(
-	runState: RunState,
-	sourceCountry: CountryData,
-	readyArmies: Array[ArmyData],
-	targetCountry: CountryData,
-	defenderUnits: Dictionary,
-	units: Array[UnitData]
-) -> float:
-	var power := 0.0
-	var economy := runState.economy if sourceCountry.ownerId == GameIds.PLAYER_OWNER_ID else {}
-	for army in readyArmies:
-		power += COMBAT_SIMULATION.calculateArmyCombatPower(army, units, economy, {
-			"targetDefense": targetCountry.defense,
-			"opposingUnits": defenderUnits,
-		})
-	return maxf(power, 0.0)
 
 
 static func _targetDefensePower(
@@ -368,33 +382,6 @@ static func _stationedDefenderUnits(runState: RunState, targetCountryId: StringN
 			var normalizedId := StringName(str(unitId))
 			combined[normalizedId] = int(combined.get(normalizedId, 0)) + maxi(0, int(army.units.get(unitId, 0)))
 	return combined
-
-
-static func _combinedUnitsForArmies(armies: Array[ArmyData]) -> Dictionary:
-	var combined := {}
-	for army in armies:
-		if army == null:
-			continue
-
-		for unitId in army.units.keys():
-			var normalizedId := StringName(str(unitId))
-			combined[normalizedId] = int(combined.get(normalizedId, 0)) + maxi(0, int(army.units.get(unitId, 0)))
-	return combined
-
-
-static func _sourceCanSendArmy(
-	sourceCountry: CountryData,
-	readyArmies: Array[ArmyData],
-	selectedArmyPower: float,
-	totalReadyPower: float
-) -> bool:
-	if sourceCountry.defense >= MIN_SOURCE_DEFENSE_AFTER_ATTACK:
-		return true
-
-	if readyArmies.size() <= 1:
-		return false
-
-	return totalReadyPower - selectedArmyPower >= totalReadyPower * RESERVE_POWER_RATIO
 
 
 static func _ownerAlreadyAttackingTarget(runState: RunState, ownerId: StringName, targetCountryId: StringName) -> bool:

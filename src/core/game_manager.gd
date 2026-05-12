@@ -216,7 +216,7 @@ func _startAttack(armyId: StringName, targetCountryId: StringName) -> void:
 		_reportWarning("Cannot start attack: %s" % str(attackResult.get("reason", "unknown_reason")))
 		return
 
-	selectedArmyId = armyId
+	selectedArmyId = StringName(str(attackResult.get("armyId", armyId)))
 	selectedCountryId = targetCountryId
 	var threatResult: Dictionary = THREAT_SIMULATION.applyActionThreat(currentRunState, THREAT_SIMULATION.ACTION_WAR_STARTED)
 	attackResult["threatAdded"] = int(threatResult.get("threatAdded", 0))
@@ -346,6 +346,9 @@ func _recruitUnits(
 		armyId
 	)
 	if not bool(recruitResult.get("accepted", false)):
+		if str(recruitResult.get("reason", "")) == "country_under_attack":
+			_reportWarning("Nicht möglich: Land wird angegriffen.")
+			return
 		if str(recruitResult.get("reason", "")) == "not_enough_gold":
 			_raiseEvent(EventType.NOT_ENOUGH_GOLD, recruitResult)
 		_reportWarning("Cannot recruit units: %s" % str(recruitResult.get("reason", "unknown_reason")))
@@ -368,6 +371,9 @@ func _updateArmyComposition(armyId: StringName, targetUnits: Dictionary) -> void
 		PrototypeContentLoader.loadUnits()
 	)
 	if not bool(updateResult.get("accepted", false)):
+		if str(updateResult.get("reason", "")) == "country_under_attack":
+			_reportWarning("Nicht möglich: Land wird angegriffen.")
+			return
 		if str(updateResult.get("reason", "")) == "not_enough_gold":
 			_raiseEvent(EventType.NOT_ENOUGH_GOLD, updateResult)
 		_reportWarning("Cannot update army: %s" % str(updateResult.get("reason", "unknown_reason")))
@@ -383,6 +389,9 @@ func _updateArmyComposition(armyId: StringName, targetUnits: Dictionary) -> void
 func _createArmy(countryId: StringName) -> void:
 	var createResult: Dictionary = RECRUITMENT_SIMULATION.createArmy(currentRunState, countryId)
 	if not bool(createResult.get("accepted", false)):
+		if str(createResult.get("reason", "")) == "country_under_attack":
+			_reportWarning("Nicht möglich: Land wird angegriffen.")
+			return
 		_reportWarning("Cannot create army: %s" % str(createResult.get("reason", "unknown_reason")))
 		return
 

@@ -9,6 +9,10 @@ const MAX_WIN_CASUALTY_RATE: float = 0.35
 const MIN_LOSS_CASUALTY_RATE: float = 0.70
 const MAX_LOSS_CASUALTY_RATE: float = 1.0
 const MIN_CASUALTIES_WHEN_DAMAGED: int = 1
+const ATTACK_PORTION: float = 0.70
+const RESERVE_PORTION: float = 0.30
+const MIN_ATTACK_ARMY_SIZE: int = 5
+const MIN_RESERVE_ARMY_SIZE: int = 3
 const BATTLE_DATA := preload("res://src/core/model/battle_data.gd")
 
 
@@ -72,14 +76,72 @@ static func startAttack(
 		return result
 
 	var army := runState.armies[armyId] as ArmyData
-	army.status = ArmyStatus.Value.Attacking
-	army.targetCountryId = targetCountryId
+	var splitResult := splitUnitsForAttack(army.units)
+	if not bool(splitResult.get("accepted", false)):
+		result["accepted"] = false
+		result["reason"] = str(splitResult.get("reason", "invalid_attack_split"))
+		result["attackingUnitCount"] = int(splitResult.get("attackingUnitCount", 0))
+		result["reserveUnitCount"] = int(splitResult.get("reserveUnitCount", 0))
+		return result
+
+	var attackArmy := ArmyData.new()
+	attackArmy.id = _nextAttackArmyId(runState)
+	attackArmy.ownerId = army.ownerId
+	attackArmy.locationCountryId = army.locationCountryId
+	attackArmy.targetCountryId = targetCountryId
+	attackArmy.units = (splitResult.get("attackingUnits", {}) as Dictionary).duplicate(true)
+	attackArmy.status = ArmyStatus.Value.Attacking
+	attackArmy.movementProgress = 0.0
+	runState.armies[attackArmy.id] = attackArmy
+
+	army.units = (splitResult.get("reserveUnits", {}) as Dictionary).duplicate(true)
+	army.status = ArmyStatus.Value.Stationed
+	army.targetCountryId = GameIds.EMPTY_ID
 	army.movementProgress = 0.0
 
-	result["sourceCountryId"] = army.locationCountryId
-	result["attackerOwnerId"] = army.ownerId
-	result["targetOwnerId"] = (runState.countries[targetCountryId] as CountryData).ownerId
+	var targetCountry := runState.countries[targetCountryId] as CountryData
+	targetCountry.isUnderAttack = true
+
+	result["armyId"] = attackArmy.id
+	result["sourceArmyId"] = armyId
+	result["reserveArmyId"] = armyId
+	result["sourceCountryId"] = attackArmy.locationCountryId
+	result["attackerOwnerId"] = attackArmy.ownerId
+	result["targetOwnerId"] = targetCountry.ownerId
 	result["isAttack"] = true
+	result["attackingUnits"] = attackArmy.units.duplicate(true)
+	result["reserveUnits"] = army.units.duplicate(true)
+	result["attackingUnitCount"] = int(splitResult.get("attackingUnitCount", 0))
+	result["reserveUnitCount"] = int(splitResult.get("reserveUnitCount", 0))
+	return result
+
+
+static func splitUnitsForAttack(units: Dictionary) -> Dictionary:
+	var result := {
+		"accepted": false,
+		"reason": "",
+		"attackingUnits": {},
+		"reserveUnits": {},
+		"attackingUnitCount": 0,
+		"reserveUnitCount": 0,
+	}
+	var totalUnits := _unitCount(units)
+	var attackingUnitCount := int(floor(float(totalUnits) * ATTACK_PORTION))
+	var reserveUnitCount := totalUnits - attackingUnitCount
+	result["attackingUnitCount"] = attackingUnitCount
+	result["reserveUnitCount"] = reserveUnitCount
+
+	if attackingUnitCount < MIN_ATTACK_ARMY_SIZE:
+		result["reason"] = "attack_army_too_small"
+		return result
+	if reserveUnitCount < MIN_RESERVE_ARMY_SIZE:
+		result["reason"] = "reserve_army_too_small"
+		return result
+
+	var split := _proportionalUnitSplit(units, attackingUnitCount, totalUnits)
+	result["attackingUnits"] = split.get("attackingUnits", {})
+	result["reserveUnits"] = split.get("reserveUnits", {})
+	result["accepted"] = true
 	return result
 
 
@@ -285,6 +347,10 @@ static func _validateAttack(runState: RunState, armyId: StringName, targetCountr
 		result["reason"] = "target_already_owned"
 		return result
 
+	if targetCountry.isUnderAttack:
+		result["reason"] = "target_under_attack"
+		return result
+
 	if _hasActiveBattleFor(runState, armyId, targetCountryId):
 		result["reason"] = "battle_already_active"
 		return result
@@ -394,6 +460,47 @@ static func _combinedUnits(runState: RunState, armyIds: Array[StringName]) -> Di
 	return combined
 
 
+static func _proportionalUnitSplit(units: Dictionary, attackingUnitCount: int, totalUnits: int) -> Dictionary:
+	var attackingUnits := {}
+	var reserveUnits := {}
+	var remainders: Array[Dictionary] = []
+	var assignedAttackers := 0
+	var unitIds := units.keys()
+	unitIds.sort()
+	for unitId in unitIds:
+		var normalizedId := StringName(str(unitId))
+		var amount := maxi(0, int(units.get(unitId, 0)))
+		var exactAttackers := float(amount * attackingUnitCount) / maxf(float(totalUnits), 1.0)
+		var attackers := mini(amount, int(floor(exactAttackers)))
+		attackingUnits[normalizedId] = attackers
+		reserveUnits[normalizedId] = amount - attackers
+		assignedAttackers += attackers
+		remainders.append({
+			"unitId": normalizedId,
+			"remainder": exactAttackers - float(attackers),
+		})
+
+	remainders.sort_custom(_sortRemainderDescending)
+	var missingAttackers := attackingUnitCount - assignedAttackers
+	for row in remainders:
+		if missingAttackers <= 0:
+			break
+
+		var unitId := StringName(str(row.get("unitId", GameIds.EMPTY_ID)))
+		var reserveAmount := int(reserveUnits.get(unitId, 0))
+		if reserveAmount <= 0:
+			continue
+
+		attackingUnits[unitId] = int(attackingUnits.get(unitId, 0)) + 1
+		reserveUnits[unitId] = reserveAmount - 1
+		missingAttackers -= 1
+
+	return {
+		"attackingUnits": attackingUnits,
+		"reserveUnits": reserveUnits,
+	}
+
+
 static func _applyDefenderCasualties(runState: RunState, defenderArmyIds: Array[StringName], casualtyRate: float) -> Dictionary:
 	var casualties := {}
 	for defenderArmyId in defenderArmyIds:
@@ -493,6 +600,14 @@ static func _hasActiveBattleFor(runState: RunState, armyId: StringName, targetCo
 	return false
 
 
+static func _sortRemainderDescending(left: Dictionary, right: Dictionary) -> bool:
+	var leftRemainder := float(left.get("remainder", 0.0))
+	var rightRemainder := float(right.get("remainder", 0.0))
+	if not is_equal_approx(leftRemainder, rightRemainder):
+		return leftRemainder > rightRemainder
+	return str(left.get("unitId", "")) < str(right.get("unitId", ""))
+
+
 static func _battlePayload(battle: Variant) -> Dictionary:
 	var attackerArmyIds: Array[StringName] = battle.attackerArmyIds.duplicate()
 	if attackerArmyIds.is_empty() and battle.attackerArmyId != GameIds.EMPTY_ID:
@@ -533,6 +648,13 @@ static func _nextBattleId(runState: RunState) -> StringName:
 	while runState.battles.has(StringName("battle_%d" % nextIndex)):
 		nextIndex += 1
 	return StringName("battle_%d" % nextIndex)
+
+
+static func _nextAttackArmyId(runState: RunState) -> StringName:
+	var nextIndex := 1
+	while runState.armies.has(StringName("army_attack_%d" % nextIndex)):
+		nextIndex += 1
+	return StringName("army_attack_%d" % nextIndex)
 
 
 static func _dictionaryValue(value: Variant) -> Dictionary:

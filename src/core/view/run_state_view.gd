@@ -72,7 +72,7 @@ static func createCountryPanelData(
 		"ownerId": country.ownerId,
 		"ownerText": _ownerText(runState, country.ownerId),
 		"isPlayerOwned": country.ownerId == GameIds.PLAYER_OWNER_ID,
-		"canRecruit": country.ownerId == GameIds.PLAYER_OWNER_ID and not bool(runState.economy.get("recruitmentBlocked", false)),
+		"canRecruit": country.ownerId == GameIds.PLAYER_OWNER_ID and not bool(runState.economy.get("recruitmentBlocked", false)) and not _isCountryUnderAttack(runState, country.id),
 		"goldPerMonth": country.goldPerMonth,
 		"foodPerMonth": country.foodPerMonth,
 		"defense": country.defense,
@@ -131,7 +131,7 @@ static func createArmyPanelData(
 		"name": str(army.id),
 		"ownerId": army.ownerId,
 		"isPlayerOwned": army.ownerId == GameIds.PLAYER_OWNER_ID,
-		"canEdit": army.ownerId == GameIds.PLAYER_OWNER_ID and army.status == ArmyStatus.Value.Stationed,
+		"canEdit": army.ownerId == GameIds.PLAYER_OWNER_ID and army.status == ArmyStatus.Value.Stationed and not _isCountryUnderAttack(runState, army.locationCountryId),
 		"playerCountryId": _playerCountryId(runState),
 		"playerCountryName": _playerCountryName(runState),
 		"selectedCountryId": selectedCountryId,
@@ -333,7 +333,7 @@ static func _canCreateArmyInCountry(runState: RunState, countryId: StringName) -
 		return false
 
 	var country := runState.countries[countryId] as CountryData
-	return country != null and country.ownerId == GameIds.PLAYER_OWNER_ID
+	return country != null and country.ownerId == GameIds.PLAYER_OWNER_ID and not _isCountryUnderAttack(runState, country.id)
 
 
 static func _canSelectedArmyAttack(runState: RunState, armyId: StringName, targetCountryId: StringName) -> bool:
@@ -350,6 +350,8 @@ static func _canSelectedArmyAttack(runState: RunState, armyId: StringName, targe
 
 	if targetCountry.ownerId == GameIds.PLAYER_OWNER_ID or _unitCount(army.units) <= 0:
 		return false
+	if targetCountry.isUnderAttack:
+		return false
 
 	var sourceCountry := runState.countries.get(army.locationCountryId, null) as CountryData
 	return sourceCountry != null and sourceCountry.neighbors.has(targetCountryId) and not _hasActiveBattleFor(runState, armyId, targetCountryId)
@@ -364,6 +366,8 @@ static func _attackBlockedReason(runState: RunState, armyId: StringName, targetC
 		return "Kein Ziel"
 	if targetCountry.ownerId == GameIds.PLAYER_OWNER_ID:
 		return ""
+	if targetCountry.isUnderAttack:
+		return "Kampf läuft"
 
 	if armyId == GameIds.EMPTY_ID or not runState.armies.has(armyId):
 		return "Keine verfügbare Armee"
@@ -392,6 +396,23 @@ static func _hasActiveBattleFor(runState: RunState, armyId: StringName, targetCo
 		if battle.status != BattleStatus.Value.Active:
 			continue
 		if battle.attackerArmyId == armyId or battle.targetCountryId == targetCountryId:
+			return true
+	return false
+
+
+static func _isCountryUnderAttack(runState: RunState, countryId: StringName) -> bool:
+	var country := runState.countries.get(countryId, null) as CountryData
+	if country != null and country.isUnderAttack:
+		return true
+
+	for armyId in runState.armies.keys():
+		var army := runState.armies[armyId] as ArmyData
+		if army != null and army.status == ArmyStatus.Value.Attacking and army.targetCountryId == countryId:
+			return true
+
+	for battleId in runState.battles.keys():
+		var battle = runState.battles[battleId]
+		if battle != null and battle.status == BattleStatus.Value.Active and StringName(str(battle.get("targetCountryId"))) == countryId:
 			return true
 	return false
 
