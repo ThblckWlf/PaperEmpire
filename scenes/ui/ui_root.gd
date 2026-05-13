@@ -437,10 +437,10 @@ func _positionDebugErrorOverlay() -> void:
 		return
 
 	debugErrorOverlay.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	debugErrorOverlay.offset_left = 16.0
-	debugErrorOverlay.offset_top = -64.0
-	debugErrorOverlay.offset_right = 420.0
-	debugErrorOverlay.offset_bottom = -16.0
+	debugErrorOverlay.offset_left = 18.0
+	debugErrorOverlay.offset_top = -112.0
+	debugErrorOverlay.offset_right = 590.0
+	debugErrorOverlay.offset_bottom = -22.0
 
 
 func _refreshSettingsPanel() -> void:

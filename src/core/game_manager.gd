@@ -380,6 +380,8 @@ func _recruitUnits(
 			return
 		if str(recruitResult.get("reason", "")) == "not_enough_gold":
 			_raiseEvent(EventType.NOT_ENOUGH_GOLD, recruitResult)
+			_reportWarning(_notEnoughGoldMessage("Zu wenig Gold für neue Truppen", recruitResult))
+			return
 		_reportWarning("Cannot recruit units: %s" % str(recruitResult.get("reason", "unknown_reason")))
 		return
 
@@ -405,6 +407,8 @@ func _updateArmyComposition(armyId: StringName, targetUnits: Dictionary) -> void
 			return
 		if str(updateResult.get("reason", "")) == "not_enough_gold":
 			_raiseEvent(EventType.NOT_ENOUGH_GOLD, updateResult)
+			_reportWarning(_notEnoughGoldMessage("Zu wenig Gold für diese Armee", updateResult))
+			return
 		_reportWarning("Cannot update army: %s" % str(updateResult.get("reason", "unknown_reason")))
 		return
 
@@ -558,6 +562,15 @@ func _reportWarning(message: String) -> void:
 	push_warning(message)
 	if eventBus != null:
 		eventBus.reportDebugError(message)
+
+
+func _notEnoughGoldMessage(actionText: String, result: Dictionary) -> String:
+	var goldCost := int(result.get("goldCost", 0))
+	if currentRunState == null or goldCost <= 0:
+		return "%s." % actionText
+
+	var availableGold := int(currentRunState.resources.get("gold", 0))
+	return "%s: %d benötigt, %d vorhanden." % [actionText, goldCost, availableGold]
 
 
 func _raiseWorldReactionIfChanged(threatResult: Dictionary) -> void:
