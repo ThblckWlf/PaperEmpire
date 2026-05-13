@@ -116,6 +116,10 @@ Phase 11 adds `economy` flags for monthly economy results and food shortage:
 - `recruitmentBlocked`
 - `healingBlocked`
 - `combatPowerMultiplier`
+- `supplyDeficit`
+- `emergencySupplyGoldPerMonth`
+- `lastEmergencySupplyGoldPaid`
+- `unfundedSupplyDeficit`
 - `lastMonthResult`
 
 ## GameEvent

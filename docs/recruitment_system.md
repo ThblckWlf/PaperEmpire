@@ -11,7 +11,7 @@ File: `res://src/core/simulation/recruitment_simulation.gd`
 - Gold cost from `UnitData.cost * amount`.
 - Food reserve required from `UnitData.foodUpkeep * amount`.
 
-Food is checked as an available reserve but is not spent by recruitment. Monthly food upkeep remains owned by the economy system.
+Food is not spent and is not a hard recruitment requirement. Monthly food upkeep remains owned by the economy system.
 
 Phase 15 applies `recruitmentCostMultiplier` from upgrades to the gold cost.
 
@@ -20,12 +20,12 @@ Phase 15 applies `recruitmentCostMultiplier` from upgrades to the gold cost.
 - The country exists and is player-owned.
 - The unit type is one of the loaded MVP units.
 - Amount is positive.
-- Recruitment is not blocked by `RunState.economy.recruitmentBlocked`.
 - Gold is high enough for the purchase.
-- Food reserve is high enough for the added upkeep.
 - A stationed player army exists in the country.
 
 The preferred target is the currently selected army when it is stationed in the country; otherwise the first valid stationed army in that country is used.
+
+Recruitment previews include projected food net and projected emergency supply gold per month. Negative food net warns the player but does not block the purchase.
 
 ## Commands And Events
 

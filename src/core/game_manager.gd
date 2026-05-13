@@ -233,12 +233,18 @@ func _startAttack(armyId: StringName, targetCountryId: StringName, attackingUnit
 		_reportWarning("Cannot start attack: army_not_owned")
 		return
 
+	var resolvedAttackingUnits := attackingUnits
+	if resolvedAttackingUnits.is_empty():
+		var maxSplit: Dictionary = COMBAT_SIMULATION.splitMaximumUnitsForAttack(army.units)
+		if bool(maxSplit.get("accepted", false)):
+			resolvedAttackingUnits = maxSplit.get("attackingUnits", {}) as Dictionary
+
 	var attackResult: Dictionary = COMBAT_SIMULATION.startAttack(
 		currentRunState,
 		armyId,
 		targetCountryId,
 		PrototypeContentLoader.loadUnits(),
-		attackingUnits
+		resolvedAttackingUnits
 	)
 	if not bool(attackResult.get("accepted", false)):
 		_raiseEvent(EventType.INVALID_ATTACK, attackResult)

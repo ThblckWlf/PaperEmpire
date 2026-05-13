@@ -437,17 +437,35 @@ func _testEconomyAppliesMonthTickAndShortage() -> ValidationResult:
 	if int(monthResult.get("foodUpkeep", 0)) != 48:
 		result.addError("EconomySimulation month result missing upkeep.")
 
+	runState.resources["gold"] = 3000
 	runState.resources["food"] = 0
 	var army := runState.armies[&"army_start"] as ArmyData
 	army.units[GameIds.INFANTRY_UNIT_ID] = 1000
-	ECONOMY_SIMULATION.applyMonthTick(runState, PrototypeContentLoader.loadUnits())
-	if not bool(runState.economy.get("isFoodShortage", false)):
-		result.addError("EconomySimulation did not set food shortage flag.")
-	if not bool(runState.economy.get("recruitmentBlocked", false)):
-		result.addError("EconomySimulation did not set recruitment block flag.")
-	if not bool(runState.economy.get("healingBlocked", false)):
+	var suppliedResult: Dictionary = ECONOMY_SIMULATION.applyMonthTick(runState, PrototypeContentLoader.loadUnits())
+	if bool(runState.economy.get("isFoodShortage", false)):
+		result.addError("EconomySimulation set shortage while gold covered emergency supply.")
+	if bool(runState.economy.get("recruitmentBlocked", false)):
+		result.addError("EconomySimulation set recruitment block from food shortage.")
+	if int(suppliedResult.get("emergencySupplyGoldPaid", 0)) <= 0:
+		result.addError("EconomySimulation did not spend emergency supply gold.")
+	if not is_equal_approx(float(runState.economy.get("combatPowerMultiplier", 1.0)), 1.0):
+		result.addError("EconomySimulation applied combat malus while emergency supply was covered.")
+
+	var shortageRunState := NewRunFactory.createNewRun(&"usa")
+	shortageRunState.resources["gold"] = 0
+	shortageRunState.resources["food"] = 0
+	var shortageArmy := shortageRunState.armies[&"army_start"] as ArmyData
+	shortageArmy.units[GameIds.INFANTRY_UNIT_ID] = 1000
+	var shortageResult: Dictionary = ECONOMY_SIMULATION.applyMonthTick(shortageRunState, PrototypeContentLoader.loadUnits())
+	if not bool(shortageRunState.economy.get("isFoodShortage", false)):
+		result.addError("EconomySimulation did not set shortage for unfunded supply.")
+	if bool(shortageRunState.economy.get("recruitmentBlocked", false)):
+		result.addError("EconomySimulation blocked recruitment during food shortage.")
+	if not bool(shortageRunState.economy.get("healingBlocked", false)):
 		result.addError("EconomySimulation did not set healing block flag.")
-	if not is_equal_approx(float(runState.economy.get("combatPowerMultiplier", 1.0)), ECONOMY_SIMULATION.FOOD_SHORTAGE_COMBAT_MULTIPLIER):
+	if int(shortageResult.get("unfundedSupplyDeficit", 0)) <= 0:
+		result.addError("EconomySimulation did not expose unfunded supply deficit.")
+	if not is_equal_approx(float(shortageRunState.economy.get("combatPowerMultiplier", 1.0)), ECONOMY_SIMULATION.FOOD_SHORTAGE_COMBAT_MULTIPLIER):
 		result.addError("EconomySimulation did not apply immediate food shortage combat malus.")
 	return result
 
@@ -567,9 +585,13 @@ func _testRecruitmentAppliesRules() -> ValidationResult:
 
 	runState.resources["gold"] = 1000
 	runState.resources["food"] = 0
+	var zeroFoodUsa := runState.countries[&"usa"] as CountryData
+	zeroFoodUsa.foodPerMonth = ECONOMY_SIMULATION.calculateArmyFoodUpkeep(runState, units)
 	var noFoodRecruit: Dictionary = RECRUITMENT_SIMULATION.applyRecruitment(runState, &"usa", GameIds.INFANTRY_UNIT_ID, 1, units, &"army_start")
-	if bool(noFoodRecruit.get("accepted", false)) or str(noFoodRecruit.get("reason", "")) != "recruitment_blocked":
-		result.addError("RecruitmentSimulation allowed recruitment at zero food.")
+	if not bool(noFoodRecruit.get("accepted", false)):
+		result.addError("RecruitmentSimulation blocked recruitment at zero food.")
+	if int(noFoodRecruit.get("projectedEmergencySupplyGoldPerMonth", 0)) <= 0:
+		result.addError("RecruitmentSimulation did not expose projected emergency supply cost.")
 
 	var fiveRecruitRunState := NewRunFactory.createNewRun(&"usa")
 	for recruitIndex in range(5):
@@ -589,11 +611,6 @@ func _testRecruitmentAppliesRules() -> ValidationResult:
 	if not bool(warningRecruit.get("foodWarning", false)) or int(warningRecruit.get("projectedFoodNet", 0)) >= 0:
 		result.addError("RecruitmentSimulation did not report soft-cap food warning.")
 
-	runState.resources["food"] = 100
-	runState.economy["recruitmentBlocked"] = true
-	var blockedRecruit: Dictionary = RECRUITMENT_SIMULATION.applyRecruitment(runState, &"usa", GameIds.INFANTRY_UNIT_ID, 1, units, &"army_start")
-	if bool(blockedRecruit.get("accepted", false)):
-		result.addError("RecruitmentSimulation ignored recruitmentBlocked.")
 	runState.economy["recruitmentBlocked"] = false
 	var usa := runState.countries[&"usa"] as CountryData
 	usa.isUnderAttack = true
@@ -710,6 +727,23 @@ func _testCombatStartsValidAttacks() -> ValidationResult:
 		result.addError("CombatSimulation reserve count does not match payload.")
 	if attackArmy != null and _unitCount(attackArmy.units) + _unitCount(reserveArmy.units) != NewRunFactory.START_INFANTRY + NewRunFactory.START_CAVALRY + NewRunFactory.START_ARTILLERY:
 		result.addError("CombatSimulation lost units while splitting attack and reserve.")
+
+	var maxSplit: Dictionary = COMBAT_SIMULATION.splitMaximumUnitsForAttack({
+		GameIds.INFANTRY_UNIT_ID: NewRunFactory.START_INFANTRY,
+		GameIds.CAVALRY_UNIT_ID: NewRunFactory.START_CAVALRY,
+		GameIds.ARTILLERY_UNIT_ID: NewRunFactory.START_ARTILLERY,
+	})
+	if not bool(maxSplit.get("accepted", false)):
+		result.addError("CombatSimulation rejected a maximum player attack split.")
+	elif int(maxSplit.get("reserveUnitCount", 0)) != COMBAT_SIMULATION.MIN_RESERVE_ARMY_SIZE:
+		result.addError("CombatSimulation maximum player attack split kept wrong reserve size.")
+	else:
+		var maxAttackingUnits := maxSplit.get("attackingUnits", {}) as Dictionary
+		var maxReserveUnits := maxSplit.get("reserveUnits", {}) as Dictionary
+		if int(maxAttackingUnits.get(GameIds.ARTILLERY_UNIT_ID, 0)) != NewRunFactory.START_ARTILLERY:
+			result.addError("CombatSimulation maximum player attack did not send all artillery.")
+		if int(maxReserveUnits.get(GameIds.INFANTRY_UNIT_ID, 0)) != COMBAT_SIMULATION.MIN_RESERVE_ARMY_SIZE:
+			result.addError("CombatSimulation maximum player attack did not reserve infantry first.")
 
 	var smallRunState := NewRunFactory.createNewRun(&"usa")
 	var smallArmy := smallRunState.armies[&"army_start"] as ArmyData
@@ -1524,6 +1558,8 @@ func _testRunStateViewCreatesSummaries() -> ValidationResult:
 	var warningInfantryPreview: Dictionary = warningPreviews.get(GameIds.INFANTRY_UNIT_ID, {})
 	if not bool(warningInfantryPreview.get("foodWarning", false)):
 		result.addError("RunStateView country panel did not expose food warning preview.")
+	if int(warningInfantryPreview.get("projectedEmergencySupplyGoldPerMonth", 0)) != ECONOMY_SIMULATION.EMERGENCY_SUPPLY_GOLD_PER_FOOD:
+		result.addError("RunStateView country panel did not expose projected emergency supply cost.")
 
 	var attackCountryData: Dictionary = RUN_STATE_VIEW.createCountryPanelData(runState, &"can", &"army_start")
 	var attackOptions: Array = attackCountryData.get("attackOptions", [])
@@ -1533,6 +1569,10 @@ func _testRunStateViewCreatesSummaries() -> ValidationResult:
 		result.addError("RunStateView attack options are empty for an enemy neighbor.")
 	elif StringName(str((attackOptions[0] as Dictionary).get("id", ""))) != &"army_start":
 		result.addError("RunStateView attack options did not include the selected army.")
+	else:
+		var defaultAttackUnits := (attackOptions[0] as Dictionary).get("defaultAttackUnits", {}) as Dictionary
+		if _unitCount(defaultAttackUnits) != NewRunFactory.START_INFANTRY + NewRunFactory.START_CAVALRY + NewRunFactory.START_ARTILLERY - COMBAT_SIMULATION.MIN_RESERVE_ARMY_SIZE:
+			result.addError("RunStateView did not default player attacks to maximum valid unit count.")
 
 	var armyData: Dictionary = RUN_STATE_VIEW.createArmyPanelData(runState, &"army_start")
 	if str(armyData.get("status", "")) != "Stationed":
@@ -2425,6 +2465,31 @@ func _testVerticalSliceBalanceEnvelope() -> ValidationResult:
 	var income: Dictionary = ECONOMY_SIMULATION.calculateMonthlyIncome(runState)
 	if int(income.get("gold", 0)) <= 0 or int(income.get("food", 0)) <= 0:
 		result.addError("Starting country does not produce positive economy income.")
+
+	var campaignRunState := NewRunFactory.createNewRun(&"usa")
+	ECONOMY_SIMULATION.applyMonthTick(campaignRunState, units)
+	var artilleryRecruit: Dictionary = RECRUITMENT_SIMULATION.applyRecruitment(
+		campaignRunState,
+		&"usa",
+		GameIds.ARTILLERY_UNIT_ID,
+		4,
+		units,
+		&"army_start"
+	)
+	if not bool(artilleryRecruit.get("accepted", false)):
+		result.addError("Player cannot buy four artillery after one month of starting income.")
+	var campaignArmy := campaignRunState.armies[&"army_start"] as ArmyData
+	var maxSplit: Dictionary = COMBAT_SIMULATION.splitMaximumUnitsForAttack(campaignArmy.units)
+	var campaignAttackArmy := ArmyData.new()
+	campaignAttackArmy.ownerId = GameIds.PLAYER_OWNER_ID
+	campaignAttackArmy.units = maxSplit.get("attackingUnits", {}) as Dictionary
+	var caribbean := campaignRunState.countries[&"caribbean"] as CountryData
+	var campaignAttackPower := COMBAT_SIMULATION.calculateArmyCombatPower(campaignAttackArmy, units, campaignRunState.economy, {
+		"targetDefense": caribbean.defense,
+	})
+	var strongEarlyDefense := _countryDefenseWithLocalArmies(campaignRunState, caribbean, units)
+	if campaignAttackPower <= strongEarlyDefense:
+		result.addError("Player cannot prepare a large enough early campaign army despite emergency supply rules.")
 	return result
 
 

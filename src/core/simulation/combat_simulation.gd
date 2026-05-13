@@ -185,6 +185,56 @@ static func splitUnitsForAttack(units: Dictionary) -> Dictionary:
 	return result
 
 
+static func splitMaximumUnitsForAttack(units: Dictionary) -> Dictionary:
+	var result := {
+		"accepted": false,
+		"reason": "",
+		"attackingUnits": {},
+		"reserveUnits": {},
+		"attackingUnitCount": 0,
+		"reserveUnitCount": 0,
+	}
+	var sourceUnits := _normalizedUnitCounts(units)
+	var totalUnits := _unitCount(sourceUnits)
+	var attackingUnitCount := totalUnits - MIN_RESERVE_ARMY_SIZE
+	result["attackingUnitCount"] = attackingUnitCount
+	result["reserveUnitCount"] = MIN_RESERVE_ARMY_SIZE
+
+	if attackingUnitCount < MIN_ATTACK_ARMY_SIZE:
+		result["reason"] = "attack_army_too_small"
+		return result
+	if MIN_RESERVE_ARMY_SIZE <= 0:
+		result["reason"] = "reserve_army_too_small"
+		return result
+
+	var reserveUnits := {
+		GameIds.INFANTRY_UNIT_ID: 0,
+		GameIds.CAVALRY_UNIT_ID: 0,
+		GameIds.ARTILLERY_UNIT_ID: 0,
+	}
+	var remainingReserve := MIN_RESERVE_ARMY_SIZE
+	for unitId in [GameIds.INFANTRY_UNIT_ID, GameIds.CAVALRY_UNIT_ID, GameIds.ARTILLERY_UNIT_ID]:
+		if remainingReserve <= 0:
+			break
+
+		var reserveAmount := mini(remainingReserve, int(sourceUnits.get(unitId, 0)))
+		reserveUnits[unitId] = reserveAmount
+		remainingReserve -= reserveAmount
+
+	if remainingReserve > 0:
+		result["reason"] = "reserve_army_too_small"
+		return result
+
+	var attackingUnits := {}
+	for unitId in sourceUnits.keys():
+		attackingUnits[unitId] = int(sourceUnits.get(unitId, 0)) - int(reserveUnits.get(unitId, 0))
+
+	result["attackingUnits"] = attackingUnits
+	result["reserveUnits"] = reserveUnits
+	result["accepted"] = true
+	return result
+
+
 static func beginBattleAfterArrival(
 	runState: RunState,
 	armyId: StringName,

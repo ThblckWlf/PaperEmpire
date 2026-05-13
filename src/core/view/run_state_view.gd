@@ -24,9 +24,14 @@ static func createTopBarData(runState: RunState) -> Dictionary:
 		"foodPerMonth": int(foodStatus.get("netFood", 0)),
 		"foodIncomePerMonth": int(foodStatus.get("foodIncome", 0)),
 		"foodUpkeepPerMonth": int(foodStatus.get("foodUpkeep", 0)),
+		"supplyDeficit": int(foodStatus.get("supplyDeficit", 0)),
+		"emergencySupplyGoldPerMonth": int(foodStatus.get("emergencySupplyGoldPerMonth", 0)),
+		"foodDeficitThisMonth": int(foodStatus.get("foodDeficitThisMonth", 0)),
+		"emergencySupplyGoldCost": int(foodStatus.get("emergencySupplyGoldCost", 0)),
+		"unfundedSupplyDeficit": int(foodStatus.get("unfundedSupplyDeficit", 0)),
 		"dateText": _dateText(runState.time),
 		"speed": int(runState.speed),
-		"isFoodShortage": bool(runState.economy.get("isFoodShortage", false)) or int(runState.resources.get("food", 0)) <= 0,
+		"isFoodShortage": bool(runState.economy.get("isFoodShortage", false)),
 		"foodWarning": bool(foodStatus.get("foodWarning", false)),
 		"combatPowerMultiplier": float(runState.economy.get("combatPowerMultiplier", 1.0)),
 	}
@@ -69,7 +74,6 @@ static func createCountryPanelData(
 	var selectedAttackArmyId := _selectedAttackArmyId(attackOptions, selectedArmyId)
 	var canAttack := not attackOptions.is_empty()
 
-	var isRecruitmentBlocked := bool(runState.economy.get("recruitmentBlocked", false)) or int(runState.resources.get("food", 0)) <= 0
 	return {
 		"hasCountry": true,
 		"id": country.id,
@@ -77,7 +81,7 @@ static func createCountryPanelData(
 		"ownerId": country.ownerId,
 		"ownerText": _ownerText(runState, country.ownerId),
 		"isPlayerOwned": country.ownerId == GameIds.PLAYER_OWNER_ID,
-		"canRecruit": country.ownerId == GameIds.PLAYER_OWNER_ID and not isRecruitmentBlocked and not _isCountryUnderAttack(runState, country.id),
+		"canRecruit": country.ownerId == GameIds.PLAYER_OWNER_ID and not _isCountryUnderAttack(runState, country.id),
 		"goldPerMonth": country.goldPerMonth,
 		"foodPerMonth": country.foodPerMonth,
 		"defense": country.defense,
@@ -388,7 +392,7 @@ static func _attackOptionsForTarget(runState: RunState, targetCountryId: StringN
 		if _hasActiveBattleFor(runState, army.id, targetCountryId):
 			continue
 
-		var defaultSplit: Dictionary = COMBAT_SIMULATION.splitUnitsForAttack(army.units)
+		var defaultSplit: Dictionary = COMBAT_SIMULATION.splitMaximumUnitsForAttack(army.units)
 		if not bool(defaultSplit.get("accepted", false)):
 			continue
 
