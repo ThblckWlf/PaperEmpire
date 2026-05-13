@@ -541,14 +541,14 @@ func _applyLayout() -> void:
 	rootControl.offset_bottom = 0.0
 	rootControl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-	topBar.anchor_left = 0.5
+	topBar.anchor_left = 0.1
 	topBar.anchor_top = 0.0
-	topBar.anchor_right = 0.5
+	topBar.anchor_right = 0.9
 	topBar.anchor_bottom = 0.0
-	topBar.offset_left = -880.0
-	topBar.offset_top = 8.0
-	topBar.offset_right = 880.0
-	topBar.offset_bottom = 72.0
+	topBar.offset_left = 0.0
+	topBar.offset_top = 12.0
+	topBar.offset_right = 0.0
+	topBar.offset_bottom = 148.0
 
 	leftPanel.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	leftPanel.offset_left = 18.0

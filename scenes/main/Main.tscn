@@ -45,10 +45,10 @@ layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 231.0
-offset_top = 201.0
-offset_right = 231.0
-offset_bottom = 201.0
+offset_left = 249.0
+offset_top = 189.0
+offset_right = 249.0
+offset_bottom = 189.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
@@ -69,7 +69,7 @@ layout_mode = 2
 theme_override_constants/separation = 0
 alignment = 1
 
-[node name="GoldSection" type="HBoxContainer" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer"]
+[node name="GoldSection" type="HBoxContainer" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer" unique_id=1313953239]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 7
@@ -79,7 +79,7 @@ alignment = 1
 layout_mode = 2
 text = "Gold: 0"
 
-[node name="FoodSection" type="HBoxContainer" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer"]
+[node name="FoodSection" type="HBoxContainer" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer" unique_id=941068865]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 7
@@ -89,7 +89,7 @@ alignment = 1
 layout_mode = 2
 text = "Nahrung: 0"
 
-[node name="ArmySection" type="HBoxContainer" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer"]
+[node name="ArmySection" type="HBoxContainer" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer" unique_id=1818968514]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 7
@@ -99,7 +99,7 @@ alignment = 1
 layout_mode = 2
 text = "Armee: 0"
 
-[node name="ThreatSection" type="HBoxContainer" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer"]
+[node name="ThreatSection" type="HBoxContainer" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer" unique_id=1375107657]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 7
@@ -112,7 +112,7 @@ text = "Bedrohung: 0%"
 [node name="ShortageLabel" type="Label" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer/ThreatSection" unique_id=1147714683]
 layout_mode = 2
 
-[node name="DateSection" type="HBoxContainer" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer"]
+[node name="DateSection" type="HBoxContainer" parent="GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer" unique_id=650843270]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 7
@@ -147,15 +147,12 @@ text = "Keine Armee ausgewählt"
 
 [node name="LocationLabel" type="Label" parent="GameRoot/UIRoot/Root/LeftPanel/MarginContainer/VBoxContainer" unique_id=1394818814]
 layout_mode = 2
-text = ""
 
 [node name="TargetLabel" type="Label" parent="GameRoot/UIRoot/Root/LeftPanel/MarginContainer/VBoxContainer" unique_id=433737741]
 layout_mode = 2
-text = ""
 
 [node name="UnitsLabel" type="Label" parent="GameRoot/UIRoot/Root/LeftPanel/MarginContainer/VBoxContainer" unique_id=891287509]
 layout_mode = 2
-text = ""
 
 [node name="RightPanel" type="PanelContainer" parent="GameRoot/UIRoot/Root" unique_id=2083197114]
 layout_mode = 1
@@ -319,23 +316,23 @@ layout_mode = 2
 text = "Choose Upgrade"
 horizontal_alignment = 1
 
-[node name="ChoiceRow" type="HBoxContainer" parent="GameRoot/UIRoot/Root/ModalLayer/UpgradeModal/MarginContainer/VBoxContainer"]
+[node name="ChoiceRow" type="HBoxContainer" parent="GameRoot/UIRoot/Root/ModalLayer/UpgradeModal/MarginContainer/VBoxContainer" unique_id=1516149913]
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 16
 alignment = 1
 
 [node name="ChoiceButton1" type="Button" parent="GameRoot/UIRoot/Root/ModalLayer/UpgradeModal/MarginContainer/VBoxContainer/ChoiceRow" unique_id=1218538738]
-layout_mode = 2
 custom_minimum_size = Vector2(260, 420)
+layout_mode = 2
 text = "-"
 
 [node name="ChoiceButton2" type="Button" parent="GameRoot/UIRoot/Root/ModalLayer/UpgradeModal/MarginContainer/VBoxContainer/ChoiceRow" unique_id=1188015330]
-layout_mode = 2
 custom_minimum_size = Vector2(260, 420)
+layout_mode = 2
 text = "-"
 
 [node name="ChoiceButton3" type="Button" parent="GameRoot/UIRoot/Root/ModalLayer/UpgradeModal/MarginContainer/VBoxContainer/ChoiceRow" unique_id=1695169428]
-layout_mode = 2
 custom_minimum_size = Vector2(260, 420)
+layout_mode = 2
 text = "-"

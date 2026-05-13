@@ -109,8 +109,8 @@ static func applyMainTopBarPanel(panel: PanelContainer) -> void:
 	style.texture_margin_right = 170.0
 	style.texture_margin_top = 30.0
 	style.texture_margin_bottom = 30.0
-	style.content_margin_left = 34.0
-	style.content_margin_right = 34.0
+	style.content_margin_left = 170.0
+	style.content_margin_right = 170.0
 	style.content_margin_top = 8.0
 	style.content_margin_bottom = 8.0
 	panel.add_theme_stylebox_override("panel", style)

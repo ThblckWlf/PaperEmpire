@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "defaultMode": "bypassPermissions",
+    "allow": [
+      "PowerShell(.\\\\scripts\\\\godot.ps1 --headless --path . --quit 2>&1)",
+      "PowerShell(.\\\\scripts\\\\godot.ps1 --headless --path . --quit; \"ExitCode=$LASTEXITCODE\")"
+    ]
+  }
+}
