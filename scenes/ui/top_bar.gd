@@ -40,15 +40,21 @@ func setData(data: Dictionary) -> void:
 	var isFoodShortage := bool(data.get("isFoodShortage", false))
 	var foodWarning := bool(data.get("foodWarning", false))
 	foodLabel.modulate = Color(1.0, 0.28, 0.24, 1.0) if isFoodShortage else Color(1.0, 0.64, 0.22, 1.0) if foodWarning else Color.WHITE
-	foodLabel.tooltip_text = "Einnahmen: +%s/Monat\nUnterhalt: -%s/Monat\nNegatives Monatsnetto verbraucht den Vorrat. Bei 0 Nahrung werden Rekrutierung und Kampfkraft bestraft." % [
+	foodLabel.tooltip_text = "Einnahmen: +%s/Monat\nUnterhalt: -%s/Monat\nVersorgung: -%s Gold/Monat\nNegatives Monatsnetto verbraucht zuerst Vorrat. Danach wird fehlende Versorgung mit Gold bezahlt; Kampfkraft sinkt erst, wenn Gold nicht reicht." % [
 		_formatNumber(int(data.get("foodIncomePerMonth", 0))),
 		_formatNumber(int(data.get("foodUpkeepPerMonth", 0))),
+		_formatNumber(int(data.get("emergencySupplyGoldPerMonth", 0))),
 	]
+	if isFoodShortage:
+		foodLabel.tooltip_text += "\nUngedeckter Mangel: %s Nahrung/Monat. Kampfkraft: %d%%." % [
+			_formatNumber(int(data.get("unfundedSupplyDeficit", 0))),
+			int(round(float(data.get("combatPowerMultiplier", 1.0)) * 100.0)),
+		]
 	armyLabel.text = "Armee\n%s" % _formatNumber(int(data.get("armyStrength", 0)))
 	var threatState := str(data.get("threatState", "low"))
 	threatLabel.text = "Bedrohung\n%d%%" % int(data.get("threat", 0))
 	threatLabel.modulate = THREAT_COLORS.get(threatState, THREAT_COLORS["low"])
-	shortageLabel.text = "Mangel" if isFoodShortage else "Nahrung sinkt" if foodWarning else ""
+	shortageLabel.text = "Mangel" if isFoodShortage else "Versorgung" if foodWarning else ""
 	shortageLabel.visible = isFoodShortage or foodWarning
 	_setIconVisible("ShortageIcon", isFoodShortage or foodWarning)
 	var shortageIcon := find_child("ShortageIcon", true, false) as TextureRect
@@ -77,7 +83,7 @@ func _applyAssetTheme() -> void:
 	_applySectionLayout(threatSection)
 	_applySectionLayout(dateSection)
 	goldLabel.tooltip_text = "Wird monatlich durch eigene Länder produziert."
-	foodLabel.tooltip_text = "Wird monatlich produziert und von Armeen verbraucht. Negatives Monatsnetto verbraucht den Vorrat; bei 0 Nahrung werden Rekrutierung und Kampfkraft bestraft."
+	foodLabel.tooltip_text = "Wird monatlich produziert und von Armeen verbraucht. Negatives Monatsnetto verbraucht Vorrat; danach zahlt Gold die Versorgung."
 	armyLabel.tooltip_text = "Gesamtzahl deiner Einheiten."
 	threatLabel.tooltip_text = "Steigt durch Zeit, Kriege, Eroberungen und große Armeen. Bei 100% greifen alle Nachbarn an."
 	UI_ASSET_THEME.applyLabel(goldLabel, 19)

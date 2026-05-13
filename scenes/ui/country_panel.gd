@@ -250,7 +250,7 @@ func _recruitmentTooltip(unitId: StringName, preview: Dictionary) -> String:
 		_formatSigned(int(preview.get("projectedFoodNet", 0))),
 	]
 	if bool(preview.get("foodWarning", false)):
-		tooltipText += "\nWarnung: negatives Monatsnetto verbraucht deinen Vorrat."
+		tooltipText += "\nVersorgung: bis zu %d Gold/Monat, wenn der Nahrungsvorrat nicht reicht." % int(preview.get("projectedEmergencySupplyGoldPerMonth", 0))
 	if not bool(preview.get("accepted", false)) and str(preview.get("reason", "")) != "":
 		tooltipText += "\nBlockiert: %s" % str(preview.get("reason", ""))
 	return tooltipText

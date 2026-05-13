@@ -178,10 +178,6 @@ static func _validateRecruitment(
 		result["reason"] = "invalid_amount"
 		return result
 
-	if bool(runState.economy.get("recruitmentBlocked", false)):
-		result["reason"] = "recruitment_blocked"
-		return result
-
 	if not runState.countries.has(countryId):
 		result["reason"] = "unknown_country"
 		return result
@@ -219,10 +215,11 @@ static func _validateRecruitment(
 	result["projectedFoodUpkeep"] = int(foodProjection.get("projectedFoodUpkeep", 0))
 	result["projectedFoodNet"] = int(foodProjection.get("projectedFoodNet", 0))
 	result["foodWarning"] = bool(foodProjection.get("foodWarning", false))
-
-	if int(runState.resources.get("food", 0)) <= 0:
-		result["reason"] = "recruitment_blocked"
-		return result
+	result["supplyDeficit"] = int(foodProjection.get("supplyDeficit", 0))
+	result["emergencySupplyGoldPerMonth"] = int(foodProjection.get("emergencySupplyGoldPerMonth", 0))
+	result["supplyDeficitAdded"] = int(foodProjection.get("supplyDeficitAdded", 0))
+	result["projectedSupplyDeficit"] = int(foodProjection.get("projectedSupplyDeficit", 0))
+	result["projectedEmergencySupplyGoldPerMonth"] = int(foodProjection.get("projectedEmergencySupplyGoldPerMonth", 0))
 
 	if int(runState.resources.get("gold", 0)) < int(result["goldCost"]):
 		result["reason"] = "not_enough_gold"
@@ -284,9 +281,12 @@ static func _validateCompositionUpdate(
 	result["projectedFoodUpkeep"] = int(foodProjection.get("projectedFoodUpkeep", 0))
 	result["projectedFoodNet"] = int(foodProjection.get("projectedFoodNet", 0))
 	result["foodWarning"] = bool(foodProjection.get("foodWarning", false))
-	if int(runState.resources.get("food", 0)) <= 0:
-		result["reason"] = "recruitment_blocked"
-		return result
+	result["supplyDeficit"] = int(foodProjection.get("supplyDeficit", 0))
+	result["emergencySupplyGoldPerMonth"] = int(foodProjection.get("emergencySupplyGoldPerMonth", 0))
+	result["supplyDeficitAdded"] = int(foodProjection.get("supplyDeficitAdded", 0))
+	result["projectedSupplyDeficit"] = int(foodProjection.get("projectedSupplyDeficit", 0))
+	result["projectedEmergencySupplyGoldPerMonth"] = int(foodProjection.get("projectedEmergencySupplyGoldPerMonth", 0))
+
 	if int(runState.resources.get("gold", 0)) < goldCost:
 		result["reason"] = "not_enough_gold"
 		return result

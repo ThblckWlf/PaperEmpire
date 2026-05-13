@@ -26,6 +26,10 @@ The `monthTick` payload includes an `economy` dictionary with:
 - `foodIncome`
 - `foodUpkeep`
 - `netFood`
+- `supplyDeficit`
+- `emergencySupplyGoldPerMonth`
+- `emergencySupplyGoldPaid`
+- `unfundedSupplyDeficit`
 - `gold`
 - `food`
 - `isFoodShortage`
@@ -44,20 +48,30 @@ New runs apply food-income floors in `NewRunFactory`:
 Recruitment uses a soft food cap:
 
 - Gold is still a hard requirement.
-- Recruitment is blocked at `0` stored food.
-- Recruitment is allowed while stored food is above `0`, even if the projected monthly food net becomes negative.
+- Recruitment is not blocked by stored food.
+- Recruitment is allowed even if the projected monthly food net becomes negative.
 - Accepted recruitment results include `foodUpkeepAdded`, `projectedFoodUpkeep`, `projectedFoodNet`, and `foodWarning`.
+- Accepted recruitment results also include projected emergency supply gold per month.
 
 ## Food Shortage MVP
 
-When food reaches `0`, `RunState.economy` exposes:
+When food net is negative, monthly economy first consumes stored food. If stored food is not enough, missing supply is paid automatically with gold at `2` gold per missing food.
+
+When gold can cover the missing supply:
+
+- `food` stays at `0`
+- `emergencySupplyGoldPaid` records the paid gold
+- `isFoodShortage` stays `false`
+- `combatPowerMultiplier` stays `1.0`
+
+When both food and gold cannot cover army supply, `RunState.economy` exposes:
 
 - `isFoodShortage`
-- `recruitmentBlocked`
 - `healingBlocked`
+- `unfundedSupplyDeficit`
 
 Starting with the first shortage month, `combatPowerMultiplier` becomes `0.7`.
 
-Phase 13 consumes `recruitmentBlocked` in `RecruitmentSimulation`, so food shortage rejects new recruitment.
+`recruitmentBlocked` remains in the run state for save compatibility, but food shortage does not set it and recruitment does not consume it.
 
 Phase 15 applies `foodUpkeepMultiplier` from upgrades when calculating monthly army upkeep.

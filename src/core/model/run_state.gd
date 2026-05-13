@@ -31,6 +31,10 @@ var economy: Dictionary = {
 	"recruitmentBlocked": false,
 	"healingBlocked": false,
 	"combatPowerMultiplier": 1.0,
+	"supplyDeficit": 0,
+	"emergencySupplyGoldPerMonth": 0,
+	"lastEmergencySupplyGoldPaid": 0,
+	"unfundedSupplyDeficit": 0,
 	"lastMonthResult": {},
 }
 var countries: Dictionary = {}
