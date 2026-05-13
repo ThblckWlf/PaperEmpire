@@ -135,7 +135,7 @@ func _applySectionLayout(section: HBoxContainer) -> void:
 
 	section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	section.custom_minimum_size = Vector2(0.0, 0.0)
-	section.add_theme_constant_override("separation", 6)
+	section.add_theme_constant_override("separation", 0)
 	section.alignment = BoxContainer.ALIGNMENT_CENTER
 
 
@@ -144,10 +144,11 @@ func _applySectionLabel(label: Label, _isCentered: bool = false) -> void:
 		return
 
 	label.custom_minimum_size = Vector2(0.0, 36.0)
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.clip_text = true
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.size_flags_horizontal = Control.SIZE_FILL
+	label.clip_text = false
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_STOP
 	label.add_theme_constant_override("line_spacing", 0)
 
 

@@ -16,6 +16,10 @@ run/main_scene="res://scenes/main/Main.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
 
+[gui]
+
+timers/tooltip_delay_sec=0.15
+
 [physics]
 
 3d/physics_engine="Jolt Physics"
