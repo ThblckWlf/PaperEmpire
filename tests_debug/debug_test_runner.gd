@@ -1667,30 +1667,39 @@ func _testMainUiLayoutBindsStateAndCommands() -> ValidationResult:
 	var eventBus := main.get_node("GameRoot/Managers/EventBus") as EventBus
 	var simulationManager := main.get_node("GameRoot/Managers/SimulationManager") as SimulationManager
 	var uiRoot = main.get_node("GameRoot/UIRoot")
+	var rootControl := main.get_node("GameRoot/UIRoot/Root") as Control
 	var topBar = main.get_node("GameRoot/UIRoot/Root/TopBar")
 	var leftPanel = main.get_node("GameRoot/UIRoot/Root/LeftPanel")
 	var rightPanel = main.get_node("GameRoot/UIRoot/Root/RightPanel")
 	var bottomBar = main.get_node("GameRoot/UIRoot/Root/BottomBar")
 	var modalLayer = main.get_node("GameRoot/UIRoot/Root/ModalLayer")
-	if uiRoot == null or topBar == null or leftPanel == null or rightPanel == null or bottomBar == null or modalLayer == null:
+	if uiRoot == null or rootControl == null or topBar == null or leftPanel == null or rightPanel == null or bottomBar == null or modalLayer == null:
 		result.addError("Main UI layout is missing required nodes.")
 		_cleanupMainForTest(main)
 		return result
+	if topBar.size.y > 72.0:
+		result.addError("TopBar does not fit the standard viewport: topBar=%s root=%s." % [topBar.size, rootControl.size])
 
 	var goldLabel := main.get_node("GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer/GoldSection/GoldLabel") as Label
 	var foodLabel := main.get_node("GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer/FoodSection/FoodLabel") as Label
-	var startingGold := int(gameManager.getCurrentRunState().resources.get("gold", 0))
-	if not goldLabel.text.contains("Gold") or not goldLabel.text.contains(str(startingGold)) or not goldLabel.text.contains("/Monat"):
-		result.addError("TopBar did not bind starting gold.")
-	if not foodLabel.tooltip_text.contains("Unterhalt") or not foodLabel.text.contains("+12/Monat"):
-		result.addError("TopBar did not expose food projection details.")
-
 	var threatLabel := main.get_node("GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer/ThreatSection/ThreatLabel") as Label
+	var dateLabel := main.get_node("GameRoot/UIRoot/Root/TopBar/MarginContainer/HBoxContainer/DateSection/DateLabel") as Label
+	var startingGold := int(gameManager.getCurrentRunState().resources.get("gold", 0))
+	for topBarLabel in [goldLabel, foodLabel, threatLabel, dateLabel]:
+		if topBarLabel.text.contains("\n"):
+			result.addError("TopBar label is not compact one-line text: %s" % topBarLabel.text)
+	if not goldLabel.text.contains("Gold:") or not goldLabel.text.contains(str(startingGold)) or not goldLabel.text.contains("/Monat"):
+		result.addError("TopBar did not bind starting gold.")
+	if not foodLabel.text.contains("Nahrung:") or not foodLabel.tooltip_text.contains("Unterhalt") or not foodLabel.text.contains("+12/Monat"):
+		result.addError("TopBar did not expose food projection details.")
+	if not dateLabel.text.contains("Datum:") or dateLabel.text.contains("\n"):
+		result.addError("TopBar did not show compact date text.")
+
 	gameManager.getCurrentRunState().resources["threat"] = 55
 	eventBus.raiseGameEvent(EventType.THREAT_CHANGED, {
 		"threat": 55,
 	})
-	if not threatLabel.text.contains("Bedrohung") or not threatLabel.text.contains("55%"):
+	if not threatLabel.text.contains("Bedrohung:") or not threatLabel.text.contains("55%") or threatLabel.text.contains("\n"):
 		result.addError("TopBar did not show high threat state.")
 
 	var armyTitle := main.get_node("GameRoot/UIRoot/Root/LeftPanel/MarginContainer/VBoxContainer/TitleLabel") as Label

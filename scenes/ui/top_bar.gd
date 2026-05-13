@@ -10,6 +10,10 @@ const THREAT_COLORS := {
 	"critical": Color(1.0, 0.28, 0.24, 1.0),
 	"coalition": Color(1.0, 0.08, 0.06, 1.0),
 }
+const TOP_BAR_FONT_SIZE: int = 17
+const TOP_BAR_ICON_SIZE: Vector2 = Vector2(28.0, 28.0)
+const TOP_BAR_LABEL_HEIGHT: float = 32.0
+const TOP_BAR_VERTICAL_MARGIN: int = 6
 
 @onready var goldSection: HBoxContainer = $MarginContainer/HBoxContainer/GoldSection as HBoxContainer
 @onready var foodSection: HBoxContainer = $MarginContainer/HBoxContainer/FoodSection as HBoxContainer
@@ -29,11 +33,11 @@ func _ready() -> void:
 
 
 func setData(data: Dictionary) -> void:
-	goldLabel.text = "Gold\n%s (%s)" % [
+	goldLabel.text = "Gold: %s (%s)" % [
 		_formatNumber(int(data.get("gold", 0))),
 		_formatMonthlyDelta(int(data.get("goldPerMonth", 0))),
 	]
-	foodLabel.text = "Nahrung\n%s (%s)" % [
+	foodLabel.text = "Nahrung: %s (%s)" % [
 		_formatNumber(int(data.get("food", 0))),
 		_formatMonthlyDelta(int(data.get("foodPerMonth", 0))),
 	]
@@ -50,17 +54,17 @@ func setData(data: Dictionary) -> void:
 			_formatNumber(int(data.get("unfundedSupplyDeficit", 0))),
 			int(round(float(data.get("combatPowerMultiplier", 1.0)) * 100.0)),
 		]
-	armyLabel.text = "Armee\n%s" % _formatNumber(int(data.get("armyStrength", 0)))
+	armyLabel.text = "Armee: %s" % _formatNumber(int(data.get("armyStrength", 0)))
 	var threatState := str(data.get("threatState", "low"))
-	threatLabel.text = "Bedrohung\n%d%%" % int(data.get("threat", 0))
+	threatLabel.text = "Bedrohung: %d%%" % int(data.get("threat", 0))
 	threatLabel.modulate = THREAT_COLORS.get(threatState, THREAT_COLORS["low"])
-	shortageLabel.text = "Mangel" if isFoodShortage else "Versorgung" if foodWarning else ""
-	shortageLabel.visible = isFoodShortage or foodWarning
+	shortageLabel.text = ""
+	shortageLabel.visible = false
 	_setIconVisible("ShortageIcon", isFoodShortage or foodWarning)
 	var shortageIcon := find_child("ShortageIcon", true, false) as TextureRect
 	if shortageIcon != null:
 		shortageIcon.tooltip_text = foodLabel.tooltip_text
-	dateLabel.text = "Datum\n%s" % str(data.get("dateText", "Y1 M1 W1"))
+	dateLabel.text = "Datum: %s" % str(data.get("dateText", "Y1 M1 W1"))
 
 
 func _applyAssetTheme() -> void:
@@ -74,9 +78,9 @@ func _applyAssetTheme() -> void:
 		var marginContainer := container.get_parent() as MarginContainer
 		if marginContainer != null:
 			marginContainer.add_theme_constant_override("margin_left", 64)
-			marginContainer.add_theme_constant_override("margin_top", 17)
+			marginContainer.add_theme_constant_override("margin_top", TOP_BAR_VERTICAL_MARGIN)
 			marginContainer.add_theme_constant_override("margin_right", 64)
-			marginContainer.add_theme_constant_override("margin_bottom", 17)
+			marginContainer.add_theme_constant_override("margin_bottom", TOP_BAR_VERTICAL_MARGIN)
 	_applySectionLayout(goldSection)
 	_applySectionLayout(foodSection)
 	_applySectionLayout(armySection)
@@ -86,12 +90,12 @@ func _applyAssetTheme() -> void:
 	foodLabel.tooltip_text = "Wird monatlich produziert und von Armeen verbraucht. Negatives Monatsnetto verbraucht Vorrat; danach zahlt Gold die Versorgung."
 	armyLabel.tooltip_text = "Gesamtzahl deiner Einheiten."
 	threatLabel.tooltip_text = "Steigt durch Zeit, Kriege, Eroberungen und große Armeen. Bei 100% greifen alle Nachbarn an."
-	UI_ASSET_THEME.applyLabel(goldLabel, 19)
-	UI_ASSET_THEME.applyLabel(foodLabel, 19)
-	UI_ASSET_THEME.applyLabel(armyLabel, 19)
-	UI_ASSET_THEME.applyLabel(threatLabel, 19)
-	UI_ASSET_THEME.applyLabel(shortageLabel, 17)
-	UI_ASSET_THEME.applyLabel(dateLabel, 17)
+	UI_ASSET_THEME.applyLabel(goldLabel, TOP_BAR_FONT_SIZE)
+	UI_ASSET_THEME.applyLabel(foodLabel, TOP_BAR_FONT_SIZE)
+	UI_ASSET_THEME.applyLabel(armyLabel, TOP_BAR_FONT_SIZE)
+	UI_ASSET_THEME.applyLabel(threatLabel, TOP_BAR_FONT_SIZE)
+	UI_ASSET_THEME.applyLabel(shortageLabel, TOP_BAR_FONT_SIZE)
+	UI_ASSET_THEME.applyLabel(dateLabel, TOP_BAR_FONT_SIZE)
 	_applySectionLabel(goldLabel)
 	_applySectionLabel(foodLabel)
 	_applySectionLabel(armyLabel)
@@ -110,8 +114,8 @@ func _applySectionLayout(section: HBoxContainer) -> void:
 		return
 
 	section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	section.custom_minimum_size = Vector2(296.0, 0.0)
-	section.add_theme_constant_override("separation", 10)
+	section.custom_minimum_size = Vector2.ZERO
+	section.add_theme_constant_override("separation", 6)
 	section.alignment = BoxContainer.ALIGNMENT_CENTER
 
 
@@ -119,7 +123,7 @@ func _applySectionLabel(label: Label, isCentered: bool = false) -> void:
 	if label == null:
 		return
 
-	label.custom_minimum_size = Vector2(210.0, 56.0)
+	label.custom_minimum_size = Vector2(0.0, TOP_BAR_LABEL_HEIGHT)
 	label.clip_text = true
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER if isCentered else HORIZONTAL_ALIGNMENT_LEFT
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -133,12 +137,13 @@ func _ensureInlineIcon(iconName: String, beforeNode: Control, texturePath: Strin
 
 	var icon := parent.get_node_or_null(iconName) as TextureRect
 	if icon == null:
-		icon = UI_ASSET_THEME.makeIcon(texturePath, Vector2(38.0, 38.0))
+		icon = UI_ASSET_THEME.makeIcon(texturePath, TOP_BAR_ICON_SIZE)
 		icon.name = iconName
 		parent.add_child(icon)
 		parent.move_child(icon, beforeNode.get_index())
 	else:
 		icon.texture = UI_ASSET_THEME.loadTexture(texturePath)
+		icon.custom_minimum_size = TOP_BAR_ICON_SIZE
 	icon.tooltip_text = beforeNode.tooltip_text
 
 

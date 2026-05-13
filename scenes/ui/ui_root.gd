@@ -546,9 +546,9 @@ func _applyLayout() -> void:
 	topBar.anchor_right = 0.5
 	topBar.anchor_bottom = 0.0
 	topBar.offset_left = -880.0
-	topBar.offset_top = 12.0
+	topBar.offset_top = 8.0
 	topBar.offset_right = 880.0
-	topBar.offset_bottom = 116.0
+	topBar.offset_bottom = 72.0
 
 	leftPanel.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	leftPanel.offset_left = 18.0
