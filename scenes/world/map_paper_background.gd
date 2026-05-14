@@ -4,7 +4,7 @@ class_name MapPaperBackground
 
 # Visual-only backing for the real-country world map.
 const WORLD_MAP_TEXTURE: Texture2D = preload("res://assets/map/backgrounds/worldMapPaper.png")
-const MAP_RECT := Rect2(Vector2.ZERO, Vector2(4096.0, 2304.0))
+const MAP_RECT := Rect2(Vector2.ZERO, Vector2(10032.0, 5646.0))
 
 
 func _ready() -> void:

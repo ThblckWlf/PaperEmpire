@@ -316,7 +316,7 @@ func _calculateMapBounds(runState: RunState, mapShapes: Dictionary) -> Rect2:
 					hasBounds = true
 
 	if not hasBounds:
-		return Rect2(Vector2.ZERO, Vector2(4096.0, 2304.0))
+		return Rect2(Vector2.ZERO, Vector2(10032.0, 5646.0))
 
 	return bounds
 

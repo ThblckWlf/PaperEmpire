@@ -7,8 +7,8 @@
     "foodPerMonth": 39,
     "defense": 29,
     "center": {
-      "x": 2702.0,
-      "y": 737.9
+      "x": 6102.3,
+      "y": 2320.7
     },
     "neighbors": [
       "chn",
@@ -28,8 +28,8 @@
     "foodPerMonth": 47,
     "defense": 35,
     "center": {
-      "x": 2226.6,
-      "y": 616.3
+      "x": 4912.3,
+      "y": 1859.2
     },
     "neighbors": [
       "aut",
@@ -51,11 +51,10 @@
     "foodPerMonth": 39,
     "defense": 30,
     "center": {
-      "x": 2074.3,
-      "y": 807.7
+      "x": 4632.3,
+      "y": 2307.0
     },
     "neighbors": [
-      "esh",
       "esp",
       "ita",
       "lby",
@@ -75,8 +74,8 @@
     "foodPerMonth": 39,
     "defense": 29,
     "center": {
-      "x": 2229.8,
-      "y": 1302.3
+      "x": 4981.8,
+      "y": 3518.3
     },
     "neighbors": [
       "bwa",
@@ -95,14 +94,13 @@
     "foodPerMonth": 39,
     "defense": 31,
     "center": {
-      "x": 1410.1,
-      "y": 1579.2
+      "x": 2640.8,
+      "y": 4516.4
     },
     "neighbors": [
       "bol",
       "bra",
       "chl",
-      "flk",
       "pry",
       "ury"
     ]
@@ -115,8 +113,8 @@
     "foodPerMonth": 43,
     "defense": 32,
     "center": {
-      "x": 2486.1,
-      "y": 651.4
+      "x": 5542.3,
+      "y": 2035.4
     },
     "neighbors": [
       "irn",
@@ -133,8 +131,8 @@
     "foodPerMonth": 39,
     "defense": 31,
     "center": {
-      "x": 3409.8,
-      "y": 1463.8
+      "x": 7830.7,
+      "y": 4238.1
     },
     "neighbors": [
       "idn",
@@ -150,8 +148,8 @@
     "foodPerMonth": 37,
     "defense": 29,
     "center": {
-      "x": 2177.9,
-      "y": 570.9
+      "x": 4807.3,
+      "y": 1762.3
     },
     "neighbors": [
       "che",
@@ -171,14 +169,12 @@
     "foodPerMonth": 41,
     "defense": 32,
     "center": {
-      "x": 2968.7,
-      "y": 860.1
+      "x": 6789.7,
+      "y": 2566.3
     },
     "neighbors": [
-      "btn",
       "chn",
       "ind",
-      "lka",
       "mmr",
       "npl"
     ]
@@ -191,8 +187,8 @@
     "foodPerMonth": 37,
     "defense": 28,
     "center": {
-      "x": 2295.2,
-      "y": 501.7
+      "x": 5083.4,
+      "y": 1401.8
     },
     "neighbors": [
       "baltics",
@@ -209,8 +205,8 @@
     "foodPerMonth": 43,
     "defense": 34,
     "center": {
-      "x": 2094.2,
-      "y": 524.4
+      "x": 4681.3,
+      "y": 1707.0
     },
     "neighbors": [
       "deu",
@@ -227,50 +223,12 @@
     "foodPerMonth": 47,
     "defense": 35,
     "center": {
-      "x": 1155.8,
-      "y": 990.7
+      "x": 1946.9,
+      "y": 2919.1
     },
     "neighbors": [
       "col",
       "mex"
-    ]
-  },
-  {
-    "id": "ben",
-    "name": "Benin",
-    "ownerId": "neutral",
-    "goldPerMonth": 42,
-    "foodPerMonth": 37,
-    "defense": 28,
-    "center": {
-      "x": 2072.3,
-      "y": 1034.0
-    },
-    "neighbors": [
-      "bfa",
-      "gha",
-      "mli",
-      "ner",
-      "nga",
-      "tgo"
-    ]
-  },
-  {
-    "id": "btn",
-    "name": "Bhutan",
-    "ownerId": "neutral",
-    "goldPerMonth": 37,
-    "foodPerMonth": 34,
-    "defense": 24,
-    "center": {
-      "x": 2962.9,
-      "y": 816.3
-    },
-    "neighbors": [
-      "bgd",
-      "chn",
-      "ind",
-      "npl"
     ]
   },
   {
@@ -281,8 +239,8 @@
     "foodPerMonth": 37,
     "defense": 28,
     "center": {
-      "x": 1380.5,
-      "y": 1356.6
+      "x": 2641.5,
+      "y": 3938.2
     },
     "neighbors": [
       "arg",
@@ -300,8 +258,8 @@
     "foodPerMonth": 35,
     "defense": 26,
     "center": {
-      "x": 2291.3,
-      "y": 1422.3
+      "x": 5134.9,
+      "y": 4030.9
     },
     "neighbors": [
       "ago",
@@ -319,8 +277,8 @@
     "foodPerMonth": 41,
     "defense": 33,
     "center": {
-      "x": 1497.2,
-      "y": 1283.4
+      "x": 2978.1,
+      "y": 3758.0
     },
     "neighbors": [
       "arg",
@@ -343,14 +301,13 @@
     "foodPerMonth": 42,
     "defense": 32,
     "center": {
-      "x": 3196.0,
-      "y": 1106.0
+      "x": 7639.7,
+      "y": 3171.9
     },
     "neighbors": [
       "idn",
       "phl",
-      "tha",
-      "tls"
+      "tha"
     ]
   },
   {
@@ -361,8 +318,8 @@
     "foodPerMonth": 37,
     "defense": 28,
     "center": {
-      "x": 2287.2,
-      "y": 629.4
+      "x": 5057.2,
+      "y": 1905.5
     },
     "neighbors": [
       "grc",
@@ -380,18 +337,16 @@
     "foodPerMonth": 38,
     "defense": 28,
     "center": {
-      "x": 2029.5,
-      "y": 1001.3
+      "x": 4268.3,
+      "y": 2873.5
     },
     "neighbors": [
-      "ben",
       "civ",
       "gha",
       "mli",
       "mrt",
       "ner",
-      "nga",
-      "tgo"
+      "nga"
     ]
   },
   {
@@ -402,8 +357,8 @@
     "foodPerMonth": 45,
     "defense": 33,
     "center": {
-      "x": 2381.9,
-      "y": 1144.5
+      "x": 5435.4,
+      "y": 3160.9
     },
     "neighbors": [
       "cod",
@@ -421,8 +376,8 @@
     "foodPerMonth": 38,
     "defense": 28,
     "center": {
-      "x": 3136.9,
-      "y": 996.8
+      "x": 7527.9,
+      "y": 2889.0
     },
     "neighbors": [
       "lao",
@@ -438,15 +393,14 @@
     "foodPerMonth": 38,
     "defense": 29,
     "center": {
-      "x": 2179.6,
-      "y": 1082.8
+      "x": 4562.2,
+      "y": 3133.9
     },
     "neighbors": [
       "caf",
       "cod",
       "cog",
       "gab",
-      "gnq",
       "ner",
       "nga",
       "tcd"
@@ -460,8 +414,8 @@
     "foodPerMonth": 20,
     "defense": 10,
     "center": {
-      "x": 1193.6,
-      "y": 461.5
+      "x": 1824.0,
+      "y": 1392.3
     },
     "neighbors": [
       "grl",
@@ -476,8 +430,8 @@
     "foodPerMonth": 36,
     "defense": 26,
     "center": {
-      "x": 2260.6,
-      "y": 1071.9
+      "x": 4855.5,
+      "y": 2955.8
     },
     "neighbors": [
       "cmr",
@@ -499,8 +453,8 @@
     "foodPerMonth": 38,
     "defense": 28,
     "center": {
-      "x": 2240.1,
-      "y": 964.7
+      "x": 4847.0,
+      "y": 2559.9
     },
     "neighbors": [
       "caf",
@@ -521,8 +475,8 @@
     "foodPerMonth": 38,
     "defense": 30,
     "center": {
-      "x": 1354.7,
-      "y": 1600.7
+      "x": 2458.7,
+      "y": 4870.6
     },
     "neighbors": [
       "arg",
@@ -540,8 +494,8 @@
     "foodPerMonth": 39,
     "defense": 31,
     "center": {
-      "x": 1284.7,
-      "y": 1104.0
+      "x": 2412.8,
+      "y": 3290.2
     },
     "neighbors": [
       "bra",
@@ -559,29 +513,13 @@
     "foodPerMonth": 46,
     "defense": 35,
     "center": {
-      "x": 1275.4,
-      "y": 903.1
+      "x": 2303.2,
+      "y": 2724.5
     },
     "neighbors": [
       "guianas",
       "usa",
       "ven"
-    ]
-  },
-  {
-    "id": "cyprus",
-    "name": "Cyprus",
-    "ownerId": "neutral",
-    "goldPerMonth": 48,
-    "foodPerMonth": 39,
-    "defense": 29,
-    "center": {
-      "x": 2375.6,
-      "y": 723.1
-    },
-    "neighbors": [
-      "levant",
-      "tur"
     ]
   },
   {
@@ -592,8 +530,8 @@
     "foodPerMonth": 42,
     "defense": 33,
     "center": {
-      "x": 2201.6,
-      "y": 549.6
+      "x": 4915.9,
+      "y": 1666.4
     },
     "neighbors": [
       "aut",
@@ -613,8 +551,8 @@
     "foodPerMonth": 40,
     "defense": 30,
     "center": {
-      "x": 2294.3,
-      "y": 1186.8
+      "x": 5224.7,
+      "y": 3388.9
     },
     "neighbors": [
       "ago",
@@ -638,8 +576,8 @@
     "foodPerMonth": 36,
     "defense": 29,
     "center": {
-      "x": 2128.4,
-      "y": 470.1
+      "x": 4680.6,
+      "y": 1262.7
     },
     "neighbors": [
       "deu",
@@ -655,8 +593,8 @@
     "foodPerMonth": 44,
     "defense": 32,
     "center": {
-      "x": 2513.3,
-      "y": 1058.6
+      "x": 5575.2,
+      "y": 2650.6
     },
     "neighbors": [
       "eth",
@@ -668,22 +606,6 @@
     ]
   },
   {
-    "id": "tls",
-    "name": "East Timor",
-    "ownerId": "neutral",
-    "goldPerMonth": 36,
-    "foodPerMonth": 34,
-    "defense": 25,
-    "center": {
-      "x": 3360.1,
-      "y": 1259.1
-    },
-    "neighbors": [
-      "idn",
-      "malaysiaBrunei"
-    ]
-  },
-  {
     "id": "ecu",
     "name": "Ecuador",
     "ownerId": "neutral",
@@ -691,8 +613,8 @@
     "foodPerMonth": 38,
     "defense": 29,
     "center": {
-      "x": 1228.4,
-      "y": 1169.8
+      "x": 2106.2,
+      "y": 3093.7
     },
     "neighbors": [
       "col",
@@ -707,8 +629,8 @@
     "foodPerMonth": 40,
     "defense": 31,
     "center": {
-      "x": 2350.6,
-      "y": 827.8
+      "x": 5330.7,
+      "y": 2147.3
     },
     "neighbors": [
       "irq",
@@ -720,23 +642,6 @@
     ]
   },
   {
-    "id": "gnq",
-    "name": "Equatorial Guinea",
-    "ownerId": "neutral",
-    "goldPerMonth": 41,
-    "foodPerMonth": 34,
-    "defense": 26,
-    "center": {
-      "x": 2156.4,
-      "y": 1131.9
-    },
-    "neighbors": [
-      "cmr",
-      "cog",
-      "gab"
-    ]
-  },
-  {
     "id": "baltics",
     "name": "Baltic States",
     "ownerId": "neutral",
@@ -744,8 +649,8 @@
     "foodPerMonth": 42,
     "defense": 32,
     "center": {
-      "x": 2260.9,
-      "y": 464.0
+      "x": 5097.1,
+      "y": 1140.7
     },
     "neighbors": [
       "blr",
@@ -757,23 +662,6 @@
     ]
   },
   {
-    "id": "southernEnclaves",
-    "name": "Lesotho and Eswatini",
-    "ownerId": "neutral",
-    "goldPerMonth": 44,
-    "foodPerMonth": 40,
-    "defense": 29,
-    "center": {
-      "x": 2344.9,
-      "y": 1499.6
-    },
-    "neighbors": [
-      "atf",
-      "moz",
-      "zaf"
-    ]
-  },
-  {
     "id": "eth",
     "name": "Ethiopia",
     "ownerId": "neutral",
@@ -781,8 +669,8 @@
     "foodPerMonth": 40,
     "defense": 31,
     "center": {
-      "x": 2460.2,
-      "y": 1046.2
+      "x": 5650.0,
+      "y": 2922.2
     },
     "neighbors": [
       "greatLakes",
@@ -794,22 +682,6 @@
     ]
   },
   {
-    "id": "flk",
-    "name": "Falkland Islands",
-    "ownerId": "neutral",
-    "goldPerMonth": 34,
-    "foodPerMonth": 31,
-    "defense": 22,
-    "center": {
-      "x": 1515.5,
-      "y": 1781.6
-    },
-    "neighbors": [
-      "arg",
-      "ury"
-    ]
-  },
-  {
     "id": "pacificIslands",
     "name": "Pacific Islands",
     "ownerId": "neutral",
@@ -817,8 +689,8 @@
     "foodPerMonth": 41,
     "defense": 30,
     "center": {
-      "x": 3776.7,
-      "y": 1344.1
+      "x": 9062.2,
+      "y": 3612.1
     },
     "neighbors": [
       "nzl",
@@ -833,8 +705,8 @@
     "foodPerMonth": 36,
     "defense": 28,
     "center": {
-      "x": 2257.3,
-      "y": 379.3
+      "x": 5021.7,
+      "y": 892.3
     },
     "neighbors": [
       "baltics",
@@ -851,8 +723,8 @@
     "foodPerMonth": 40,
     "defense": 32,
     "center": {
-      "x": 2069.7,
-      "y": 583.5
+      "x": 4462.2,
+      "y": 1879.1
     },
     "neighbors": [
       "benelux",
@@ -866,39 +738,22 @@
     ]
   },
   {
-    "id": "atf",
-    "name": "French Southern and Antarctic Lands",
-    "ownerId": "neutral",
-    "goldPerMonth": 34,
-    "foodPerMonth": 31,
-    "defense": 22,
-    "center": {
-      "x": 2682.4,
-      "y": 1753.3
-    },
-    "neighbors": [
-      "mdg",
-      "southernEnclaves"
-    ]
-  },
-  {
     "id": "gab",
-    "name": "Gabon",
+    "name": "Gabon and Equatorial Guinea",
     "ownerId": "neutral",
     "goldPerMonth": 42,
     "foodPerMonth": 35,
     "defense": 26,
     "center": {
-      "x": 2170.2,
-      "y": 1159.9
+      "x": 4683.7,
+      "y": 3262.0
     },
     "neighbors": [
       "ago",
       "caf",
       "cmr",
       "cod",
-      "cog",
-      "gnq"
+      "cog"
     ]
   },
   {
@@ -909,8 +764,8 @@
     "foodPerMonth": 40,
     "defense": 32,
     "center": {
-      "x": 2140.5,
-      "y": 529.7
+      "x": 4661.1,
+      "y": 1510.1
     },
     "neighbors": [
       "aut",
@@ -927,37 +782,37 @@
   },
   {
     "id": "gha",
-    "name": "Ghana",
+    "name": "Ghana and Togo",
     "ownerId": "neutral",
     "goldPerMonth": 47,
     "foodPerMonth": 38,
     "defense": 29,
     "center": {
-      "x": 2035.2,
-      "y": 1055.2
+      "x": 4308.5,
+      "y": 3038.7
     },
     "neighbors": [
-      "ben",
       "bfa",
       "civ",
       "mli",
       "ner",
-      "tgo"
+      "nga"
     ]
   },
   {
     "id": "grc",
-    "name": "Greece",
+    "name": "Greece and Cyprus",
     "ownerId": "neutral",
     "goldPerMonth": 50,
     "foodPerMonth": 37,
     "defense": 29,
     "center": {
-      "x": 2266.1,
-      "y": 670.9
+      "x": 4949.4,
+      "y": 1972.6
     },
     "neighbors": [
       "bgr",
+      "levant",
       "rus",
       "tur",
       "westernBalkans"
@@ -971,8 +826,8 @@
     "foodPerMonth": 31,
     "defense": 23,
     "center": {
-      "x": 1750.9,
-      "y": 284.7
+      "x": 3485.7,
+      "y": 617.1
     },
     "neighbors": [
       "can",
@@ -987,8 +842,8 @@
     "foodPerMonth": 45,
     "defense": 33,
     "center": {
-      "x": 1930.5,
-      "y": 1035.6
+      "x": 3975.8,
+      "y": 2965.4
     },
     "neighbors": [
       "civ",
@@ -1004,8 +859,8 @@
     "foodPerMonth": 39,
     "defense": 29,
     "center": {
-      "x": 1445.0,
-      "y": 1096.7
+      "x": 2816.9,
+      "y": 3253.7
     },
     "neighbors": [
       "bra",
@@ -1022,8 +877,8 @@
     "foodPerMonth": 37,
     "defense": 29,
     "center": {
-      "x": 2227.0,
-      "y": 575.9
+      "x": 4915.2,
+      "y": 1800.0
     },
     "neighbors": [
       "aut",
@@ -1043,8 +898,8 @@
     "foodPerMonth": 33,
     "defense": 25,
     "center": {
-      "x": 1899.0,
-      "y": 371.5
+      "x": 3993.5,
+      "y": 1132.6
     },
     "neighbors": [
       "grl",
@@ -1053,21 +908,19 @@
   },
   {
     "id": "ind",
-    "name": "India",
+    "name": "India, Bhutan and Sri Lanka",
     "ownerId": "neutral",
     "goldPerMonth": 58,
     "foodPerMonth": 44,
     "defense": 35,
     "center": {
-      "x": 2860.0,
-      "y": 872.2
+      "x": 6703.6,
+      "y": 2645.0
     },
     "neighbors": [
       "afg",
       "bgd",
-      "btn",
       "chn",
-      "lka",
       "mmr",
       "npl",
       "pak"
@@ -1075,21 +928,20 @@
   },
   {
     "id": "idn",
-    "name": "Indonesia",
+    "name": "Indonesia and East Timor",
     "ownerId": "neutral",
     "goldPerMonth": 56,
     "foodPerMonth": 41,
     "defense": 33,
     "center": {
-      "x": 3240.3,
-      "y": 1155.1
+      "x": 7355.1,
+      "y": 3299.6
     },
     "neighbors": [
       "aus",
       "malaysiaBrunei",
       "png",
-      "tha",
-      "tls"
+      "tha"
     ]
   },
   {
@@ -1100,8 +952,8 @@
     "foodPerMonth": 40,
     "defense": 31,
     "center": {
-      "x": 2588.4,
-      "y": 754.6
+      "x": 5940.4,
+      "y": 2139.6
     },
     "neighbors": [
       "afg",
@@ -1123,8 +975,8 @@
     "foodPerMonth": 39,
     "defense": 30,
     "center": {
-      "x": 2482.7,
-      "y": 747.9
+      "x": 5649.3,
+      "y": 2095.0
     },
     "neighbors": [
       "egy",
@@ -1143,8 +995,8 @@
     "foodPerMonth": 36,
     "defense": 28,
     "center": {
-      "x": 1977.0,
-      "y": 505.3
+      "x": 4196.9,
+      "y": 1632.3
     },
     "neighbors": [
       "benelux",
@@ -1160,12 +1012,12 @@
     "foodPerMonth": 46,
     "defense": 35,
     "center": {
-      "x": 2421.1,
-      "y": 740.7
+      "x": 5410.1,
+      "y": 2285.9
     },
     "neighbors": [
-      "cyprus",
       "egy",
+      "grc",
       "irq",
       "sau",
       "tur"
@@ -1179,8 +1031,8 @@
     "foodPerMonth": 39,
     "defense": 32,
     "center": {
-      "x": 2163.9,
-      "y": 621.0
+      "x": 4786.3,
+      "y": 1842.8
     },
     "neighbors": [
       "aut",
@@ -1202,8 +1054,8 @@
     "foodPerMonth": 38,
     "defense": 29,
     "center": {
-      "x": 1989.5,
-      "y": 1059.5
+      "x": 4063.0,
+      "y": 3093.9
     },
     "neighbors": [
       "bfa",
@@ -1220,8 +1072,8 @@
     "foodPerMonth": 40,
     "defense": 33,
     "center": {
-      "x": 3390.7,
-      "y": 711.5
+      "x": 8059.7,
+      "y": 1983.0
     },
     "neighbors": [
       "kor",
@@ -1236,8 +1088,8 @@
     "foodPerMonth": 38,
     "defense": 29,
     "center": {
-      "x": 2665.8,
-      "y": 565.3
+      "x": 6111.2,
+      "y": 1800.4
     },
     "neighbors": [
       "caucasus",
@@ -1259,8 +1111,8 @@
     "foodPerMonth": 39,
     "defense": 30,
     "center": {
-      "x": 2443.0,
-      "y": 1144.7
+      "x": 5605.3,
+      "y": 3248.5
     },
     "neighbors": [
       "eth",
@@ -1278,8 +1130,8 @@
     "foodPerMonth": 44,
     "defense": 34,
     "center": {
-      "x": 2613.6,
-      "y": 886.2
+      "x": 5818.6,
+      "y": 2364.3
     },
     "neighbors": [
       "irn",
@@ -1297,8 +1149,8 @@
     "foodPerMonth": 36,
     "defense": 27,
     "center": {
-      "x": 2761.3,
-      "y": 644.5
+      "x": 6311.0,
+      "y": 2043.9
     },
     "neighbors": [
       "chn",
@@ -1316,8 +1168,8 @@
     "foodPerMonth": 37,
     "defense": 27,
     "center": {
-      "x": 3116.7,
-      "y": 926.3
+      "x": 7092.2,
+      "y": 2736.1
     },
     "neighbors": [
       "chn",
@@ -1335,8 +1187,8 @@
     "foodPerMonth": 37,
     "defense": 28,
     "center": {
-      "x": 2230.0,
-      "y": 821.9
+      "x": 4976.2,
+      "y": 2125.3
     },
     "neighbors": [
       "dza",
@@ -1355,30 +1207,11 @@
     "foodPerMonth": 38,
     "defense": 28,
     "center": {
-      "x": 2528.2,
-      "y": 1388.6
+      "x": 5599.5,
+      "y": 4046.7
     },
     "neighbors": [
-      "atf",
       "moz"
-    ]
-  },
-  {
-    "id": "mwi",
-    "name": "Malawi",
-    "ownerId": "neutral",
-    "goldPerMonth": 40,
-    "foodPerMonth": 38,
-    "defense": 28,
-    "center": {
-      "x": 2402.8,
-      "y": 1313.1
-    },
-    "neighbors": [
-      "moz",
-      "tza",
-      "zmb",
-      "zwe"
     ]
   },
   {
@@ -1389,22 +1222,19 @@
     "foodPerMonth": 38,
     "defense": 28,
     "center": {
-      "x": 2011.3,
-      "y": 940.9
+      "x": 4211.0,
+      "y": 2385.5
     },
     "neighbors": [
-      "ben",
       "bfa",
       "civ",
       "dza",
-      "esh",
       "gha",
       "mar",
       "mrt",
       "ner",
       "nga",
       "sen",
-      "tgo",
       "upperGuinea"
     ]
   },
@@ -1416,13 +1246,12 @@
     "foodPerMonth": 36,
     "defense": 26,
     "center": {
-      "x": 1941.9,
-      "y": 904.9
+      "x": 4019.5,
+      "y": 2634.7
     },
     "neighbors": [
       "bfa",
       "dza",
-      "esh",
       "mar",
       "mli",
       "sen"
@@ -1436,29 +1265,12 @@
     "foodPerMonth": 40,
     "defense": 12,
     "center": {
-      "x": 1004.2,
-      "y": 859.6
+      "x": 1633.3,
+      "y": 2652.8
     },
     "neighbors": [
       "centralAmerica",
       "usa"
-    ]
-  },
-  {
-    "id": "mda",
-    "name": "Moldova",
-    "ownerId": "neutral",
-    "goldPerMonth": 41,
-    "foodPerMonth": 35,
-    "defense": 26,
-    "center": {
-      "x": 2310.7,
-      "y": 575.8
-    },
-    "neighbors": [
-      "rou",
-      "rus",
-      "ukr"
     ]
   },
   {
@@ -1469,8 +1281,8 @@
     "foodPerMonth": 36,
     "defense": 26,
     "center": {
-      "x": 3002.3,
-      "y": 580.9
+      "x": 6992.6,
+      "y": 1845.9
     },
     "neighbors": [
       "chn",
@@ -1480,18 +1292,17 @@
   },
   {
     "id": "mar",
-    "name": "Morocco",
+    "name": "Morocco and Western Sahara",
     "ownerId": "neutral",
     "goldPerMonth": 49,
     "foodPerMonth": 39,
     "defense": 30,
     "center": {
-      "x": 1962.7,
-      "y": 786.8
+      "x": 4176.8,
+      "y": 2121.6
     },
     "neighbors": [
       "dza",
-      "esh",
       "esp",
       "mli",
       "mrt"
@@ -1499,20 +1310,18 @@
   },
   {
     "id": "moz",
-    "name": "Mozambique",
+    "name": "Mozambique and Malawi",
     "ownerId": "neutral",
     "goldPerMonth": 42,
     "foodPerMonth": 38,
     "defense": 29,
     "center": {
-      "x": 2414.1,
-      "y": 1362.5
+      "x": 5295.8,
+      "y": 3972.3
     },
     "neighbors": [
       "cod",
       "mdg",
-      "mwi",
-      "southernEnclaves",
       "tza",
       "zaf",
       "zmb",
@@ -1527,8 +1336,8 @@
     "foodPerMonth": 39,
     "defense": 30,
     "center": {
-      "x": 3037.3,
-      "y": 895.1
+      "x": 6867.5,
+      "y": 2722.8
     },
     "neighbors": [
       "bgd",
@@ -1546,8 +1355,8 @@
     "foodPerMonth": 35,
     "defense": 26,
     "center": {
-      "x": 2223.5,
-      "y": 1422.2
+      "x": 4781.8,
+      "y": 4129.6
     },
     "neighbors": [
       "ago",
@@ -1565,12 +1374,11 @@
     "foodPerMonth": 38,
     "defense": 29,
     "center": {
-      "x": 2895.7,
-      "y": 806.4
+      "x": 6551.7,
+      "y": 2503.6
     },
     "neighbors": [
       "bgd",
-      "btn",
       "chn",
       "ind"
     ]
@@ -1583,8 +1391,8 @@
     "foodPerMonth": 36,
     "defense": 28,
     "center": {
-      "x": 3655.8,
-      "y": 1689.4
+      "x": 8638.7,
+      "y": 4840.8
     },
     "neighbors": [
       "aus",
@@ -1599,11 +1407,10 @@
     "foodPerMonth": 38,
     "defense": 28,
     "center": {
-      "x": 2144.0,
-      "y": 939.8
+      "x": 4439.4,
+      "y": 2515.7
     },
     "neighbors": [
-      "ben",
       "bfa",
       "caf",
       "cmr",
@@ -1612,28 +1419,27 @@
       "lby",
       "mli",
       "nga",
-      "tcd",
-      "tgo"
+      "tcd"
     ]
   },
   {
     "id": "nga",
-    "name": "Nigeria",
+    "name": "Nigeria and Benin",
     "ownerId": "neutral",
     "goldPerMonth": 53,
     "foodPerMonth": 41,
     "defense": 32,
     "center": {
-      "x": 2131.2,
-      "y": 1035.2
+      "x": 4612.6,
+      "y": 2879.4
     },
     "neighbors": [
-      "ben",
       "bfa",
       "caf",
       "cmr",
       "cod",
       "cog",
+      "gha",
       "mli",
       "ner",
       "tcd"
@@ -1647,8 +1453,8 @@
     "foodPerMonth": 38,
     "defense": 29,
     "center": {
-      "x": 3272.4,
-      "y": 661.2
+      "x": 8034.8,
+      "y": 1711.9
     },
     "neighbors": [
       "chn",
@@ -1664,8 +1470,8 @@
     "foodPerMonth": 36,
     "defense": 29,
     "center": {
-      "x": 2155.6,
-      "y": 381.3
+      "x": 5021.7,
+      "y": 892.3
     },
     "neighbors": [
       "baltics",
@@ -1683,8 +1489,8 @@
     "foodPerMonth": 41,
     "defense": 32,
     "center": {
-      "x": 2743.7,
-      "y": 785.6
+      "x": 6191.3,
+      "y": 2447.6
     },
     "neighbors": [
       "afg",
@@ -1705,8 +1511,8 @@
     "foodPerMonth": 37,
     "defense": 28,
     "center": {
-      "x": 3554.0,
-      "y": 1233.3
+      "x": 8164.2,
+      "y": 3623.8
     },
     "neighbors": [
       "aus",
@@ -1722,8 +1528,8 @@
     "foodPerMonth": 37,
     "defense": 28,
     "center": {
-      "x": 1451.6,
-      "y": 1436.4
+      "x": 2818.7,
+      "y": 4139.4
     },
     "neighbors": [
       "arg",
@@ -1735,18 +1541,17 @@
   {
     "id": "chn",
     "name": "People's Republic of China",
-    "ownerId": "world",
+    "ownerId": "neutral",
     "goldPerMonth": 58,
     "foodPerMonth": 44,
     "defense": 35,
     "center": {
-      "x": 3059.7,
-      "y": 707.7
+      "x": 7064.1,
+      "y": 2205.0
     },
     "neighbors": [
       "afg",
       "bgd",
-      "btn",
       "ind",
       "kaz",
       "kgz",
@@ -1772,8 +1577,8 @@
     "foodPerMonth": 39,
     "defense": 30,
     "center": {
-      "x": 1273.5,
-      "y": 1264.3
+      "x": 2369.9,
+      "y": 3697.8
     },
     "neighbors": [
       "bol",
@@ -1791,8 +1596,8 @@
     "foodPerMonth": 40,
     "defense": 31,
     "center": {
-      "x": 3305.1,
-      "y": 959.3
+      "x": 7770.5,
+      "y": 2363.3
     },
     "neighbors": [
       "malaysiaBrunei",
@@ -1807,8 +1612,8 @@
     "foodPerMonth": 39,
     "defense": 31,
     "center": {
-      "x": 2220.8,
-      "y": 517.5
+      "x": 5066.2,
+      "y": 1477.8
     },
     "neighbors": [
       "aut",
@@ -1830,8 +1635,8 @@
     "foodPerMonth": 37,
     "defense": 29,
     "center": {
-      "x": 1970.1,
-      "y": 667.4
+      "x": 4176.8,
+      "y": 2121.6
     },
     "neighbors": [
       "dza",
@@ -1846,8 +1651,8 @@
     "foodPerMonth": 36,
     "defense": 27,
     "center": {
-      "x": 2206.2,
-      "y": 1162.3
+      "x": 4891.3,
+      "y": 3229.7
     },
     "neighbors": [
       "ago",
@@ -1855,26 +1660,24 @@
       "cmr",
       "cod",
       "gab",
-      "gnq",
       "nga"
     ]
   },
   {
     "id": "rou",
-    "name": "Romania",
+    "name": "Romania and Moldova",
     "ownerId": "neutral",
     "goldPerMonth": 51,
     "foodPerMonth": 38,
     "defense": 30,
     "center": {
-      "x": 2280.6,
-      "y": 592.1
+      "x": 5037.1,
+      "y": 1539.8
     },
     "neighbors": [
       "bgr",
       "czechSlovakia",
       "hun",
-      "mda",
       "rus",
       "ukr",
       "westernBalkans"
@@ -1883,13 +1686,13 @@
   {
     "id": "rus",
     "name": "Russia",
-    "ownerId": "world",
+    "ownerId": "neutral",
     "goldPerMonth": 57,
     "foodPerMonth": 42,
     "defense": 36,
     "center": {
-      "x": 2854.1,
-      "y": 419.3
+      "x": 6960.2,
+      "y": 1219.3
     },
     "neighbors": [
       "baltics",
@@ -1902,7 +1705,6 @@
       "jpn",
       "kaz",
       "kgz",
-      "mda",
       "mng",
       "nor",
       "pol",
@@ -1926,8 +1728,8 @@
     "foodPerMonth": 39,
     "defense": 31,
     "center": {
-      "x": 2501.8,
-      "y": 857.1
+      "x": 5549.8,
+      "y": 2350.6
     },
     "neighbors": [
       "egy",
@@ -1948,8 +1750,8 @@
     "foodPerMonth": 38,
     "defense": 28,
     "center": {
-      "x": 1897.7,
-      "y": 976.4
+      "x": 4088.8,
+      "y": 2781.6
     },
     "neighbors": [
       "mli",
@@ -1959,20 +1761,19 @@
   },
   {
     "id": "zaf",
-    "name": "South Africa",
+    "name": "South Africa, Lesotho and Eswatini",
     "ownerId": "neutral",
     "goldPerMonth": 52,
     "foodPerMonth": 39,
     "defense": 31,
     "center": {
-      "x": 2301.2,
-      "y": 1506.1
+      "x": 4993.6,
+      "y": 4351.9
     },
     "neighbors": [
       "bwa",
       "moz",
       "nam",
-      "southernEnclaves",
       "zwe"
     ]
   },
@@ -1984,8 +1785,8 @@
     "foodPerMonth": 39,
     "defense": 31,
     "center": {
-      "x": 3300.5,
-      "y": 706.3
+      "x": 7640.2,
+      "y": 2101.7
     },
     "neighbors": [
       "chn",
@@ -2001,8 +1802,8 @@
     "foodPerMonth": 37,
     "defense": 27,
     "center": {
-      "x": 2362.9,
-      "y": 1062.7
+      "x": 5165.4,
+      "y": 2994.1
     },
     "neighbors": [
       "caf",
@@ -2023,30 +1824,14 @@
     "foodPerMonth": 39,
     "defense": 31,
     "center": {
-      "x": 2013.1,
-      "y": 658.8
+      "x": 4292.2,
+      "y": 2100.8
     },
     "neighbors": [
       "dza",
       "fra",
       "mar",
       "prt"
-    ]
-  },
-  {
-    "id": "lka",
-    "name": "Sri Lanka",
-    "ownerId": "neutral",
-    "goldPerMonth": 47,
-    "foodPerMonth": 38,
-    "defense": 29,
-    "center": {
-      "x": 2889.2,
-      "y": 1057.8
-    },
-    "neighbors": [
-      "bgd",
-      "ind"
     ]
   },
   {
@@ -2057,8 +1842,8 @@
     "foodPerMonth": 39,
     "defense": 29,
     "center": {
-      "x": 2356.6,
-      "y": 956.5
+      "x": 5170.0,
+      "y": 2577.1
     },
     "neighbors": [
       "caf",
@@ -2079,8 +1864,8 @@
     "foodPerMonth": 37,
     "defense": 29,
     "center": {
-      "x": 2181.4,
-      "y": 399.0
+      "x": 4857.4,
+      "y": 1199.6
     },
     "neighbors": [
       "baltics",
@@ -2100,8 +1885,8 @@
     "foodPerMonth": 37,
     "defense": 29,
     "center": {
-      "x": 2123.2,
-      "y": 580.8
+      "x": 4614.1,
+      "y": 1870.9
     },
     "neighbors": [
       "aut",
@@ -2118,8 +1903,8 @@
     "foodPerMonth": 38,
     "defense": 30,
     "center": {
-      "x": 3282.3,
-      "y": 861.4
+      "x": 7953.9,
+      "y": 2222.6
     },
     "neighbors": [
       "chn",
@@ -2134,8 +1919,8 @@
     "foodPerMonth": 37,
     "defense": 27,
     "center": {
-      "x": 2737.3,
-      "y": 680.0
+      "x": 6223.8,
+      "y": 2155.2
     },
     "neighbors": [
       "afg",
@@ -2156,15 +1941,14 @@
     "foodPerMonth": 39,
     "defense": 30,
     "center": {
-      "x": 2410.6,
-      "y": 1228.5
+      "x": 5379.9,
+      "y": 3425.3
     },
     "neighbors": [
       "cod",
       "greatLakes",
       "ken",
       "moz",
-      "mwi",
       "zmb"
     ]
   },
@@ -2176,8 +1960,8 @@
     "foodPerMonth": 40,
     "defense": 31,
     "center": {
-      "x": 3093.3,
-      "y": 968.4
+      "x": 7055.3,
+      "y": 2822.6
     },
     "neighbors": [
       "chn",
@@ -2190,25 +1974,6 @@
     ]
   },
   {
-    "id": "tgo",
-    "name": "Togo",
-    "ownerId": "neutral",
-    "goldPerMonth": 39,
-    "foodPerMonth": 37,
-    "defense": 27,
-    "center": {
-      "x": 2058.4,
-      "y": 1048.7
-    },
-    "neighbors": [
-      "ben",
-      "bfa",
-      "gha",
-      "mli",
-      "ner"
-    ]
-  },
-  {
     "id": "tun",
     "name": "Tunisia",
     "ownerId": "neutral",
@@ -2216,8 +1981,8 @@
     "foodPerMonth": 37,
     "defense": 28,
     "center": {
-      "x": 2142.3,
-      "y": 733.9
+      "x": 4705.1,
+      "y": 1979.2
     },
     "neighbors": [
       "dza",
@@ -2233,13 +1998,12 @@
     "foodPerMonth": 40,
     "defense": 31,
     "center": {
-      "x": 2390.7,
-      "y": 675.1
+      "x": 5221.1,
+      "y": 1779.4
     },
     "neighbors": [
       "bgr",
       "caucasus",
-      "cyprus",
       "grc",
       "irn",
       "irq",
@@ -2256,8 +2020,8 @@
     "foodPerMonth": 36,
     "defense": 28,
     "center": {
-      "x": 2622.0,
-      "y": 674.0
+      "x": 5649.3,
+      "y": 2095.0
     },
     "neighbors": [
       "afg",
@@ -2277,14 +2041,13 @@
     "foodPerMonth": 39,
     "defense": 30,
     "center": {
-      "x": 2333.4,
-      "y": 553.0
+      "x": 5141.6,
+      "y": 1613.5
     },
     "neighbors": [
       "blr",
       "czechSlovakia",
       "hun",
-      "mda",
       "pol",
       "rou",
       "rus",
@@ -2299,8 +2062,8 @@
     "foodPerMonth": 39,
     "defense": 32,
     "center": {
-      "x": 2025.0,
-      "y": 497.9
+      "x": 4348.5,
+      "y": 1602.5
     },
     "neighbors": [
       "benelux",
@@ -2316,8 +2079,8 @@
     "foodPerMonth": 24,
     "defense": 14,
     "center": {
-      "x": 1093.7,
-      "y": 671.2
+      "x": 1793.7,
+      "y": 2127.4
     },
     "neighbors": [
       "can",
@@ -2334,13 +2097,12 @@
     "foodPerMonth": 36,
     "defense": 27,
     "center": {
-      "x": 1491.2,
-      "y": 1553.1
+      "x": 2887.2,
+      "y": 4445.7
     },
     "neighbors": [
       "arg",
-      "bra",
-      "flk"
+      "bra"
     ]
   },
   {
@@ -2351,8 +2113,8 @@
     "foodPerMonth": 39,
     "defense": 29,
     "center": {
-      "x": 2652.0,
-      "y": 641.8
+      "x": 6014.1,
+      "y": 2046.1
     },
     "neighbors": [
       "afg",
@@ -2373,8 +2135,8 @@
     "foodPerMonth": 38,
     "defense": 30,
     "center": {
-      "x": 1357.9,
-      "y": 1064.4
+      "x": 2614.4,
+      "y": 3182.9
     },
     "neighbors": [
       "bra",
@@ -2391,32 +2153,14 @@
     "foodPerMonth": 40,
     "defense": 31,
     "center": {
-      "x": 3145.1,
-      "y": 948.5
+      "x": 7674.3,
+      "y": 2234.5
     },
     "neighbors": [
       "chn",
       "khm",
       "lao",
       "tha"
-    ]
-  },
-  {
-    "id": "esh",
-    "name": "Western Sahara",
-    "ownerId": "neutral",
-    "goldPerMonth": 34,
-    "foodPerMonth": 33,
-    "defense": 24,
-    "center": {
-      "x": 1924.3,
-      "y": 854.7
-    },
-    "neighbors": [
-      "dza",
-      "mar",
-      "mli",
-      "mrt"
     ]
   },
   {
@@ -2427,8 +2171,8 @@
     "foodPerMonth": 38,
     "defense": 29,
     "center": {
-      "x": 2539.4,
-      "y": 957.2
+      "x": 5826.4,
+      "y": 2659.2
     },
     "neighbors": [
       "eth",
@@ -2445,15 +2189,14 @@
     "foodPerMonth": 38,
     "defense": 28,
     "center": {
-      "x": 2335.7,
-      "y": 1315.8
+      "x": 5289.4,
+      "y": 3636.9
     },
     "neighbors": [
       "ago",
       "bwa",
       "cod",
       "moz",
-      "mwi",
       "nam",
       "tza",
       "zwe"
@@ -2467,13 +2210,12 @@
     "foodPerMonth": 38,
     "defense": 28,
     "center": {
-      "x": 2354.6,
-      "y": 1383.4
+      "x": 5079.8,
+      "y": 3856.6
     },
     "neighbors": [
       "bwa",
       "moz",
-      "mwi",
       "nam",
       "zaf",
       "zmb"
