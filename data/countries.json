@@ -7,8 +7,8 @@
     "foodPerMonth": 39,
     "defense": 29,
     "center": {
-      "x": 6102.3,
-      "y": 2320.7
+      "x": 6190.8,
+      "y": 2448.0
     },
     "neighbors": [
       "chn",
@@ -28,8 +28,8 @@
     "foodPerMonth": 47,
     "defense": 35,
     "center": {
-      "x": 4912.3,
-      "y": 1859.2
+      "x": 4912.6,
+      "y": 1858.8
     },
     "neighbors": [
       "aut",
@@ -52,7 +52,7 @@
     "defense": 30,
     "center": {
       "x": 4632.3,
-      "y": 2307.0
+      "y": 2310.5
     },
     "neighbors": [
       "esp",
@@ -74,8 +74,8 @@
     "foodPerMonth": 39,
     "defense": 29,
     "center": {
-      "x": 4981.8,
-      "y": 3518.3
+      "x": 4981.1,
+      "y": 3519.4
     },
     "neighbors": [
       "bwa",
@@ -94,8 +94,8 @@
     "foodPerMonth": 39,
     "defense": 31,
     "center": {
-      "x": 2640.8,
-      "y": 4516.4
+      "x": 2642.8,
+      "y": 4515.1
     },
     "neighbors": [
       "bol",
@@ -113,8 +113,8 @@
     "foodPerMonth": 43,
     "defense": 32,
     "center": {
-      "x": 5542.3,
-      "y": 2035.4
+      "x": 6012.3,
+      "y": 2038.7
     },
     "neighbors": [
       "irn",
@@ -131,8 +131,8 @@
     "foodPerMonth": 39,
     "defense": 31,
     "center": {
-      "x": 7830.7,
-      "y": 4238.1
+      "x": 7831.8,
+      "y": 4237.1
     },
     "neighbors": [
       "idn",
@@ -148,8 +148,8 @@
     "foodPerMonth": 37,
     "defense": 29,
     "center": {
-      "x": 4807.3,
-      "y": 1762.3
+      "x": 4807.7,
+      "y": 1762.4
     },
     "neighbors": [
       "che",
@@ -169,8 +169,8 @@
     "foodPerMonth": 41,
     "defense": 32,
     "center": {
-      "x": 6789.7,
-      "y": 2566.3
+      "x": 7056.7,
+      "y": 2824.4
     },
     "neighbors": [
       "chn",
@@ -187,8 +187,8 @@
     "foodPerMonth": 37,
     "defense": 28,
     "center": {
-      "x": 5083.4,
-      "y": 1401.8
+      "x": 5084.0,
+      "y": 1402.2
     },
     "neighbors": [
       "baltics",
@@ -205,8 +205,8 @@
     "foodPerMonth": 43,
     "defense": 34,
     "center": {
-      "x": 4681.3,
-      "y": 1707.0
+      "x": 4681.2,
+      "y": 1707.5
     },
     "neighbors": [
       "deu",
@@ -223,8 +223,8 @@
     "foodPerMonth": 47,
     "defense": 35,
     "center": {
-      "x": 1946.9,
-      "y": 2919.1
+      "x": 1946.8,
+      "y": 2918.5
     },
     "neighbors": [
       "col",
@@ -239,8 +239,8 @@
     "foodPerMonth": 37,
     "defense": 28,
     "center": {
-      "x": 2641.5,
-      "y": 3938.2
+      "x": 2642.3,
+      "y": 3937.8
     },
     "neighbors": [
       "arg",
@@ -258,8 +258,8 @@
     "foodPerMonth": 35,
     "defense": 26,
     "center": {
-      "x": 5134.9,
-      "y": 4030.9
+      "x": 5134.6,
+      "y": 4030.1
     },
     "neighbors": [
       "ago",
@@ -277,8 +277,8 @@
     "foodPerMonth": 41,
     "defense": 33,
     "center": {
-      "x": 2978.1,
-      "y": 3758.0
+      "x": 2977.4,
+      "y": 3757.1
     },
     "neighbors": [
       "arg",
@@ -301,8 +301,8 @@
     "foodPerMonth": 42,
     "defense": 32,
     "center": {
-      "x": 7639.7,
-      "y": 3171.9
+      "x": 7355.6,
+      "y": 3298.9
     },
     "neighbors": [
       "idn",
@@ -318,8 +318,8 @@
     "foodPerMonth": 37,
     "defense": 28,
     "center": {
-      "x": 5057.2,
-      "y": 1905.5
+      "x": 5057.3,
+      "y": 1905.3
     },
     "neighbors": [
       "grc",
@@ -337,8 +337,8 @@
     "foodPerMonth": 38,
     "defense": 28,
     "center": {
-      "x": 4268.3,
-      "y": 2873.5
+      "x": 4256.6,
+      "y": 2928.7
     },
     "neighbors": [
       "civ",
@@ -357,8 +357,8 @@
     "foodPerMonth": 45,
     "defense": 33,
     "center": {
-      "x": 5435.4,
-      "y": 3160.9
+      "x": 5435.2,
+      "y": 3160.1
     },
     "neighbors": [
       "cod",
@@ -376,8 +376,8 @@
     "foodPerMonth": 38,
     "defense": 28,
     "center": {
-      "x": 7527.9,
-      "y": 2889.0
+      "x": 7533.0,
+      "y": 3013.7
     },
     "neighbors": [
       "lao",
@@ -393,8 +393,8 @@
     "foodPerMonth": 38,
     "defense": 29,
     "center": {
-      "x": 4562.2,
-      "y": 3133.9
+      "x": 4563.0,
+      "y": 3133.4
     },
     "neighbors": [
       "caf",
@@ -414,8 +414,8 @@
     "foodPerMonth": 20,
     "defense": 10,
     "center": {
-      "x": 1824.0,
-      "y": 1392.3
+      "x": 1826.6,
+      "y": 1391.5
     },
     "neighbors": [
       "grl",
@@ -430,8 +430,8 @@
     "foodPerMonth": 36,
     "defense": 26,
     "center": {
-      "x": 4855.5,
-      "y": 2955.8
+      "x": 5069.2,
+      "y": 2981.6
     },
     "neighbors": [
       "cmr",
@@ -453,8 +453,8 @@
     "foodPerMonth": 38,
     "defense": 28,
     "center": {
-      "x": 4847.0,
-      "y": 2559.9
+      "x": 4848.0,
+      "y": 2560.3
     },
     "neighbors": [
       "caf",
@@ -475,8 +475,8 @@
     "foodPerMonth": 38,
     "defense": 30,
     "center": {
-      "x": 2458.7,
-      "y": 4870.6
+      "x": 2457.7,
+      "y": 4871.4
     },
     "neighbors": [
       "arg",
@@ -494,7 +494,7 @@
     "foodPerMonth": 39,
     "defense": 31,
     "center": {
-      "x": 2412.8,
+      "x": 2412.6,
       "y": 3290.2
     },
     "neighbors": [
@@ -513,8 +513,8 @@
     "foodPerMonth": 46,
     "defense": 35,
     "center": {
-      "x": 2303.2,
-      "y": 2724.5
+      "x": 2294.5,
+      "y": 2723.4
     },
     "neighbors": [
       "guianas",
@@ -530,8 +530,8 @@
     "foodPerMonth": 42,
     "defense": 33,
     "center": {
-      "x": 4915.9,
-      "y": 1666.4
+      "x": 4916.2,
+      "y": 1666.6
     },
     "neighbors": [
       "aut",
@@ -551,8 +551,8 @@
     "foodPerMonth": 40,
     "defense": 30,
     "center": {
-      "x": 5224.7,
-      "y": 3388.9
+      "x": 5224.2,
+      "y": 3389.7
     },
     "neighbors": [
       "ago",
@@ -576,8 +576,8 @@
     "foodPerMonth": 36,
     "defense": 29,
     "center": {
-      "x": 4680.6,
-      "y": 1262.7
+      "x": 4773.6,
+      "y": 1159.3
     },
     "neighbors": [
       "deu",
@@ -593,8 +593,8 @@
     "foodPerMonth": 44,
     "defense": 32,
     "center": {
-      "x": 5575.2,
-      "y": 2650.6
+      "x": 5574.5,
+      "y": 2649.9
     },
     "neighbors": [
       "eth",
@@ -613,7 +613,7 @@
     "foodPerMonth": 38,
     "defense": 29,
     "center": {
-      "x": 2106.2,
+      "x": 2104.9,
       "y": 3093.7
     },
     "neighbors": [
@@ -629,8 +629,8 @@
     "foodPerMonth": 40,
     "defense": 31,
     "center": {
-      "x": 5330.7,
-      "y": 2147.3
+      "x": 5330.6,
+      "y": 2147.4
     },
     "neighbors": [
       "irq",
@@ -649,8 +649,8 @@
     "foodPerMonth": 42,
     "defense": 32,
     "center": {
-      "x": 5097.1,
-      "y": 1140.7
+      "x": 5096.7,
+      "y": 1138.3
     },
     "neighbors": [
       "blr",
@@ -669,8 +669,8 @@
     "foodPerMonth": 40,
     "defense": 31,
     "center": {
-      "x": 5650.0,
-      "y": 2922.2
+      "x": 5650.5,
+      "y": 2921.3
     },
     "neighbors": [
       "greatLakes",
@@ -689,8 +689,8 @@
     "foodPerMonth": 41,
     "defense": 30,
     "center": {
-      "x": 9062.2,
-      "y": 3612.1
+      "x": 9205.0,
+      "y": 3795.5
     },
     "neighbors": [
       "nzl",
@@ -705,8 +705,8 @@
     "foodPerMonth": 36,
     "defense": 28,
     "center": {
-      "x": 5021.7,
-      "y": 892.3
+      "x": 5096.7,
+      "y": 1138.3
     },
     "neighbors": [
       "baltics",
@@ -723,8 +723,8 @@
     "foodPerMonth": 40,
     "defense": 32,
     "center": {
-      "x": 4462.2,
-      "y": 1879.1
+      "x": 4462.3,
+      "y": 1879.0
     },
     "neighbors": [
       "benelux",
@@ -745,8 +745,8 @@
     "foodPerMonth": 35,
     "defense": 26,
     "center": {
-      "x": 4683.7,
-      "y": 3262.0
+      "x": 4684.9,
+      "y": 3259.6
     },
     "neighbors": [
       "ago",
@@ -764,8 +764,8 @@
     "foodPerMonth": 40,
     "defense": 32,
     "center": {
-      "x": 4661.1,
-      "y": 1510.1
+      "x": 4660.8,
+      "y": 1509.2
     },
     "neighbors": [
       "aut",
@@ -788,8 +788,8 @@
     "foodPerMonth": 38,
     "defense": 29,
     "center": {
-      "x": 4308.5,
-      "y": 3038.7
+      "x": 4308.8,
+      "y": 3038.4
     },
     "neighbors": [
       "bfa",
@@ -807,7 +807,7 @@
     "foodPerMonth": 37,
     "defense": 29,
     "center": {
-      "x": 4949.4,
+      "x": 4949.3,
       "y": 1972.6
     },
     "neighbors": [
@@ -826,8 +826,8 @@
     "foodPerMonth": 31,
     "defense": 23,
     "center": {
-      "x": 3485.7,
-      "y": 617.1
+      "x": 3487.4,
+      "y": 615.0
     },
     "neighbors": [
       "can",
@@ -842,8 +842,8 @@
     "foodPerMonth": 45,
     "defense": 33,
     "center": {
-      "x": 3975.8,
-      "y": 2965.4
+      "x": 3975.3,
+      "y": 2967.7
     },
     "neighbors": [
       "civ",
@@ -859,8 +859,8 @@
     "foodPerMonth": 39,
     "defense": 29,
     "center": {
-      "x": 2816.9,
-      "y": 3253.7
+      "x": 2817.0,
+      "y": 3254.1
     },
     "neighbors": [
       "bra",
@@ -877,8 +877,8 @@
     "foodPerMonth": 37,
     "defense": 29,
     "center": {
-      "x": 4915.2,
-      "y": 1800.0
+      "x": 4915.5,
+      "y": 1800.1
     },
     "neighbors": [
       "aut",
@@ -898,8 +898,8 @@
     "foodPerMonth": 33,
     "defense": 25,
     "center": {
-      "x": 3993.5,
-      "y": 1132.6
+      "x": 3817.1,
+      "y": 853.0
     },
     "neighbors": [
       "grl",
@@ -914,8 +914,8 @@
     "foodPerMonth": 44,
     "defense": 35,
     "center": {
-      "x": 6703.6,
-      "y": 2645.0
+      "x": 6760.9,
+      "y": 2700.0
     },
     "neighbors": [
       "afg",
@@ -934,8 +934,8 @@
     "foodPerMonth": 41,
     "defense": 33,
     "center": {
-      "x": 7355.1,
-      "y": 3299.6
+      "x": 7508.3,
+      "y": 3510.7
     },
     "neighbors": [
       "aus",
@@ -952,8 +952,8 @@
     "foodPerMonth": 40,
     "defense": 31,
     "center": {
-      "x": 5940.4,
-      "y": 2139.6
+      "x": 5939.5,
+      "y": 2139.0
     },
     "neighbors": [
       "afg",
@@ -975,8 +975,8 @@
     "foodPerMonth": 39,
     "defense": 30,
     "center": {
-      "x": 5649.3,
-      "y": 2095.0
+      "x": 5649.4,
+      "y": 2095.5
     },
     "neighbors": [
       "egy",
@@ -995,8 +995,8 @@
     "foodPerMonth": 36,
     "defense": 28,
     "center": {
-      "x": 4196.9,
-      "y": 1632.3
+      "x": 4195.6,
+      "y": 1633.0
     },
     "neighbors": [
       "benelux",
@@ -1012,8 +1012,8 @@
     "foodPerMonth": 46,
     "defense": 35,
     "center": {
-      "x": 5410.1,
-      "y": 2285.9
+      "x": 5410.0,
+      "y": 2285.8
     },
     "neighbors": [
       "egy",
@@ -1031,8 +1031,8 @@
     "foodPerMonth": 39,
     "defense": 32,
     "center": {
-      "x": 4786.3,
-      "y": 1842.8
+      "x": 4781.3,
+      "y": 1843.6
     },
     "neighbors": [
       "aut",
@@ -1054,8 +1054,8 @@
     "foodPerMonth": 38,
     "defense": 29,
     "center": {
-      "x": 4063.0,
-      "y": 3093.9
+      "x": 4062.3,
+      "y": 3094.2
     },
     "neighbors": [
       "bfa",
@@ -1072,8 +1072,8 @@
     "foodPerMonth": 40,
     "defense": 33,
     "center": {
-      "x": 8059.7,
-      "y": 1983.0
+      "x": 7952.6,
+      "y": 2223.3
     },
     "neighbors": [
       "kor",
@@ -1088,8 +1088,8 @@
     "foodPerMonth": 38,
     "defense": 29,
     "center": {
-      "x": 6111.2,
-      "y": 1800.4
+      "x": 6111.7,
+      "y": 1801.0
     },
     "neighbors": [
       "caucasus",
@@ -1111,8 +1111,8 @@
     "foodPerMonth": 39,
     "defense": 30,
     "center": {
-      "x": 5605.3,
-      "y": 3248.5
+      "x": 5605.0,
+      "y": 3248.2
     },
     "neighbors": [
       "eth",
@@ -1130,8 +1130,8 @@
     "foodPerMonth": 44,
     "defense": 34,
     "center": {
-      "x": 5818.6,
-      "y": 2364.3
+      "x": 5817.9,
+      "y": 2363.1
     },
     "neighbors": [
       "irn",
@@ -1149,8 +1149,8 @@
     "foodPerMonth": 36,
     "defense": 27,
     "center": {
-      "x": 6311.0,
-      "y": 2043.9
+      "x": 6993.6,
+      "y": 1845.2
     },
     "neighbors": [
       "chn",
@@ -1168,8 +1168,8 @@
     "foodPerMonth": 37,
     "defense": 27,
     "center": {
-      "x": 7092.2,
-      "y": 2736.1
+      "x": 7218.6,
+      "y": 2807.1
     },
     "neighbors": [
       "chn",
@@ -1187,8 +1187,8 @@
     "foodPerMonth": 37,
     "defense": 28,
     "center": {
-      "x": 4976.2,
-      "y": 2125.3
+      "x": 4983.9,
+      "y": 2121.1
     },
     "neighbors": [
       "dza",
@@ -1207,8 +1207,8 @@
     "foodPerMonth": 38,
     "defense": 28,
     "center": {
-      "x": 5599.5,
-      "y": 4046.7
+      "x": 5600.1,
+      "y": 4045.4
     },
     "neighbors": [
       "moz"
@@ -1222,8 +1222,8 @@
     "foodPerMonth": 38,
     "defense": 28,
     "center": {
-      "x": 4211.0,
-      "y": 2385.5
+      "x": 4209.3,
+      "y": 2387.8
     },
     "neighbors": [
       "bfa",
@@ -1246,8 +1246,8 @@
     "foodPerMonth": 36,
     "defense": 26,
     "center": {
-      "x": 4019.5,
-      "y": 2634.7
+      "x": 4019.9,
+      "y": 2634.9
     },
     "neighbors": [
       "bfa",
@@ -1265,8 +1265,8 @@
     "foodPerMonth": 40,
     "defense": 12,
     "center": {
-      "x": 1633.3,
-      "y": 2652.8
+      "x": 1632.2,
+      "y": 2653.4
     },
     "neighbors": [
       "centralAmerica",
@@ -1281,8 +1281,8 @@
     "foodPerMonth": 36,
     "defense": 26,
     "center": {
-      "x": 6992.6,
-      "y": 1845.9
+      "x": 7641.5,
+      "y": 2099.4
     },
     "neighbors": [
       "chn",
@@ -1298,8 +1298,8 @@
     "foodPerMonth": 39,
     "defense": 30,
     "center": {
-      "x": 4176.8,
-      "y": 2121.6
+      "x": 4176.7,
+      "y": 2121.2
     },
     "neighbors": [
       "dza",
@@ -1316,8 +1316,8 @@
     "foodPerMonth": 38,
     "defense": 29,
     "center": {
-      "x": 5295.8,
-      "y": 3972.3
+      "x": 5294.3,
+      "y": 3974.2
     },
     "neighbors": [
       "cod",
@@ -1336,8 +1336,8 @@
     "foodPerMonth": 39,
     "defense": 30,
     "center": {
-      "x": 6867.5,
-      "y": 2722.8
+      "x": 7125.0,
+      "y": 2879.9
     },
     "neighbors": [
       "bgd",
@@ -1355,8 +1355,8 @@
     "foodPerMonth": 35,
     "defense": 26,
     "center": {
-      "x": 4781.8,
-      "y": 4129.6
+      "x": 4782.0,
+      "y": 4129.7
     },
     "neighbors": [
       "ago",
@@ -1374,8 +1374,8 @@
     "foodPerMonth": 38,
     "defense": 29,
     "center": {
-      "x": 6551.7,
-      "y": 2503.6
+      "x": 6788.9,
+      "y": 2566.3
     },
     "neighbors": [
       "bgd",
@@ -1391,8 +1391,8 @@
     "foodPerMonth": 36,
     "defense": 28,
     "center": {
-      "x": 8638.7,
-      "y": 4840.8
+      "x": 8829.1,
+      "y": 4654.2
     },
     "neighbors": [
       "aus",
@@ -1407,8 +1407,8 @@
     "foodPerMonth": 38,
     "defense": 28,
     "center": {
-      "x": 4439.4,
-      "y": 2515.7
+      "x": 4440.0,
+      "y": 2515.9
     },
     "neighbors": [
       "bfa",
@@ -1430,8 +1430,8 @@
     "foodPerMonth": 41,
     "defense": 32,
     "center": {
-      "x": 4612.6,
-      "y": 2879.4
+      "x": 4611.6,
+      "y": 2879.7
     },
     "neighbors": [
       "bfa",
@@ -1453,8 +1453,8 @@
     "foodPerMonth": 38,
     "defense": 29,
     "center": {
-      "x": 8034.8,
-      "y": 1711.9
+      "x": 8059.0,
+      "y": 1982.8
     },
     "neighbors": [
       "chn",
@@ -1470,8 +1470,8 @@
     "foodPerMonth": 36,
     "defense": 29,
     "center": {
-      "x": 5021.7,
-      "y": 892.3
+      "x": 5096.7,
+      "y": 1138.3
     },
     "neighbors": [
       "baltics",
@@ -1489,8 +1489,8 @@
     "foodPerMonth": 41,
     "defense": 32,
     "center": {
-      "x": 6191.3,
-      "y": 2447.6
+      "x": 6552.5,
+      "y": 2504.0
     },
     "neighbors": [
       "afg",
@@ -1511,8 +1511,8 @@
     "foodPerMonth": 37,
     "defense": 28,
     "center": {
-      "x": 8164.2,
-      "y": 3623.8
+      "x": 8376.4,
+      "y": 3579.7
     },
     "neighbors": [
       "aus",
@@ -1528,8 +1528,8 @@
     "foodPerMonth": 37,
     "defense": 28,
     "center": {
-      "x": 2818.7,
-      "y": 4139.4
+      "x": 2818.9,
+      "y": 4139.8
     },
     "neighbors": [
       "arg",
@@ -1546,8 +1546,8 @@
     "foodPerMonth": 44,
     "defense": 35,
     "center": {
-      "x": 7064.1,
-      "y": 2205.0
+      "x": 7064.6,
+      "y": 2203.6
     },
     "neighbors": [
       "afg",
@@ -1577,8 +1577,8 @@
     "foodPerMonth": 39,
     "defense": 30,
     "center": {
-      "x": 2369.9,
-      "y": 3697.8
+      "x": 2370.4,
+      "y": 3696.8
     },
     "neighbors": [
       "bol",
@@ -1596,8 +1596,8 @@
     "foodPerMonth": 40,
     "defense": 31,
     "center": {
-      "x": 7770.5,
-      "y": 2363.3
+      "x": 7638.8,
+      "y": 3037.4
     },
     "neighbors": [
       "malaysiaBrunei",
@@ -1612,8 +1612,8 @@
     "foodPerMonth": 39,
     "defense": 31,
     "center": {
-      "x": 5066.2,
-      "y": 1477.8
+      "x": 5064.6,
+      "y": 1478.3
     },
     "neighbors": [
       "aut",
@@ -1635,8 +1635,8 @@
     "foodPerMonth": 37,
     "defense": 29,
     "center": {
-      "x": 4176.8,
-      "y": 2121.6
+      "x": 3930.5,
+      "y": 2362.2
     },
     "neighbors": [
       "dza",
@@ -1651,8 +1651,8 @@
     "foodPerMonth": 36,
     "defense": 27,
     "center": {
-      "x": 4891.3,
-      "y": 3229.7
+      "x": 4892.5,
+      "y": 3229.0
     },
     "neighbors": [
       "ago",
@@ -1672,7 +1672,7 @@
     "defense": 30,
     "center": {
       "x": 5037.1,
-      "y": 1539.8
+      "y": 1539.9
     },
     "neighbors": [
       "bgr",
@@ -1691,8 +1691,8 @@
     "foodPerMonth": 42,
     "defense": 36,
     "center": {
-      "x": 6960.2,
-      "y": 1219.3
+      "x": 6960.8,
+      "y": 1220.0
     },
     "neighbors": [
       "baltics",
@@ -1729,7 +1729,7 @@
     "defense": 31,
     "center": {
       "x": 5549.8,
-      "y": 2350.6
+      "y": 2351.8
     },
     "neighbors": [
       "egy",
@@ -1750,8 +1750,8 @@
     "foodPerMonth": 38,
     "defense": 28,
     "center": {
-      "x": 4088.8,
-      "y": 2781.6
+      "x": 4088.1,
+      "y": 2781.1
     },
     "neighbors": [
       "mli",
@@ -1767,8 +1767,8 @@
     "foodPerMonth": 39,
     "defense": 31,
     "center": {
-      "x": 4993.6,
-      "y": 4351.9
+      "x": 4994.0,
+      "y": 4350.8
     },
     "neighbors": [
       "bwa",
@@ -1785,8 +1785,8 @@
     "foodPerMonth": 39,
     "defense": 31,
     "center": {
-      "x": 7640.2,
-      "y": 2101.7
+      "x": 7830.3,
+      "y": 2328.4
     },
     "neighbors": [
       "chn",
@@ -1802,8 +1802,8 @@
     "foodPerMonth": 37,
     "defense": 27,
     "center": {
-      "x": 5165.4,
-      "y": 2994.1
+      "x": 5402.5,
+      "y": 2924.2
     },
     "neighbors": [
       "caf",
@@ -1825,7 +1825,7 @@
     "defense": 31,
     "center": {
       "x": 4292.2,
-      "y": 2100.8
+      "y": 2100.2
     },
     "neighbors": [
       "dza",
@@ -1842,8 +1842,8 @@
     "foodPerMonth": 39,
     "defense": 29,
     "center": {
-      "x": 5170.0,
-      "y": 2577.1
+      "x": 5170.8,
+      "y": 2576.2
     },
     "neighbors": [
       "caf",
@@ -1864,8 +1864,8 @@
     "foodPerMonth": 37,
     "defense": 29,
     "center": {
-      "x": 4857.4,
-      "y": 1199.6
+      "x": 4856.6,
+      "y": 1202.2
     },
     "neighbors": [
       "baltics",
@@ -1885,8 +1885,8 @@
     "foodPerMonth": 37,
     "defense": 29,
     "center": {
-      "x": 4614.1,
-      "y": 1870.9
+      "x": 4613.7,
+      "y": 1871.3
     },
     "neighbors": [
       "aut",
@@ -1903,8 +1903,8 @@
     "foodPerMonth": 38,
     "defense": 30,
     "center": {
-      "x": 7953.9,
-      "y": 2222.6
+      "x": 7769.1,
+      "y": 2364.8
     },
     "neighbors": [
       "chn",
@@ -1919,8 +1919,8 @@
     "foodPerMonth": 37,
     "defense": 27,
     "center": {
-      "x": 6223.8,
-      "y": 2155.2
+      "x": 6422.2,
+      "y": 2271.3
     },
     "neighbors": [
       "afg",
@@ -1941,8 +1941,8 @@
     "foodPerMonth": 39,
     "defense": 30,
     "center": {
-      "x": 5379.9,
-      "y": 3425.3
+      "x": 5378.7,
+      "y": 3424.1
     },
     "neighbors": [
       "cod",
@@ -1960,8 +1960,8 @@
     "foodPerMonth": 40,
     "defense": 31,
     "center": {
-      "x": 7055.3,
-      "y": 2822.6
+      "x": 7089.3,
+      "y": 3017.3
     },
     "neighbors": [
       "chn",
@@ -1981,8 +1981,8 @@
     "foodPerMonth": 37,
     "defense": 28,
     "center": {
-      "x": 4705.1,
-      "y": 1979.2
+      "x": 4709.2,
+      "y": 1984.0
     },
     "neighbors": [
       "dza",
@@ -1998,8 +1998,8 @@
     "foodPerMonth": 40,
     "defense": 31,
     "center": {
-      "x": 5221.1,
-      "y": 1779.4
+      "x": 5222.9,
+      "y": 1784.6
     },
     "neighbors": [
       "bgr",
@@ -2020,8 +2020,8 @@
     "foodPerMonth": 36,
     "defense": 28,
     "center": {
-      "x": 5649.3,
-      "y": 2095.0
+      "x": 6102.4,
+      "y": 2320.5
     },
     "neighbors": [
       "afg",
@@ -2042,7 +2042,7 @@
     "defense": 30,
     "center": {
       "x": 5141.6,
-      "y": 1613.5
+      "y": 1613.7
     },
     "neighbors": [
       "blr",
@@ -2062,8 +2062,8 @@
     "foodPerMonth": 39,
     "defense": 32,
     "center": {
-      "x": 4348.5,
-      "y": 1602.5
+      "x": 4346.7,
+      "y": 1601.9
     },
     "neighbors": [
       "benelux",
@@ -2079,8 +2079,8 @@
     "foodPerMonth": 24,
     "defense": 14,
     "center": {
-      "x": 1793.7,
-      "y": 2127.4
+      "x": 1794.1,
+      "y": 2126.1
     },
     "neighbors": [
       "can",
@@ -2097,8 +2097,8 @@
     "foodPerMonth": 36,
     "defense": 27,
     "center": {
-      "x": 2887.2,
-      "y": 4445.7
+      "x": 2886.9,
+      "y": 4445.4
     },
     "neighbors": [
       "arg",
@@ -2113,8 +2113,8 @@
     "foodPerMonth": 39,
     "defense": 29,
     "center": {
-      "x": 6014.1,
-      "y": 2046.1
+      "x": 6199.5,
+      "y": 2084.5
     },
     "neighbors": [
       "afg",
@@ -2135,8 +2135,8 @@
     "foodPerMonth": 38,
     "defense": 30,
     "center": {
-      "x": 2614.4,
-      "y": 3182.9
+      "x": 2613.8,
+      "y": 3183.1
     },
     "neighbors": [
       "bra",
@@ -2153,8 +2153,8 @@
     "foodPerMonth": 40,
     "defense": 31,
     "center": {
-      "x": 7674.3,
-      "y": 2234.5
+      "x": 7527.7,
+      "y": 2898.0
     },
     "neighbors": [
       "chn",
@@ -2171,8 +2171,8 @@
     "foodPerMonth": 38,
     "defense": 29,
     "center": {
-      "x": 5826.4,
-      "y": 2659.2
+      "x": 5827.9,
+      "y": 2655.5
     },
     "neighbors": [
       "eth",
@@ -2189,8 +2189,8 @@
     "foodPerMonth": 38,
     "defense": 28,
     "center": {
-      "x": 5289.4,
-      "y": 3636.9
+      "x": 5289.5,
+      "y": 3636.1
     },
     "neighbors": [
       "ago",
@@ -2210,8 +2210,8 @@
     "foodPerMonth": 38,
     "defense": 28,
     "center": {
-      "x": 5079.8,
-      "y": 3856.6
+      "x": 5081.5,
+      "y": 3855.6
     },
     "neighbors": [
       "bwa",
